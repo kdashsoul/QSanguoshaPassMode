@@ -1,0 +1,29 @@
+<<<<<<< HEAD
+debug/
+release/
+ui_*
+Makefile*
+object_script*
+*.pro.user
+sanguosha.qm
+config.ini
+swig/sanguosha_wrap.cxx
+records/*
+users.db
+doc/*.html
+pull.bat
+=======
+debug/
+release/
+ui_*
+Makefile*
+object_script*
+*.pro.user
+sanguosha.qm
+config.ini
+swig/sanguosha_wrap.cxx
+records/*
+users.db
+doc/*.html
+swig/*.bat
+>>>>>>> ab7c624d8390fb6b7a126c408fcdf80c8bf197a5
