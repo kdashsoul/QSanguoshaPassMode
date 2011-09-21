@@ -171,7 +171,7 @@ bool PassMode::askForLoadData(Room *room) const{
         room->setPlayerProperty(lord, "kingdom", general->getKingdom());
 
     lord->gainMark("@exp", save->exp);
-    room->setPlayerMark(lord,"@nirvana",save->nirvana);
+    room->setPlayerMark(lord, "@nirvana", save->nirvana);
 
     /*QString text = tr("Load success! This is the %1 time, the %2 stage")
             .arg(QString::number(save->times))
@@ -189,7 +189,7 @@ void PassMode::initNextStageStart(ServerPlayer *player) const{
     room->setPlayerProperty(player, "phase", "not_active");
     room->setCurrent(room->getLord());
     foreach(ServerPlayer *p, room->getPlayers()){
-        int n = p->isLord() ? 6 : 4 ;
+        int n = p->isLord() ? 6 : 4;
         if(p->hasSkill("fenjin"))
             n ++ ;
         p->drawCards(n);
@@ -221,7 +221,7 @@ void PassMode::initGameStart(ServerPlayer *player) const{
         if(player->getKingdom() != general->getKingdom())
             room->setPlayerProperty(player, "kingdom", general->getKingdom());
     }
-    int n = player->isLord() ? 6 : 3 ;
+    int n = player->isLord() ? 6 : 4;
     if(player->hasSkill("fenjin"))
         n ++ ;
     player->drawCards(n);
