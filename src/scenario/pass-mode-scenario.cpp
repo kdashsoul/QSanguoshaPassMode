@@ -171,6 +171,7 @@ bool PassMode::askForLoadData(Room *room) const{
         room->setPlayerProperty(lord, "kingdom", general->getKingdom());
 
     lord->gainMark("@exp", save->exp);
+    room->setPlayerMark(lord,"@nirvana",save->nirvana);
 
     /*QString text = tr("Load success! This is the %1 time, the %2 stage")
             .arg(QString::number(save->times))
