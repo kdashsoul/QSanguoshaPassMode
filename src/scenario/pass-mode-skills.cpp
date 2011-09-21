@@ -109,7 +109,7 @@ public:
 
     virtual const Card *viewAs(const QList<CardItem *> &cards) const{
         int n = qMax(1, 4 - Self->getHp());
-        if(cards.length() != n)
+        if(cards.empty() || cards.length() == n)
             return NULL;
 
         LingxiCard *lingxi_card = new LingxiCard;
@@ -735,11 +735,12 @@ public:
 
     virtual bool trigger(TriggerEvent , ServerPlayer *zhaoyun, QVariant &data) const{
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
-
         Room *room = zhaoyun->getRoom();
-
-        if(effect.to->getWeapon() != NULL && zhaoyun->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
-            room->moveCardTo(effect.to->getWeapon(),zhaoyun,Player::Hand);
+        if(effect.to->getWeapon() != NULL && !zhaoyun->isKongcheng() && zhaoyun->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+            if(room->askForDiscard(zhaoyun, objectName(), 1 , true)){
+                room->playSkillEffect(objectName());
+                room->moveCardTo(effect.to->getWeapon(),zhaoyun,Player::Hand);
+            }
         }
         return false;
     }
@@ -1208,12 +1209,14 @@ public:
         }else{
             if(!xuchu->isKongcheng() && xuchu->askForSkillInvoke(objectName(), data))
             {
-                xuchu->setFlags("guantong_used");
-                room->askForDiscard(xuchu, objectName(), 1) ;
-                damage.to = player->getNextAlive();
-                damage.nature = DamageStruct::Normal ;
-                damage.damage = 1 ;
-                room->damage(damage);
+                if(room->askForDiscard(xuchu, objectName(), 1 , true)){
+                    room->playSkillEffect(objectName());
+                    xuchu->setFlags("guantong_used");
+                    damage.to = player->getNextAlive();
+                    damage.nature = DamageStruct::Normal ;
+                    damage.damage = 1 ;
+                    room->damage(damage);
+                }
             }
         }
         return false;
@@ -1545,12 +1548,10 @@ public:
                         p->throwAllEquips();
                         count++;
                     }
-                    if(count < 5){
-                        RecoverStruct recover;
-                        recover.who = lumeng;
-                        recover.recover = lumeng->getLostHp();
-                        room->recover(lumeng,recover);
-                    }
+                    RecoverStruct recover;
+                    recover.who = lumeng;
+                    recover.recover = lumeng->getLostHp();
+                    room->recover(lumeng,recover);
                 }
                 lumeng->throwAllEquips();
             }
@@ -2017,7 +2018,6 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         if(player->getPhase() == Player::Discard)
             return true;
-
         return false;
     }
 };

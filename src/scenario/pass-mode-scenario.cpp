@@ -173,12 +173,12 @@ bool PassMode::askForLoadData(Room *room) const{
 
     lord->gainMark("@exp", save->exp);
 
-    QString text = tr("Load success! This is the %1 time, the %2 stage")
+    /*QString text = tr("Load success! This is the %1 time, the %2 stage")
             .arg(QString::number(save->times))
             .arg(QString::number(save->stage+1));
 
 
-    //QMessageBox::information(NULL, tr("Loaded"), text);
+    QMessageBox::information(NULL, tr("Loaded"), text);*/
 
     return true;
 }
@@ -189,7 +189,7 @@ void PassMode::initNextStageStart(ServerPlayer *player) const{
     room->setPlayerProperty(player, "phase", "not_active");
     room->setCurrent(room->getLord());
     foreach(ServerPlayer *p, room->getPlayers()){
-        int n = p->isLord() ? 6 : 3 ;
+        int n = p->isLord() ? 6 : 4 ;
         if(p->hasSkill("fenjin"))
             n ++ ;
         p->drawCards(n);
