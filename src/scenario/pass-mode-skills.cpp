@@ -2015,3 +2015,178 @@ public:
             return NULL;
     }
 };
+
+void PassModeScenario::addGeneralAndSkills(){
+    lord = "shenzhaoyun";
+    rebels << "shizu" << "gongshou" << "yaodao";
+
+    skills << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
+            << new RendePass << new JijiangPass << new WenjiuPass << new TuodaoPass << new Baonu << new DuanhePass << new TiejiPass << new MashuPass
+                << new JizhiPass << new JumouPass << new ShipoPass << new Longhou
+            << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new Jueduan
+                << new YijiPass << new Guimou << new LuoshenPass << new LuoyiPass << new Guantong  << new TuxiPass
+            << new ZhihengPass << new FanjianPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass << new LianyingPass
+                << new JieyinPass << new Tongji << new Jielue << new Yuyue << new Shuangxing
+            << new Zhanshen << new Nuozhan << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu
+            << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Lingxi << new Duanyan << new Xiongzi
+            << new Kuangji;
+
+    related_skills.insertMulti("wenjiu_pass", "#luoyi");
+    related_skills.insertMulti("qingnang_pass", "#qingnang");
+    related_skills.insertMulti("badao_pass", "#badao_cost");
+
+    General *shizu = new General(this,"shizu","evil",3, true, true);
+    shizu->addSkill("shiqi");
+
+    General *gongshou = new General(this,"gongshou","evil",3, false, true);
+    gongshou->addSkill("zhengfeng");
+    gongshou->addSkill("qianggong");
+
+    General *jianwei = new General(this,"jianwei","evil",3, false, true);
+    jianwei->addSkill("pojia");
+    jianwei->addSkill("zhanshang_pass");
+
+    General *qibing = new General(this,"qibing","evil",3, true, true);
+    qibing->addSkill("qishu");
+
+    General *huwei = new General(this,"huwei","evil",3, true, true);
+    huwei->addSkill("chenwen");
+    huwei->addSkill("zhongzhuang");
+
+    General *yaodao = new General(this,"yaodao","evil",3, true, true);
+    yaodao->addSkill("yaoshu");
+    yaodao->addSkill("jitian");
+
+    General *liubei_p = new General(this,"liubei_p","hero",4, true, true);
+    liubei_p->addSkill("rende_pass");
+    liubei_p->addSkill("jijiang_pass");
+
+    General *guanyu_p = new General(this,"guanyu_p","hero",4, true, true);
+    guanyu_p->addSkill("wusheng");
+    guanyu_p->addSkill("wenjiu_pass");
+    guanyu_p->addSkill("#luoyi");
+    guanyu_p->addSkill("tuodao_pass");
+
+    General *zhangfei_p = new General(this,"zhangfei_p","hero",4, true, true);
+    zhangfei_p->addSkill("paoxiao");
+    zhangfei_p->addSkill("baonu");
+    zhangfei_p->addSkill("duanhe_pass");
+
+    General *zhaoyun_p = new General(this,"zhaoyun_p","hero",4, true, true);
+    zhaoyun_p->addSkill("longdan");
+    zhaoyun_p->addSkill(new Skill("longwei"));
+    zhaoyun_p->addSkill("longhou");
+
+    General *machao_p = new General(this,"machao_p","hero",4, true, true);
+    machao_p->addSkill("tieji_pass");
+    machao_p->addSkill("mashu_pass");
+
+    General *zhugeliang_p = new General(this,"zhugeliang_p","hero",3, true, true);
+    zhugeliang_p->addSkill("super_guanxing");
+    zhugeliang_p->addSkill("kongcheng");
+
+    General *huangyueying_p = new General(this,"huangyueying_p","hero",3, false, true);
+    huangyueying_p->addSkill("jizhi_pass");
+    huangyueying_p->addSkill("qicai");
+    huangyueying_p->addSkill("shipo_pass");
+    huangyueying_p->addSkill("jumou_pass");
+
+    General *caocao_p = new General(this,"caocao_p","hero",4, true, true);
+    caocao_p->addSkill("jianxiong_pass");
+    caocao_p->addSkill("xietian");
+    caocao_p->addSkill("badao_pass");
+    caocao_p->addSkill("#badao_cost");
+
+    General *simayi_p = new General(this,"simayi_p","hero",3, true, true);
+    simayi_p->addSkill("guicai");
+    simayi_p->addSkill("fankui_pass");
+    simayi_p->addSkill("langgu");
+
+    General *xiahoudun_p = new General(this,"xiahoudun_p","hero",4, true, true);
+    xiahoudun_p->addSkill("ganglie_pass");
+    xiahoudun_p->addSkill("jueduan");
+
+    General *guojia_p = new General(this,"guojia_p","hero",3, true, true);
+    guojia_p->addSkill("yiji_pass");
+    guojia_p->addSkill("guimou");
+
+    General *zhenji_p = new General(this,"zhenji_p","hero",3, false, true);
+    zhenji_p->addSkill("luoshen_pass");
+    zhenji_p->addSkill("qingguo");
+
+    General *xuchu_p = new General(this,"xuchu_p","hero",4, true, true);
+    xuchu_p->addSkill("luoyi_pass");
+    xuchu_p->addSkill("guantong");
+    xuchu_p->addSkill("#luoyi");
+
+    General *zhangliao_p = new General(this,"zhangliao_p","hero",4, true, true);
+    zhangliao_p->addSkill("tuxi_pass");
+
+    General *sunquan_p = new General(this,"sunquan_p","hero",4, true, true);
+    sunquan_p->addSkill("zhiheng_pass");
+
+    General *zhouyu_p = new General(this, "zhouyu_p", "hero", 3, true, true);
+    zhouyu_p->addSkill("yingzi");
+    zhouyu_p->addSkill("fanjian_pass");
+
+    General *lumeng_p = new General(this, "lumeng_p", "hero", 4 ,true, true);
+    lumeng_p->addSkill("keji_pass");
+    lumeng_p->addSkill("baiyi");
+    lumeng_p->addSkill("dujiang_pass");
+
+    General *luxun_p = new General(this, "luxun_p", "hero", 3, true, true);
+    luxun_p->addSkill("qianxun");
+    luxun_p->addSkill("lianying_pass");
+
+    General *ganning_p = new General(this, "ganning_p", "hero", 4 ,true, true);
+    ganning_p->addSkill("qixi");
+    ganning_p->addSkill("tongji");
+    ganning_p->addSkill("jielue");
+
+    General *huanggai_p = new General(this, "huanggai_p", "hero", 3 ,true, true);
+    huanggai_p->addSkill("kurou_pass");
+    huanggai_p->addSkill("zhaxiang");
+
+    General *daqiao_p = new General(this, "daqiao_p", "hero", 3, false, true);
+    daqiao_p->addSkill("guose");
+    daqiao_p->addSkill("yuyue");
+    daqiao_p->addSkill("shuangxing");
+
+    General *sunshangxiang_p = new General(this, "sunshangxiang_p", "hero", 3, false, true);
+    sunshangxiang_p->addSkill("jieyin_pass");
+    sunshangxiang_p->addSkill("xiaoji");
+
+
+    General *lubu_p = new General(this, "lubu_p", "hero", 4, true, true);
+    lubu_p->addSkill("wushuang");
+    lubu_p->addSkill("zhanshen");
+    lubu_p->addSkill("nuozhan");
+
+    General *huatuo_p = new General(this, "huatuo_p", "hero", 3, true, true);
+    huatuo_p->addSkill("qingnang_pass");
+    huatuo_p->addSkill("#qingnang");
+    huatuo_p->addSkill("jijiu");
+    huatuo_p->addSkill("xuanhu");
+
+    General *diaochan_p = new General(this, "diaochan_p", "hero", 3, false, true);
+    diaochan_p->addSkill("lijian_pass");
+    diaochan_p->addSkill("biyue");
+
+    addMetaObject<DuanyanCard>();
+    addMetaObject<LingxiCard>();
+    addMetaObject<YaoshuCard>();
+    addMetaObject<RendePassCard>();
+    addMetaObject<JijiangPassCard>();
+    addMetaObject<TuodaoPassCard>();
+    addMetaObject<DuanhePassCard>();
+    addMetaObject<LuoyiPassCard>();
+    addMetaObject<TuxiPassCard>();
+    addMetaObject<ZhihengPassCard>();
+    addMetaObject<FanjianPassCard>();
+    addMetaObject<KurouPassCard>();
+    addMetaObject<ZhaxiangCard>();
+    addMetaObject<JieyinPassCard>();
+    addMetaObject<YuyueCard>();
+    addMetaObject<LijianPassCard>();
+    addMetaObject<QingnangPassCard>();
+}

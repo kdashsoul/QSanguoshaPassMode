@@ -167,6 +167,8 @@ public:
     virtual void getRoles(char *roles) const;
     virtual void onTagSet(Room *room, const QString &key) const;
     virtual bool generalSelection() const;
+private:
+    void addGeneralAndSkills();
 };
 
 struct SaveDataStruct{
