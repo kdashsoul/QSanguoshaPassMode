@@ -6,9 +6,15 @@
 #include <QMessageBox>
 
 SaveDataStruct::SaveDataStruct()
-    :size(5), stage(0), exp(0), nirvana(0), times(0),
+    :size(0), stage(0), exp(0), nirvana(0), times(1),
     read_success(false)
 {}
+
+int SaveDataStruct::default_size = 5;
+
+bool SaveDataStruct::canRead() const{
+    return default_size == this->size;
+}
 
 PassMode::PassMode(QObject *parent)
     :GameRule(parent)
@@ -60,11 +66,6 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
     switch(event){
     case GameStart:{
-            if(!player->isLord() && room->getTag("Times").toInt()/3 > 0){
-                room->setPlayerProperty(player, "maxhp", player->getMaxHP()+(room->getTag("Times").toInt()/3));
-                room->setPlayerProperty(player, "hp", player->getMaxHP());
-            }
-
             if(room->getTag("Stage").toInt() == 0 && askForLoadData(room)){
                 setNextStageInfo(room, room->getTag("Stage").toInt()-1);
 
@@ -143,7 +144,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 bool PassMode::askForLoadData(Room *room) const{
     ServerPlayer *lord = room->getLord();
     SaveDataStar save = askForReadData();
-    if(!save->read_success)
+    if(!save->canRead() || !save->read_success)
         return false;
 
     QString choice = room->askForChoice(lord, "savefile", "read+deletesave+notread");
@@ -227,6 +228,18 @@ void PassMode::initGameStart(ServerPlayer *player) const{
     player->drawCards(n);
 }
 
+void PassMode::setTimesDifficult(Room *room) const{
+    int times = room->getTag("Times").toInt();
+    foreach(ServerPlayer* player, room->getPlayers()){
+        if(!player->isLord() && times/2 > 0){
+            room->setPlayerProperty(player,
+                                    "maxhp",
+                                    player->getMaxHP()+ (2/times > 1 ? (int)(times/3.0 + 0.5) : 2/times));
+            room->setPlayerProperty(player, "hp", player->getMaxHP());
+        }
+    }
+}
+
 bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
     Room *room = lord->getRoom();
     QString choice;
@@ -255,7 +268,7 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
         }
 
         if(exp < min_exp)
-            break ;
+            break;
     }
 
     return true;
@@ -313,7 +326,7 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
         room->setPlayerProperty(player, "chained", false);
     if(stage >= enemy_list.length()){
         SaveDataStar save = askForReadData();
-        if(save->read_success){
+        if(save->canRead() && save->read_success){
             save->stage = 0;
             save->times = room->getTag("Times").toInt()+1;
             save->exp = lord->getMark("@exp");
@@ -418,6 +431,8 @@ void PassMode::setNextStageInfo(Room *room, int stage) const{
             i ++ ;
         }
     }
+
+    setTimesDifficult(room);
 }
 
 SaveDataStruct *PassMode::askForReadData() const{
@@ -541,8 +556,10 @@ public:
                 data = data.toInt() - 1 ;
 
             int times = player->getRoom()->getTag("Times").toInt();
-            if(!player->isLord())
-                data = data.toInt() + (times-1)%2;
+            if(!player->isLord()){
+                    int n = (int)(2.0/times - 2/times + 0.5);
+                    data = data.toInt() + (n == 0 ? times/2 : n);
+                }
             break;
             }
 

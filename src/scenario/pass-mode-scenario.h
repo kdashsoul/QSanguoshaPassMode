@@ -185,6 +185,10 @@ struct SaveDataStruct{
     QString skills;
 
     bool read_success;
+
+    bool canRead() const;
+private:
+    static int default_size;
 };
 
 class PassMode: public GameRule{
@@ -199,6 +203,8 @@ public:
     void initNextStageStart(ServerPlayer *player) const;
     void setNextStageInfo(Room *room, int stage) const;
     bool goToNextStage(ServerPlayer *player, int stage) const;
+
+    void setTimesDifficult(Room *room) const;
 
     bool askForLearnSkill(ServerPlayer *lord) const;
     bool askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &min_exp) const;
