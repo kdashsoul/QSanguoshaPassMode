@@ -193,7 +193,6 @@ public:
     }
 };
 
-
 class Pojia: public TriggerSkill{
 public:
     Pojia():TriggerSkill("pojia"){
@@ -230,6 +229,24 @@ public:
     }
 };
 
+class ZhanshangPass: public TriggerSkill{
+public:
+    ZhanshangPass():TriggerSkill("zhanshang_pass"){
+        events << CardEffected;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        CardEffectStruct effect = data.value<CardEffectStruct>();
+
+        if(effect.card->inherits("AOE")){
+            Room *room = player->getRoom();
+            room->playSkillEffect(objectName());
+            player->drawCards(1);
+        }
+
+        return false;
+    }
+};
 
 class Qishu: public DistanceSkill{
 public:
@@ -640,12 +657,8 @@ void DuanhePassCard::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.from->getRoom();
 
     room->playSkillEffect("duanhe_pass");
-    if(!effect.to->getEquips().empty()){
-        int card_id = room->askForCardChosen(effect.from, effect.to, "e", "duanhe_pass");
-        room->throwCard(card_id);
-    }
-    if(!effect.to->isKongcheng()){
-        int card_id = effect.to->getRandomHandCardId();
+    if(!effect.to->isNude()){
+        int card_id = room->askForCardChosen(effect.from, effect.to, "he", "duanhe_pass");
         room->throwCard(card_id);
     }
     effect.to->turnOver();
@@ -913,7 +926,6 @@ public:
         return false ;
     }
 };
-
 
 class Langgu: public PhaseChangeSkill{
 public:
@@ -1525,7 +1537,7 @@ public:
             int n = lumeng->getEquips().length();
             if(n > 0 && room->askForSkillInvoke(lumeng, objectName())){
                 if(n == 1){
-                    lumeng->drawCards(1);
+                    // lumeng->drawCards(1);
                 }else if(n == 2){
                     lumeng->drawCards(3);
                 }else if(n == 3){
@@ -1643,8 +1655,8 @@ void JieyinPassCard::onEffect(const CardEffectStruct &effect) const{
     room->recover(effect.to, recover, true);
 
     room->playSkillEffect("jieyin");
-    if(!effect.to->isNude()){
-        int card_id = room->askForCardChosen(effect.from, effect.to, "he", "jieyin_pass");
+    if(!effect.to->isKongcheng()){
+        int card_id = room->askForCardChosen(effect.from, effect.to, "h", "jieyin_pass");
         const Card *card = Sanguosha->getCard(card_id);
         room->moveCardTo(card, effect.from, Player::Hand, false);
     }
@@ -1730,7 +1742,7 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         DamageStruct damage = data.value<DamageStruct>();
-        if(damage.card && (damage.card->inherits("Slash") || damage.card->inherits("Duel")) && damage.to->isKongcheng())
+        if(damage.card && damage.card->inherits("Slash") && damage.to->isKongcheng())
         {
             Room *room = damage.to->getRoom();
 
@@ -2001,23 +2013,5 @@ public:
             return aa;
         }else
             return NULL;
-    }
-};
-
-class KezhiLv: public TriggerSkill{
-public:
-    KezhiLv(): TriggerSkill("kezhi2"){
-        events << PhaseChange;
-        frequency = Compulsory;
-    }
-
-    virtual int getPriority() const{
-        return 3;
-    }
-
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-        if(player->getPhase() == Player::Discard)
-            return true;
-        return false;
     }
 };

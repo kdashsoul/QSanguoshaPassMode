@@ -47,14 +47,12 @@ PassMode::PassMode(QObject *parent)
     skill_map_hidden.insert("kuangji", 65);
     skill_map_hidden.insert("mengjin", 70);
     skill_map_hidden.insert("zhiheng", 80);
-    skill_map_hidden.insert("kezhi2", 90);
     skill_map_hidden.insert("wansha", 110);
     skill_map_hidden.insert("jijiu", 120);
 
     skill_raise["kuangji"] = "nuhou";
     skill_raise["mengjin"] = "feiying";
     skill_raise["zhiheng"] = "lingxi";
-    skill_raise["kezhi2"] = "kezhi";
     skill_raise["wansha"] = "duanyan";
     skill_raise["jijiu"] = "tipo";
 }
@@ -98,7 +96,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
                 static QMap<QString, int> exp_map;
                 if(exp_map.isEmpty()){
-                    exp_map.insert("evil", 4);
+                    exp_map.insert("evil", 40);
                     exp_map.insert("hero", 8);
                 }
                 int exp = exp_map.value(player->getKingdom(), 10);
@@ -325,13 +323,13 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
     if(player->isChained())
         room->setPlayerProperty(player, "chained", false);
     if(stage >= enemy_list.length()){
-        SaveDataStar save = askForReadData();
+        /*SaveDataStar save = askForReadData();
         if(save->canRead() && save->read_success){
             save->stage = 0;
             save->times = room->getTag("Times").toInt()+1;
             save->exp = lord->getMark("@exp");
             askForSaveData(save);
-        }
+        }*/
 
         room->gameOver("lord");
         return false;
@@ -355,8 +353,6 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
     int exp = lord->getMark("@exp");
     lord->throwAllMarks();
     lord->gainMark("@exp", exp);
-    if(lord->hasSkill("niepan"))
-        lord->gainMark("@nirvana");
 
     return true;
 }
@@ -380,7 +376,7 @@ bool PassMode::askForSaveData(Room *room, int told_stage) const{
     save.lord       = lord->getGeneralName();
     save.lord_maxhp = lord->getMaxHP();
     save.exp        = lord->getMark("@exp");
-    save.nirvana    = lord->hasSkill("niepan") ? 1 : 0;
+    save.nirvana    = lord->getMark("@nirvana");
     save.skills     = lord_skills.join("+");
     save.times      = room->getTag("Times").toInt();
     save.size       = 5;
@@ -479,7 +475,7 @@ SaveDataStruct *PassMode::askForReadData() const{
 
                     QStringList texts = rx.capturedTexts();
                     int exp = texts.at(1).toInt();
-                    int nirvana = save->skills.contains("niepan") ? 1 : 0;
+                    int nirvana = texts.at(2).toInt();
                     save->exp = exp;
                     save->nirvana = nirvana;
                     break;
@@ -592,7 +588,7 @@ PassModeScenario::PassModeScenario()
     rebels << "shizu" << "gongshou" << "yaodao";
     rule = new PassModeRule(this);
 
-    skills << new Shiqi << new Qianggong << new Pojia << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
+    skills << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
             << new RendePass << new JijiangPass << new WenjiuPass << new TuodaoPass << new Baonu << new DuanhePass << new TiejiPass << new MashuPass
                 << new JizhiPass << new JumouPass << new ShipoPass << new Longhou
             << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new Jueduan
@@ -601,7 +597,7 @@ PassModeScenario::PassModeScenario()
                 << new JieyinPass << new Tongji << new Jielue << new Yuyue << new Shuangxing
             << new Zhanshen << new Nuozhan << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Lingxi << new Duanyan << new Xiongzi
-            << new Kuangji << new KezhiLv;
+            << new Kuangji;
 
     related_skills.insertMulti("wenjiu_pass", "#luoyi");
     related_skills.insertMulti("qingnang_pass", "#qingnang");
@@ -616,6 +612,7 @@ PassModeScenario::PassModeScenario()
 
     General *jianwei = new General(this,"jianwei","evil",3, false, true);
     jianwei->addSkill("pojia");
+    jianwei->addSkill("zhanshang_pass");
 
     General *qibing = new General(this,"qibing","evil",3, true, true);
     qibing->addSkill("qishu");
