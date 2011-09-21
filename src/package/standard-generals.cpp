@@ -1046,7 +1046,7 @@ public:
 
 class Chujia: public GameStartSkill{
 public:
-    Chujia():GameStartSkill("chujia"){
+    Chujia():GameStartSkill("#chujia"){
 
     }
 

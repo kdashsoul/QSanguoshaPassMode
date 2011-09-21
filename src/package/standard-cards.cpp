@@ -596,11 +596,17 @@ void SingleTargetTrick::use(Room *room, ServerPlayer *source, const QList<Server
     CardEffectStruct effect;
     effect.card = this;
     effect.from = source;
-    effect.to = targets.first();
-
-    room->cardEffect(effect);
+    if(!targets.isEmpty()){
+        foreach(ServerPlayer *tmp, targets){
+            effect.to = tmp;
+            room->cardEffect(effect);
+        }
+    }
+    else{
+        effect.to = source;
+        room->cardEffect(effect);
+    }
 }
-
 
 Collateral::Collateral(Card::Suit suit, int number)
     :SingleTargetTrick(suit, number, false)
@@ -682,16 +688,6 @@ ExNihilo::ExNihilo(Suit suit, int number)
 {
     setObjectName("ex_nihilo");
     target_fixed = true;
-}
-
-void ExNihilo::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
-    room->throwCard(this);
-
-    CardEffectStruct effect;
-    effect.from = effect.to = source;
-    effect.card = this;
-
-    room->cardEffect(effect);
 }
 
 void ExNihilo::onEffect(const CardEffectStruct &effect) const{
@@ -856,10 +852,6 @@ bool Disaster::isAvailable(const Player *player) const{
         return false;
 
     return ! player->isProhibited(player, this);
-}
-
-void Disaster::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
-    room->moveCardTo(this, source, Player::Judging);
 }
 
 Lightning::Lightning(Suit suit, int number):Disaster(suit, number){

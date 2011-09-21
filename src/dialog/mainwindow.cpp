@@ -233,6 +233,7 @@ void MainWindow::enterRoom(){
     connect(ui->actionSaveRecord, SIGNAL(triggered()), room_scene, SLOT(saveReplayRecord()));
     connect(ui->actionExpand_dashboard, SIGNAL(triggered()), room_scene, SLOT(adjustDashboard()));
 
+    //if(ServerInfo.FreeChoose && ServerInfo.GameMode != "pass_mode"){
     if(ServerInfo.FreeChoose){
         ui->menuCheat->setEnabled(true);
 
