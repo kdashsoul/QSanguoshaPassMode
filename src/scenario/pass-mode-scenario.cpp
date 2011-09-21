@@ -226,11 +226,15 @@ void PassMode::initGameStart(ServerPlayer *player) const{
 
 void PassMode::setTimesDifficult(Room *room) const{
     int times = room->getTag("Times").toInt();
+    int n = 0, time = times;
+    while(time > 1){
+        time = (time/2 + time%2);
+        n++;
+    }
+
     foreach(ServerPlayer* player, room->getPlayers()){
-        if(!player->isLord() && times/2 > 0){
-            room->setPlayerProperty(player,
-                                    "maxhp",
-                                    player->getMaxHP()+ (2/times > 1 ? (int)(times/3.0 + 0.5) : 2/times));
+        if(!player->isLord()){
+            room->setPlayerProperty(player, "maxhp", player->getMaxHP() + n);
             room->setPlayerProperty(player, "hp", player->getMaxHP());
         }
     }
