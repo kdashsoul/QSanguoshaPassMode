@@ -215,6 +215,7 @@ public:
     SaveDataStruct *askForReadData() const;
 private:
     QList<QString> enemy_list;
+    QMap<QString, int> exp_map;
     QMap<QString, int> skill_map, skill_map_hidden;
     QMap<QString, QString> skill_raise;
 

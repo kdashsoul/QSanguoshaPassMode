@@ -32,6 +32,9 @@ PassMode::PassMode(QObject *parent)
                 << "guojia_p+caocao_p+zhenji_p" << "zhouyu_p+sunquan_p+huanggai_p"
                 << "zhaoyun_p+liubei_p+zhangfei_p" << "lubu_p+diaochan_p+simayi_p";
 
+    exp_map.insert("evil", 4);
+    exp_map.insert("hero", 8);
+
     skill_map.insert("mashu", 15);
     skill_map.insert("kezhi", 15);
     skill_map.insert("fenjin", 20);
@@ -94,13 +97,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 if((!damage || damage->from != lord))
                     lord->drawCards(3);
 
-                static QMap<QString, int> exp_map;
-                if(exp_map.isEmpty()){
-                    exp_map.insert("evil", 40);
-                    exp_map.insert("hero", 8);
-                }
                 int exp = exp_map.value(player->getKingdom(), 10);
-
                 if(lord->getKingdom() == "hero"){
                     int orgin_exp = lord->getMark("@exp") ;
                     lord->gainMark("@exp",exp);
