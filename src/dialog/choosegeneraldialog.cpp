@@ -56,7 +56,10 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
     QList<OptionButton *> buttons;
     QString category("card");
     QSize icon_size(200*0.8, 290*0.8);
-    if(generals.length() > 10){
+    if(generals.length() > 20){
+        category = "small";
+        icon_size = QSize(122, 50);
+    }else if(generals.length() > 10){
         category = "big";
         icon_size = QSize(94, 96);
     }
@@ -65,6 +68,7 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
         QString icon_path = general->getPixmapPath(category);
         QString caption = Sanguosha->translate(general->objectName());
         OptionButton *button = new OptionButton(icon_path, caption);
+        button->setFont(Config.TinyFont);
         button->setToolTip(general->getSkillDescription());
         button->setIconSize(icon_size);
         buttons << button;
@@ -80,7 +84,7 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
     }
 
     QLayout *layout = NULL;
-    const int columns = generals.length() > 10 ? 6 : 5;
+    const int columns = generals.length() > 10 ? 8 : 5;
     if(generals.length() <= columns){
         layout = new QHBoxLayout;
         foreach(OptionButton *button, buttons)
@@ -123,6 +127,8 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
     bool free_choose = ServerInfo.FreeChoose;
     if(ServerInfo.GameMode == "08boss"){
         free_choose = Self->getRole() == "lord" || Self->getRole() == "renegade";
+    }else if(ServerInfo.GameMode == "pass_mode"){
+        free_choose = false;
     }
 
     if(free_choose){
