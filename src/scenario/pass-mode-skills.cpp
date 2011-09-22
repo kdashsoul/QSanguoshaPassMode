@@ -2111,12 +2111,18 @@ public:
         else if(target->getPhase() == Player::Finish)
             target->setFlags("-bugua_used");
         Room *room = target->getRoom();
-        const Card *card = room->askForCard(target, ".", "@bugua_card");
-        if(!card)
+
+        QList<int> handcards_id;
+        foreach(const Card *card, target->getHandcards())
+            handcards_id << card->getEffectiveId();
+        room->fillAG(handcards_id, target);
+        int card_id = room->askForAG(target, handcards_id, true, objectName());
+        room->broadcastInvoke("clearAG");
+        if(card_id == -1)
             return false;
 
         QList<int> card_ids = room->getNCards(1);
-        room->moveCardTo(card, NULL, Player::DrawPile);
+        room->moveCardTo(Sanguosha->getCard(card_id), NULL, Player::DrawPile);
         target->obtainCard(Sanguosha->getCard(card_ids.first()));
 
         LogMessage log;
