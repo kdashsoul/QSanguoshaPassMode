@@ -558,7 +558,7 @@ public:
     PassModeRule(Scenario *scenario)
         :ScenarioRule(scenario)
     {
-        events << GameOverJudge << DrawNCards;
+        events << GameOverJudge << DrawNCards << Predamage;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
@@ -574,6 +574,14 @@ public:
                     data = data.toInt() + (n == 0 ? times/2 : n);
                 }
             break;
+            }
+        case Predamage:{
+                DamageStruct damage = data.value<DamageStruct>();
+                if(damage.card && damage.card->inherits("Lightning")){
+                    damage.damage--;
+                    data = QVariant::fromValue(damage);
+                }
+                break;
             }
         case GameOverJudge:{
                 return true ;
