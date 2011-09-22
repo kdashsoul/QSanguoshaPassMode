@@ -790,8 +790,8 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *zhaoyun, QVariant &data) const{
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
         Room *room = zhaoyun->getRoom();
-        if(effect.to->getWeapon() != NULL && !zhaoyun->isKongcheng() && zhaoyun->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
-            if(room->askForDiscard(zhaoyun, objectName(), 1 , true)){
+        if(effect.to->getWeapon() != NULL && !zhaoyun->isNude() && zhaoyun->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+            if(room->askForDiscard(zhaoyun, objectName(), 1 , true , true)){
                 room->playSkillEffect(objectName());
                 room->moveCardTo(effect.to->getWeapon(),zhaoyun,Player::Hand);
             }
@@ -2111,7 +2111,7 @@ public:
         else if(target->getPhase() == Player::Finish)
             target->setFlags("-bugua_used");
         Room *room = target->getRoom();
-        const Card *card = room->askForCard(target, ".", "@bugua_card");
+        const Card *card = room->askForCard(target, ".", "@bugua-card" , false);
         if(!card)
             return false;
 
