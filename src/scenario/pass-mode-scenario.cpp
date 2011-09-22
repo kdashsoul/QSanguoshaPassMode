@@ -264,6 +264,8 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
 
             if(skill_name == "tipo"){
                 room->setPlayerProperty(lord, "maxhp", lord->getMaxHP() + 1);
+            }else if(skill_name == "niepan"){
+                lord->gainMark("@nirvana");
             }
         }
 
@@ -353,8 +355,11 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
 
     room->setPlayerProperty(lord, "hp", lord->getMaxHP());
     int exp = lord->getMark("@exp");
+    int nirvana = lord->getMark("@nirvana");
     lord->throwAllMarks();
     lord->gainMark("@exp", exp);
+    if(nirvana > 0)
+        lord->gainMark("@nirvana");
 
     return true;
 }
