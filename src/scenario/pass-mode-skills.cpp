@@ -790,8 +790,8 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *zhaoyun, QVariant &data) const{
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
         Room *room = zhaoyun->getRoom();
-        if(effect.to->getWeapon() != NULL && !zhaoyun->isNude() && zhaoyun->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
-            if(room->askForDiscard(zhaoyun, objectName(), 1 , true , true)){
+        if(effect.to->getWeapon() != NULL && !zhaoyun->isKongcheng() && zhaoyun->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+            if(room->askForDiscard(zhaoyun, objectName(), 1 , true)){
                 room->playSkillEffect(objectName());
                 room->moveCardTo(effect.to->getWeapon(),zhaoyun,Player::Hand);
             }
@@ -2111,12 +2111,18 @@ public:
         else if(target->getPhase() == Player::Finish)
             target->setFlags("-bugua_used");
         Room *room = target->getRoom();
-        const Card *card = room->askForCard(target, ".", "@bugua-card" , false);
-        if(!card)
+
+        QList<int> handcards_id;
+        foreach(const Card *card, target->getHandcards())
+            handcards_id << card->getEffectiveId();
+        room->fillAG(handcards_id, target);
+        int card_id = room->askForAG(target, handcards_id, true, objectName());
+        room->broadcastInvoke("clearAG");
+        if(card_id == -1)
             return false;
 
         QList<int> card_ids = room->getNCards(1);
-        room->moveCardTo(card, NULL, Player::DrawPile);
+        room->moveCardTo(Sanguosha->getCard(card_id), NULL, Player::DrawPile);
         target->obtainCard(Sanguosha->getCard(card_ids.first()));
 
         LogMessage log;
