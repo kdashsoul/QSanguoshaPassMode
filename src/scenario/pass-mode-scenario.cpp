@@ -436,6 +436,8 @@ void PassMode::setNextStageInfo(Room *room, int stage) const{
             i ++ ;
         }
 
+        if(player->isDead())
+            room->revivePlayer(player);
     }
 
     setTimesDifficult(room);
