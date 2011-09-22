@@ -352,6 +352,7 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
 
     askForLearnSkill(lord);
 
+    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
     lord->throwAllCards();
     lord->clearFlags();
     lord->clearHistory();
@@ -435,8 +436,6 @@ void PassMode::setNextStageInfo(Room *room, int stage) const{
             i ++ ;
         }
 
-        if(player->isDead())
-            room->revivePlayer(player);
     }
 
     setTimesDifficult(room);
@@ -557,6 +556,7 @@ public:
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
         switch(event){
         case DrawNCards:{
             if(player->getKingdom() == "evil")
@@ -569,12 +569,14 @@ public:
                 }
             break;
             }
-
         case Predamaged:{
             DamageStruct damage = data.value<DamageStruct>();
             if(damage.card != NULL && damage.card->inherits("Lightning")){
                 damage.damage -- ;
                 data = QVariant::fromValue(damage);
+            }
+            if(room->getAlivePlayers().length() == 1){
+                return true;
             }
             break;
             }
