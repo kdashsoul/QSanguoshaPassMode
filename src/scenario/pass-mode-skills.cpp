@@ -1368,8 +1368,11 @@ public:
 
     }
 
-    virtual bool viewFilter(const QList<CardItem *> &, const CardItem *) const{
-        return true;
+    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *) const{
+        if(Self->hasUsed("ZhihengPassCard")){
+            return selected.length() < Self->getMark("@zhiba") ;
+        }else
+            return true;
     }
 
     virtual const Card *viewAs(const QList<CardItem *> &cards) const{
@@ -1383,7 +1386,7 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("ZhihengPassCard") || player->getMark("@zhiba") >= player->getHandcardNum();
+        return ! player->hasUsed("ZhihengPassCard") || player->getMark("@zhiba") > 0 ;
     }
 };
 
@@ -1408,7 +1411,7 @@ void ZhihengPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPl
     int n = subcards.length() ;
     if(source->usedTimes("ZhihengPassCard") > 1)
         source->loseMark("@zhiba",n);
-    if(all_same){
+    if(all_same && n > 1){
         source->gainMark("@zhiba", n);
         n = n * 2 - 1 ;
     }
