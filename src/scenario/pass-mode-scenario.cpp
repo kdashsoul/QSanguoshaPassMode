@@ -69,11 +69,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
     case GameStart:{
             if(room->getTag("Stage").toInt() == 0 && askForLoadData(room)){
                 setNextStageInfo(room, room->getTag("Stage").toInt()-1);
-
-                int n = 6;
-                if(room->getLord()->hasSkill("fenjin"))
-                    n++;
-                room->getLord()->drawCards(n);
+                setLoadedStageInfo(room);
             }
             else if(setjmp(env) == Restart)
                 initNextStageStart(player);
@@ -170,14 +166,21 @@ bool PassMode::askForLoadData(Room *room) const{
     lord->gainMark("@exp", save->exp);
     room->setPlayerMark(lord, "@nirvana", save->nirvana);
 
-    /*QString text = tr("Load success! This is the %1 time, the %2 stage")
-            .arg(QString::number(save->times))
-            .arg(QString::number(save->stage+1));
-
-
-    QMessageBox::information(NULL, tr("Loaded"), text);*/
-
     return true;
+}
+
+void PassMode::setLoadedStageInfo(Room *room) const{
+    LogMessage log;
+    log.type = "#LoadNextStage";
+    log.from = room->getLord();
+    log.arg = room->getTag("Stage").toString();
+    log.arg2 = room->getTag("Times").toString();
+    room->sendLog(log);
+
+    int n = 6;
+    if(room->getLord()->hasSkill("fenjin"))
+        n++;
+    room->getLord()->drawCards(n);
 }
 
 void PassMode::initNextStageStart(ServerPlayer *player) const{
@@ -424,8 +427,6 @@ void PassMode::setNextStageInfo(Room *room, int stage) const{
             const General *general = Sanguosha->getGeneral(enemys.at(i));
             if(player->getKingdom() != general->getKingdom())
                 room->setPlayerProperty(player, "kingdom", general->getKingdom());
-            if(player->isDead())
-                room->revivePlayer(player);
             if(!player->faceUp())
                 player->turnOver();
             if(player->isChained())
@@ -433,6 +434,9 @@ void PassMode::setNextStageInfo(Room *room, int stage) const{
             player->throwAllMarks();
             i ++ ;
         }
+
+        if(player->isDead())
+            room->revivePlayer(player);
     }
 
     setTimesDifficult(room);

@@ -203,6 +203,7 @@ public:
 
     void initGameStart(ServerPlayer *player) const;
     void initNextStageStart(ServerPlayer *player) const;
+    void setLoadedStageInfo(Room *room) const;
     void setNextStageInfo(Room *room, int stage) const;
     bool goToNextStage(ServerPlayer *player, int stage) const;
 
