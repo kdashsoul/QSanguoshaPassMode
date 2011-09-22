@@ -94,9 +94,9 @@ public:
 };
 
 
-class Lingxi:public ViewAsSkill{
+class Quanheng:public ViewAsSkill{
 public:
-    Lingxi():ViewAsSkill("lingxi"){
+    Quanheng():ViewAsSkill("quanheng"){
 
     }
 
@@ -112,24 +112,24 @@ public:
         if(cards.empty() || cards.length() == n)
             return NULL;
 
-        LingxiCard *lingxi_card = new LingxiCard;
-        lingxi_card->addSubcards(cards);
+        QuanhengCard *quanheng_card = new QuanhengCard;
+        quanheng_card->addSubcards(cards);
 
-        return lingxi_card;
+        return quanheng_card;
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("LingxiCard") && player->getHp() < 4 ;
+        return ! player->hasUsed("QuanhengCard") && player->getHp() < 4 ;
     }
 };
 
 
-LingxiCard::LingxiCard(){
+QuanhengCard::QuanhengCard(){
     target_fixed = true;
     once = true;
 }
 
-void LingxiCard::use(Room *room, ServerPlayer *player, const QList<ServerPlayer *> &) const{
+void QuanhengCard::use(Room *room, ServerPlayer *player, const QList<ServerPlayer *> &) const{
     room->throwCard(this);
     player->drawCards(this->getSubcards().length());
 }
@@ -233,6 +233,7 @@ class ZhanshangPass: public TriggerSkill{
 public:
     ZhanshangPass():TriggerSkill("zhanshang_pass"){
         events << CardEffected;
+        frequency = Compulsory ;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
@@ -240,8 +241,11 @@ public:
 
         if(effect.card->inherits("AOE")){
             Room *room = player->getRoom();
-            room->playSkillEffect(objectName());
             player->drawCards(1);
+            LogMessage log;
+            log.type = "#ZhanshangPass";
+            log.from = player;
+            room->sendLog(log);
         }
 
         return false;
@@ -467,6 +471,7 @@ void RendePassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlay
         recover.card = this;
         recover.who = source;
         room->recover(source, recover);
+        source->gainMark("@renyi");
     }
 }
 
@@ -514,6 +519,43 @@ void JijiangPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPl
 
     room->useCard(use);
 }
+
+class ZhaoliePass: public PhaseChangeSkill{
+public:
+    ZhaoliePass():PhaseChangeSkill("zhaolie_pass"){
+    }
+
+    virtual int getPriority() const{
+        return -1;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return PhaseChangeSkill::triggerable(target)
+                && target->getPhase() == Player::NotActive
+                && target->getMark("@renyi") >= target->getHp() + target->getHandcardNum() ;
+    }
+
+    virtual bool onPhaseChange(ServerPlayer *liubei) const{
+        if(!liubei->askForSkillInvoke(objectName()))
+            return false;
+
+        int n = liubei->getMark("@renyi");
+        liubei->loseMark("@renyi",liubei->getMark("@renyi"));
+
+        Room *room = liubei->getRoom();
+
+        LogMessage log;
+        log.type = "#ZhaolieCanInvoke";
+        log.from = liubei;
+        log.arg = QString::number(n);
+        room->sendLog(log);
+
+        room->getThread()->trigger(TurnStart, liubei);
+
+        return false;
+    }
+};
+
 
 
 class WenjiuPass:public TriggerSkill{
@@ -1341,14 +1383,13 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("ZhihengPassCard");
+        return ! player->hasUsed("ZhihengPassCard") || player->getMark("@zhiba") >= player->getHandcardNum();
     }
 };
 
 
 ZhihengPassCard::ZhihengPassCard(){
     target_fixed = true;
-    once = true;
 }
 
 void ZhihengPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
@@ -1365,9 +1406,13 @@ void ZhihengPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPl
         number = card->getNumber() ;
     }
     int n = subcards.length() ;
-    if(all_same)
+    if(source->usedTimes("ZhihengPassCard") > 1)
+        source->loseMark("@zhiba",n);
+    if(all_same){
+        source->gainMark("@zhiba", n);
         n = n * 2 - 1 ;
-    room->drawCards(source, n);
+    }
+    source->drawCards(n);
 }
 
 class FanjianPass: public OneCardViewAsSkill{
@@ -1983,6 +2028,99 @@ public:
     }
 };
 
+
+class GuhuoPass: public OneCardViewAsSkill{
+public:
+    GuhuoPass():OneCardViewAsSkill("guhuo_pass"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        int card_id = player->getMark("guhuo_mark");
+        if(card_id > 0){
+            const Card *card = Sanguosha->getCard(card_id);
+            return card->isAvailable(player);
+        }else
+            return false;
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        int card_id = Self->getMark("guhuo_mark");
+        const Card *card = Sanguosha->getCard(card_id);
+        return to_select->getFilteredCard()->getSuit() == card->getSuit();
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        int card_id = Self->getMark("guhuo_mark");
+        if(card_id == 0)
+            return NULL;
+
+        const Card *card = Sanguosha->getCard(card_id);
+        const Card *orign = card_item->getFilteredCard();
+
+        Card *new_card = Sanguosha->cloneCard(card->objectName(), orign->getSuit(), orign->getNumber());
+        new_card->addSubcard(card_item->getCard());
+        new_card->setSkillName(objectName());
+        return new_card;
+    }
+};
+
+class GuhuoPassMark: public TriggerSkill{
+public:
+    GuhuoPassMark():TriggerSkill("#guhuo_pass_mark"){
+        events << CardUsed << PhaseChange;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *yuji, QVariant &data) const{
+        Room *room = yuji->getRoom();
+        if(event == CardUsed){
+            CardUseStruct use = data.value<CardUseStruct>();
+            if(use.card){
+                if(!use.card->isVirtualCard() && (use.card->getTypeId() == Card::Basic || use.card->isNDTrick())){
+                    room->setPlayerMark(yuji,"guhuo_mark",use.card->getId());
+                }
+                if(use.card->getSkillName() == "guhuo_pass")
+                    room->setPlayerMark(yuji,"guhuo_mark",0);
+            }
+        }else if(event == PhaseChange && yuji->getPhase() == Player::Finish){
+            room->setPlayerMark(yuji,"guhuo_mark",0);
+        }
+        return false ;
+    }
+};
+
+class BuguaPass: public PhaseChangeSkill{
+public:
+    BuguaPass():PhaseChangeSkill("bugua_pass"){
+
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return PhaseChangeSkill::triggerable(target)
+                && !target->isKongcheng()
+                && (target->getPhase() == Player::Start || target->getPhase() == Player::Finish);
+    }
+
+    virtual bool onPhaseChange(ServerPlayer *target) const{
+        if(target->hasFlag("bugua_used") || !target->askForSkillInvoke(objectName()))
+            return false;
+        if(target->getPhase() == Player::Start)
+            target->setFlags("bugua_used");
+        else if(target->getPhase() == Player::Finish)
+            target->setFlags("-bugua_used");
+        Room *room = target->getRoom();
+        target->drawCards(1);
+        const Card *card = room->askForCard(target, ".", "@bugua_card");
+        room->moveCardTo(card, NULL, Player::DrawPile, true);
+        LogMessage log;
+        log.type = "#BuguaPass";
+        log.from = target;
+        room->sendLog(log);
+        return false;
+    }
+};
+
+
 class Kuangji: public ViewAsSkill{
 public:
     Kuangji(): ViewAsSkill("kuangji"){
@@ -2015,3 +2153,186 @@ public:
             return NULL;
     }
 };
+
+void PassModeScenario::addGeneralAndSkills(){
+    lord = "shenzhaoyun";
+    rebels << "shizu" << "gongshou" << "yaodao";
+
+    skills << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
+            << new RendePass << new JijiangPass << new ZhaoliePass << new WenjiuPass << new TuodaoPass << new Baonu << new DuanhePass << new TiejiPass
+                << new MashuPass << new JizhiPass << new JumouPass << new ShipoPass << new Longhou
+            << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new Jueduan
+                << new YijiPass << new Guimou << new LuoshenPass << new LuoyiPass << new Guantong  << new TuxiPass
+            << new ZhihengPass << new FanjianPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass << new LianyingPass
+                << new JieyinPass << new Tongji << new Jielue << new Yuyue << new Shuangxing
+            << new Zhanshen << new Nuozhan << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
+                << new BuguaPass
+            << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
+            << new Kuangji;
+
+    related_skills.insertMulti("wenjiu_pass", "#luoyi");
+    related_skills.insertMulti("qingnang_pass", "#qingnang");
+    related_skills.insertMulti("badao_pass", "#badao_cost");
+    related_skills.insertMulti("guhuo_pass", "#guhuo_pass_mark");
+
+    General *shizu = new General(this,"shizu","evil",3, true, true);
+    shizu->addSkill("shiqi");
+
+    General *gongshou = new General(this,"gongshou","evil",3, false, true);
+    gongshou->addSkill("zhengfeng");
+    gongshou->addSkill("qianggong");
+
+    General *jianwei = new General(this,"jianwei","evil",3, false, true);
+    jianwei->addSkill("pojia");
+    jianwei->addSkill("zhanshang_pass");
+
+    General *qibing = new General(this,"qibing","evil",3, true, true);
+    qibing->addSkill("qishu");
+
+    General *huwei = new General(this,"huwei","evil",3, true, true);
+    huwei->addSkill("chenwen");
+    huwei->addSkill("zhongzhuang");
+
+    General *yaodao = new General(this,"yaodao","evil",3, true, true);
+    yaodao->addSkill("yaoshu");
+    yaodao->addSkill("jitian");
+
+    General *liubei_p = new General(this,"liubei_p","hero",4, true, true);
+    liubei_p->addSkill("rende_pass");
+    liubei_p->addSkill("jijiang_pass");
+    liubei_p->addSkill("zhaolie_pass");
+
+    General *guanyu_p = new General(this,"guanyu_p","hero",4, true, true);
+    guanyu_p->addSkill("wusheng");
+    guanyu_p->addSkill("wenjiu_pass");
+    guanyu_p->addSkill("#luoyi");
+    guanyu_p->addSkill("tuodao_pass");
+
+    General *zhangfei_p = new General(this,"zhangfei_p","hero",4, true, true);
+    zhangfei_p->addSkill("paoxiao");
+    zhangfei_p->addSkill("baonu");
+    zhangfei_p->addSkill("duanhe_pass");
+
+    General *zhaoyun_p = new General(this,"zhaoyun_p","hero",4, true, true);
+    zhaoyun_p->addSkill("longdan");
+    zhaoyun_p->addSkill(new Skill("longwei"));
+    zhaoyun_p->addSkill("longhou");
+
+    General *machao_p = new General(this,"machao_p","hero",4, true, true);
+    machao_p->addSkill("tieji_pass");
+    machao_p->addSkill("mashu_pass");
+
+    General *zhugeliang_p = new General(this,"zhugeliang_p","hero",3, true, true);
+    zhugeliang_p->addSkill("super_guanxing");
+    zhugeliang_p->addSkill("kongcheng");
+
+    General *huangyueying_p = new General(this,"huangyueying_p","hero",3, false, true);
+    huangyueying_p->addSkill("jizhi_pass");
+    huangyueying_p->addSkill("qicai");
+    huangyueying_p->addSkill("shipo_pass");
+    huangyueying_p->addSkill("jumou_pass");
+
+    General *caocao_p = new General(this,"caocao_p","hero",4, true, true);
+    caocao_p->addSkill("jianxiong_pass");
+    caocao_p->addSkill("xietian");
+    caocao_p->addSkill("badao_pass");
+    caocao_p->addSkill("#badao_cost");
+
+    General *simayi_p = new General(this,"simayi_p","hero",3, true, true);
+    simayi_p->addSkill("guicai");
+    simayi_p->addSkill("fankui_pass");
+    simayi_p->addSkill("langgu");
+
+    General *xiahoudun_p = new General(this,"xiahoudun_p","hero",4, true, true);
+    xiahoudun_p->addSkill("ganglie_pass");
+    xiahoudun_p->addSkill("jueduan");
+
+    General *guojia_p = new General(this,"guojia_p","hero",3, true, true);
+    guojia_p->addSkill("yiji_pass");
+    guojia_p->addSkill("guimou");
+
+    General *zhenji_p = new General(this,"zhenji_p","hero",3, false, true);
+    zhenji_p->addSkill("luoshen_pass");
+    zhenji_p->addSkill("qingguo");
+
+    General *xuchu_p = new General(this,"xuchu_p","hero",4, true, true);
+    xuchu_p->addSkill("luoyi_pass");
+    xuchu_p->addSkill("guantong");
+    xuchu_p->addSkill("#luoyi");
+
+    General *zhangliao_p = new General(this,"zhangliao_p","hero",4, true, true);
+    zhangliao_p->addSkill("tuxi_pass");
+
+    General *sunquan_p = new General(this,"sunquan_p","hero",4, true, true);
+    sunquan_p->addSkill("zhiheng_pass");
+
+    General *zhouyu_p = new General(this, "zhouyu_p", "hero", 3, true, true);
+    zhouyu_p->addSkill("yingzi");
+    zhouyu_p->addSkill("fanjian_pass");
+
+    General *lumeng_p = new General(this, "lumeng_p", "hero", 4 ,true, true);
+    lumeng_p->addSkill("keji_pass");
+    lumeng_p->addSkill("baiyi");
+    lumeng_p->addSkill("dujiang_pass");
+
+    General *luxun_p = new General(this, "luxun_p", "hero", 3, true, true);
+    luxun_p->addSkill("qianxun");
+    luxun_p->addSkill("lianying_pass");
+
+    General *ganning_p = new General(this, "ganning_p", "hero", 4 ,true, true);
+    ganning_p->addSkill("qixi");
+    ganning_p->addSkill("tongji");
+    ganning_p->addSkill("jielue");
+
+    General *huanggai_p = new General(this, "huanggai_p", "hero", 3 ,true, true);
+    huanggai_p->addSkill("kurou_pass");
+    huanggai_p->addSkill("zhaxiang");
+
+    General *daqiao_p = new General(this, "daqiao_p", "hero", 3, false, true);
+    daqiao_p->addSkill("guose");
+    daqiao_p->addSkill("yuyue");
+    daqiao_p->addSkill("shuangxing");
+
+    General *sunshangxiang_p = new General(this, "sunshangxiang_p", "hero", 3, false, true);
+    sunshangxiang_p->addSkill("jieyin_pass");
+    sunshangxiang_p->addSkill("xiaoji");
+
+
+    General *lubu_p = new General(this, "lubu_p", "hero", 4, true, true);
+    lubu_p->addSkill("wushuang");
+    lubu_p->addSkill("zhanshen");
+    lubu_p->addSkill("nuozhan");
+
+    General *huatuo_p = new General(this, "huatuo_p", "hero", 3, true, true);
+    huatuo_p->addSkill("qingnang_pass");
+    huatuo_p->addSkill("#qingnang");
+    huatuo_p->addSkill("jijiu");
+    huatuo_p->addSkill("xuanhu");
+
+    General *diaochan_p = new General(this, "diaochan_p", "hero", 3, false, true);
+    diaochan_p->addSkill("lijian_pass");
+    diaochan_p->addSkill("biyue");
+
+    General *yuji_p = new General(this, "yuji_p", "hero", 3, true, true);
+    yuji_p->addSkill("guhuo_pass");
+    yuji_p->addSkill("#guhuo_pass_mark");
+    yuji_p->addSkill("bugua_pass");
+
+    addMetaObject<DuanyanCard>();
+    addMetaObject<QuanhengCard>();
+    addMetaObject<YaoshuCard>();
+    addMetaObject<RendePassCard>();
+    addMetaObject<JijiangPassCard>();
+    addMetaObject<TuodaoPassCard>();
+    addMetaObject<DuanhePassCard>();
+    addMetaObject<LuoyiPassCard>();
+    addMetaObject<TuxiPassCard>();
+    addMetaObject<ZhihengPassCard>();
+    addMetaObject<FanjianPassCard>();
+    addMetaObject<KurouPassCard>();
+    addMetaObject<ZhaxiangCard>();
+    addMetaObject<JieyinPassCard>();
+    addMetaObject<YuyueCard>();
+    addMetaObject<LijianPassCard>();
+    addMetaObject<QingnangPassCard>();
+}

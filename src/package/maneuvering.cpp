@@ -309,6 +309,9 @@ void IronChain::onUse(Room *room, const CardUseStruct &card_use) const{
         room->throwCard(this);
         room->playCardEffect("@recast", card_use.from->getGeneral()->isMale());
         card_use.from->drawCards(1);
+        if(card_use.card->getSkillName() == "guhuo_pass"){
+            room->setPlayerMark(card_use.from,"guhuo_mark",0);
+        }
     }else
         TrickCard::onUse(room, card_use);
 }

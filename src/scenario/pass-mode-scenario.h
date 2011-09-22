@@ -14,11 +14,11 @@ public:
     virtual void onEffect(const CardEffectStruct &effect) const;
 };
 
-class LingxiCard:public SkillCard{
+class QuanhengCard:public SkillCard{
     Q_OBJECT
 
 public:
-    Q_INVOKABLE LingxiCard();
+    Q_INVOKABLE QuanhengCard();
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };
 
@@ -167,6 +167,8 @@ public:
     virtual void getRoles(char *roles) const;
     virtual void onTagSet(Room *room, const QString &key) const;
     virtual bool generalSelection() const;
+private:
+    void addGeneralAndSkills();
 };
 
 struct SaveDataStruct{
@@ -215,6 +217,7 @@ public:
     SaveDataStruct *askForReadData() const;
 private:
     QList<QString> enemy_list;
+    QMap<QString, int> exp_map;
     QMap<QString, int> skill_map, skill_map_hidden;
     QMap<QString, QString> skill_raise;
 

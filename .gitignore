@@ -12,3 +12,4 @@ users.db
 doc/*.html
 swig/*.bat
 savedata/*
+*.bat
