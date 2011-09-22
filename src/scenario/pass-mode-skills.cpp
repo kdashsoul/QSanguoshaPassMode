@@ -108,8 +108,7 @@ public:
     }
 
     virtual const Card *viewAs(const QList<CardItem *> &cards) const{
-        int n = qMax(1, 4 - Self->getHp());
-        if(cards.empty() || cards.length() == n)
+        if(cards.empty())
             return NULL;
 
         QuanhengCard *quanheng_card = new QuanhengCard;
@@ -2115,7 +2114,7 @@ public:
         target->drawCards(1);
         const Card *card = room->askForCard(target, ".", "@bugua_card");
         if(!card)
-            card = target->getRandomHandCard() ;
+            card = target->getRandomHandCard();
         room->moveCardTo(card, NULL, Player::DrawPile, true);
         LogMessage log;
         log.type = "#BuguaPass";

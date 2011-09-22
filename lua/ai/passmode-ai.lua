@@ -93,7 +93,11 @@ sgs.ai_skill_invoke.jueduan = function(self, data)
 	return not self:isFriend(target)
 end
 
-sgs.ai_skill_invoke.longhou = sgs.ai_skill_invoke.jueduan
+sgs.ai_skill_invoke.longhou  = function(self, data)
+	local target = data:toPlayer()
+	return not self:isFriend(target) and not self.player:isKongcheng()
+end
+
 sgs.ai_skill_invoke.jielue = sgs.ai_skill_invoke.jueduan
 
 local kurou_pass_skill={}
