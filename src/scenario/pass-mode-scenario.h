@@ -225,6 +225,13 @@ private:
     mutable jmp_buf env;
 };
 
+class HeroPackage: public Package{
+    Q_OBJECT
+
+public:
+    HeroPackage();
+};
+
 typedef SaveDataStruct *SaveDataStar;
 Q_DECLARE_METATYPE(SaveDataStruct);
 Q_DECLARE_METATYPE(SaveDataStar);

@@ -220,6 +220,13 @@ void PassMode::initGameStart(ServerPlayer *player) const{
         const General *general = Sanguosha->getGeneral(name);
         if(player->getKingdom() != general->getKingdom())
             room->setPlayerProperty(player, "kingdom", general->getKingdom());
+    }else{
+        QStringList enemys = enemy_list.at(0).split("+") ;
+        QString general_name = enemys.at(player->getSeat()-2) ;
+        room->transfigure(player, general_name, true, true);
+        const General *general = Sanguosha->getGeneral(general_name);
+        if(player->getKingdom() != general->getKingdom())
+            room->setPlayerProperty(player, "kingdom", general->getKingdom());
     }
     int n = player->isLord() ? 6 : 4;
     if(player->hasSkill("fenjin"))
@@ -599,6 +606,9 @@ PassModeScenario::PassModeScenario()
         :Scenario("pass_mode")
 {
     rule = new PassModeRule(this);
+
+    lord = "shenzhaoyun";
+    rebels << "simayi" << "caocao" << "xiahoudun";
 
     addGeneralAndSkills();
 }

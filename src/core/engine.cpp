@@ -40,6 +40,7 @@ extern "C" {
     Package *NewSP();
     Package *NewYJCM();
     Package *NewWisdom();
+    Package *NewHero();
 
     Package *NewStandardCard();
     Package *NewStandardExCard();
@@ -78,6 +79,7 @@ Engine::Engine()
     addPackage(NewYJCM());
     addPackage(NewYitian());
     addPackage(NewWisdom());
+    addPackage(NewHero());
 
     {
         Package *test_package = new Package("test");

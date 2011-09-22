@@ -82,7 +82,7 @@ bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_
         slash_targets ++;
     }
 
-    if(Self->hasSkill("longwei") && Self->getWeapon() != NULL){
+    if(Self->hasSkill("longwei_pass") && Self->getWeapon() != NULL){
         slash_targets ++;
     }
 

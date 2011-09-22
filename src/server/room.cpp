@@ -974,11 +974,13 @@ void Room::resetAI(ServerPlayer *player){
 }
 
 void Room::transfigure(ServerPlayer *player, const QString &new_general, bool full_state, bool invoke_start){
-    LogMessage log;
-    log.type = "#Transfigure";
-    log.from = player;
-    log.arg = new_general;
-    sendLog(log);
+    if(getMode() != "pass_mode"){
+        LogMessage log;
+        log.type = "#Transfigure";
+        log.from = player;
+        log.arg = new_general;
+        sendLog(log);
+    }
 
     QString transfigure_str = QString("%1:%2").arg(player->getGeneralName()).arg(new_general);
     player->invoke("transfigure", transfigure_str);

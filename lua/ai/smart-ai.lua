@@ -2297,9 +2297,9 @@ function SmartAI:sortByNeedCard(players, card)
 end
 
 
-function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)  
+function SmartAI:askForDiscard(reason, discard_num, optional, include_equip) 
+  local to_discard = {}
   if reason == "ganglie" then
-		local to_discard = {}
 		local cards = self.player:getHandcards()
 		cards = sgs.QList2Table(cards)
 		self:sortByUseValue(cards, true)  
@@ -2339,6 +2339,13 @@ function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)
 			if #result == discard_num then return result end
 		end
 		return result
+	elseif reason == "longhou" then
+		if self.player:getWeapon() then 
+			table.insert(to_discard, self.player:getWeapon():getEffectiveId())
+		elseif self:isLionValid() then 
+			table.insert(to_discard, self.player:getArmor():getEffectiveId()) 
+		end
+		if #to_discard == 1 then return to_discard end
 	elseif optional then
 		return {}
 	end
@@ -2351,7 +2358,7 @@ function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)
 	local cards = self.player:getCards(flags)
 	cards = sgs.QList2Table(cards)
 	self:sortByKeepValue(cards)
-	local to_discard = {}
+	
 	for i = 1, discard_num do
 		table.insert(to_discard, cards[i]:getEffectiveId())
 	end
