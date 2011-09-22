@@ -2111,11 +2111,14 @@ public:
         else if(target->getPhase() == Player::Finish)
             target->setFlags("-bugua_used");
         Room *room = target->getRoom();
-        target->drawCards(1);
         const Card *card = room->askForCard(target, ".", "@bugua_card");
         if(!card)
-            card = target->getRandomHandCard();
-        room->moveCardTo(card, NULL, Player::DrawPile, true);
+            return false;
+
+        QList<int> card_ids = room->getNCards(1);
+        room->moveCardTo(card, NULL, Player::DrawPile);
+        target->obtainCard(Sanguosha->getCard(card_ids.first()));
+
         LogMessage log;
         log.type = "#BuguaPass";
         log.from = target;
