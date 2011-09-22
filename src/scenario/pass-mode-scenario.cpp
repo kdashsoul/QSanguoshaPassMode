@@ -353,7 +353,11 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
     askForLearnSkill(lord);
 
     room->setPlayerProperty(lord, "hp", lord->getMaxHP());
+    lord->setAlive(false);
+    room->broadcastInvoke("killPlayer", lord->objectName());
     lord->throwAllCards();
+    room->broadcastInvoke("revivePlayer", lord->objectName());
+    lord->setAlive(true);
     lord->clearFlags();
     lord->clearHistory();
 
@@ -554,7 +558,7 @@ public:
     PassModeRule(Scenario *scenario)
         :ScenarioRule(scenario)
     {
-        events << GameOverJudge << DrawNCards << Predamaged;
+        events << GameOverJudge << DrawNCards;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
@@ -564,25 +568,13 @@ public:
             if(player->getKingdom() == "evil")
                 data = data.toInt() - 1 ;
 
-            int times = player->getRoom()->getTag("Times").toInt();
+            int times = room->getTag("Times").toInt();
             if(!player->isLord()){
                     int n = (int)(2.0/times - 2/times + 0.5);
                     data = data.toInt() + (n == 0 ? times/2 : n);
                 }
             break;
             }
-        case Predamaged:{
-            DamageStruct damage = data.value<DamageStruct>();
-            if(damage.card != NULL && damage.card->inherits("Lightning")){
-                damage.damage -- ;
-                data = QVariant::fromValue(damage);
-            }
-            if(room->getAlivePlayers().length() == 1){
-                return true;
-            }
-            break;
-            }
-
         case GameOverJudge:{
                 return true ;
                 break;
