@@ -189,6 +189,7 @@ struct SaveDataStruct{
     bool read_success;
 
     bool canRead() const;
+    bool checkDataFormat() const;
 private:
     static int default_size;
 };
@@ -216,6 +217,7 @@ public:
     bool askForSaveData(Room *room, int told_stage) const;
     bool askForSaveData(SaveDataStruct *save) const;
     SaveDataStruct *askForReadData() const;
+    SaveDataStruct *catchSaveInfo(Room *room, int stage = -1) const;
 private:
     QList<QString> enemy_list;
     QMap<QString, int> exp_map;

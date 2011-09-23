@@ -6,7 +6,9 @@
 #include <QMessageBox>
 
 SaveDataStruct::SaveDataStruct()
-    :size(0), stage(0), exp(0), nirvana(0), times(1),
+    :size(0), stage(0),
+    exp(0), nirvana(0), lord_maxhp(0),
+    times(1),
     read_success(false)
 {}
 
@@ -14,6 +16,16 @@ int SaveDataStruct::default_size = 5;
 
 bool SaveDataStruct::canRead() const{
     return default_size == this->size;
+}
+
+bool SaveDataStruct::checkDataFormat() const{
+    bool format_right = this->stage >= 0
+                       && this->times > 0
+                       && this->lord != NULL
+                       && this->skills != NULL
+                       && this->lord_maxhp > 0;
+
+    return format_right;
 }
 
 PassMode::PassMode(QObject *parent)
@@ -95,8 +107,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                     lord->drawCards(3);
 
                 int exp = exp_map.value(player->getKingdom(), 0);
-                int r = qrand() % (exp + 1) ;
-                exp = exp / 2 + r ;
+                exp = qrand()%(exp + 1) + exp/2;
                 if(lord->getKingdom() == "hero"){
                     int orgin_exp = lord->getMark("@exp") ;
                     lord->gainMark("@exp",exp);
@@ -224,7 +235,7 @@ void PassMode::initGameStart(ServerPlayer *player) const{
         if(player->getKingdom() != general->getKingdom())
             room->setPlayerProperty(player, "kingdom", general->getKingdom());
     }else{
-        QStringList enemys = enemy_list.at(0).split("+") ;
+        QStringList enemys = enemy_list.at(0).split("+");
         QString general_name = enemys.at(player->getSeat()-2) ;
         room->transfigure(player, general_name, true, true);
         const General *general = Sanguosha->getGeneral(general_name);
@@ -361,12 +372,16 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
     room->sendLog(log);
 
     askForLearnSkill(lord);
+    SaveDataStar save_cache = catchSaveInfo(room);
 
     room->setPlayerProperty(lord, "hp", lord->getMaxHP());
     lord->setAlive(false);
+    lord->loseAllSkills();
     room->broadcastInvoke("killPlayer", lord->objectName());
     lord->throwAllCards();
     room->broadcastInvoke("revivePlayer", lord->objectName());
+    foreach(QString skill_name, save_cache->skills.split("+"))
+        room->acquireSkill(lord, skill_name);
     lord->setAlive(true);
     lord->clearFlags();
     lord->clearHistory();
@@ -382,34 +397,43 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
     return true;
 }
 
-bool PassMode::askForSaveData(Room *room, int told_stage) const{
+SaveDataStruct *PassMode::catchSaveInfo(Room *room, int stage) const{
     ServerPlayer *lord = room->getLord();
-    if(room->askForChoice(lord, "savefile", "save+notsave") == "notsave")
-        return false;
-
     QStringList lord_skills;
     QList<const Skill *> skills = lord->getVisibleSkillList();
     foreach(const Skill *skill, skills){
         if(skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill"))
             continue;
 
-        lord_skills << skill->objectName();
+        if(!lord_skills.contains(skill->objectName()))
+            lord_skills << skill->objectName();
     }
 
-    SaveDataStruct save;
-    save.stage      = told_stage;
-    save.lord       = lord->getGeneralName();
-    save.lord_maxhp = lord->getMaxHP();
-    save.exp        = lord->getMark("@exp");
-    save.nirvana    = lord->getMark("@nirvana");
-    save.skills     = lord_skills.join("+");
-    save.times      = room->getTag("Times").toInt();
-    save.size       = 5;
+    SaveDataStruct *save_cache = new SaveDataStruct;
+    save_cache->stage      = stage >= 0 ? stage : room->getTag("Stage").toInt();
+    save_cache->lord       = lord->getGeneralName();
+    save_cache->lord_maxhp = lord->getMaxHP();
+    save_cache->exp        = lord->getMark("@exp");
+    save_cache->nirvana    = lord->getMark("@nirvana");
+    save_cache->skills     = lord_skills.join("+");
+    save_cache->times      = room->getTag("Times").toInt();
+    save_cache->size       = 5;
 
-    return askForSaveData(&save);
+    return save_cache;
+}
+
+bool PassMode::askForSaveData(Room *room, int told_stage) const{
+    if(room->askForChoice(room->getLord(), "savefile", "save+notsave") == "notsave")
+        return false;
+
+    SaveDataStar save = catchSaveInfo(room, told_stage);
+    return askForSaveData(save);
 }
 
 bool PassMode::askForSaveData(SaveDataStruct *save) const{
+    if(!save->checkDataFormat())
+        return false;
+		
     QString stage = QString::number(save->stage);
     QString marks = QString::number(save->exp) + " " + QString::number(save->nirvana);
     QString lord = save->lord + " " + QString::number(save->lord_maxhp);
@@ -568,7 +592,7 @@ public:
     PassModeRule(Scenario *scenario)
         :ScenarioRule(scenario)
     {
-        events << GameOverJudge << DrawNCards << Predamage;
+        events << GameOverJudge << DrawNCards << Predamaged;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
@@ -587,7 +611,7 @@ public:
                 }
             break;
             }
-        case Predamage:{
+        case Predamaged:{
                 DamageStruct damage = data.value<DamageStruct>();
                 if(damage.card && damage.card->inherits("Lightning")){
                     damage.damage--;
