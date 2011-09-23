@@ -94,6 +94,10 @@ end
 sgs.ai_skill_invoke.jielue = sgs.ai_skill_invoke.jueduan
 sgs.ai_skill_invoke.wushen_pass = sgs.ai_skill_invoke.jueduan
 
+sgs.ai_skill_invoke.longwei = function(self, data)
+	return self.enemies and #self.enemies > 0
+end
+
 local kurou_pass_skill={}
 kurou_pass_skill.name="kurou_pass"
 table.insert(sgs.ai_skills,kurou_pass_skill)

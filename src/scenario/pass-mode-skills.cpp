@@ -526,7 +526,7 @@ public:
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
         Room *room = liubei->getRoom();
         if(effect.slash->getSkillName() == "jijiang_pass"){
-            if(liubei->getMark("@renyi") > 0){
+            if(liubei->getMark("@renyi") > 0 && room->askForChoice(liubei , "jijiang" , "losemark+losehp") == "losemark"){
                 liubei->loseMark("@renyi");
             }else{
                 room->loseHp(liubei);
@@ -552,7 +552,7 @@ public:
     virtual bool triggerable(const ServerPlayer *target) const{
         return PhaseChangeSkill::triggerable(target)
                 && target->getPhase() == Player::NotActive
-                && target->getMark("@renyi") > target->getHp() + target->getHandcardNum() ;
+                && target->getMark("@renyi") > target->getHp()  ;
     }
 
     virtual bool onPhaseChange(ServerPlayer *liubei) const{
@@ -1800,6 +1800,33 @@ void JieyinPassCard::onEffect(const CardEffectStruct &effect) const{
     }
 }
 
+class JinguoPass: public TriggerSkill{
+public:
+    JinguoPass():TriggerSkill("jinguo_pass"){
+        events << CardLost;
+        frequency = Frequent;
+    }
+
+    virtual bool trigger(TriggerEvent, ServerPlayer *sunshangxiang, QVariant &data) const{
+        CardMoveStar move = data.value<CardMoveStar>();
+        const Card *card = Sanguosha->getCard(move->card_id);
+        if(move->to_place == Player::Equip && (card->inherits("Armor") || card->inherits("DefensiveHorse")) ){
+            Room *room = sunshangxiang->getRoom();
+            if(room->askForSkillInvoke(sunshangxiang, objectName())){
+                while(true){
+                    int card_id = room->drawCard();
+                    room->moveCardTo(Sanguosha->getCard(card_id), NULL, Player::Special, true);
+                    room->getThread()->delay();
+                    const Card *card = Sanguosha->getCard(card_id);
+                    room->obtainCard(sunshangxiang, card_id);
+                    if(!card->inherits("EquipCard"))
+                        break;
+                }
+            }
+        }
+        return false;
+    }
+};
 
 class Yuyue: public OneCardViewAsSkill{
 public:
@@ -2429,7 +2456,7 @@ void PassModeScenario::addGeneralAndSkills(){
             << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new Jueduan
                 << new YijiPass << new Guimou << new LuoshenPass << new LuoyiPass << new Guantong  << new TuxiPass
             << new ZhihengPass << new FanjianPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass << new LianyingPass
-                << new JieyinPass << new TongjiPass << new Jielue << new Yuyue << new Shuangxing
+                << new JieyinPass << new JinguoPass << new TongjiPass << new Jielue << new Yuyue << new Shuangxing
             << new Zhanshen << new NuozhanPass << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
                 << new BuguaPass << new HuanshuPass
             << new WushenPass << new WuhunPass
@@ -2568,6 +2595,7 @@ void PassModeScenario::addGeneralAndSkills(){
     General *sunshangxiang_p = new General(this, "sunshangxiang_p", "hero", 3, false, true);
     sunshangxiang_p->addSkill("jieyin_pass");
     sunshangxiang_p->addSkill("xiaoji");
+    sunshangxiang_p->addSkill("jinguo_pass");
 
 
     General *lubu_p = new General(this, "lubu_p", "hero", 4, true, true);

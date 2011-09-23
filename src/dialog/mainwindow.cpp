@@ -233,8 +233,8 @@ void MainWindow::enterRoom(){
     connect(ui->actionSaveRecord, SIGNAL(triggered()), room_scene, SLOT(saveReplayRecord()));
     connect(ui->actionExpand_dashboard, SIGNAL(triggered()), room_scene, SLOT(adjustDashboard()));
 
-    //if(ServerInfo.FreeChoose && ServerInfo.GameMode != "pass_mode"){
     if(ServerInfo.FreeChoose){
+    //if(ServerInfo.FreeChoose && (ServerInfo.GameMode != "pass_mode" || Config.UserName.startsWith("DEV."))){
         ui->menuCheat->setEnabled(true);
 
         connect(ui->actionGet_card, SIGNAL(triggered()), ui->actionCard_Overview, SLOT(trigger()));
