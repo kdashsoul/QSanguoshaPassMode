@@ -489,7 +489,6 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     }
 
     setTimesDifficult(room);
-    room->setTag("FirstRound", false);
 }
 
 SaveDataStruct *PassMode::askForReadData() const{
