@@ -198,7 +198,10 @@ struct SaveDataStruct{
 
     bool canRead() const;
     bool checkDataFormat() const;
+    QString getWrongType(WrongVersion error) const;
 private:
+    QMap<WrongVersion, QString> error_type;
+
     static int default_size;
 };
 

@@ -11,12 +11,20 @@ SaveDataStruct::SaveDataStruct()
     exp(0), nirvana(0), lord_maxhp(0),
     times(1),
     read_success(false)
-{}
+{
+    error_type[DifferentSkills]     = "different_skills";
+    error_type[ExceptMaxHp]         = "except_maxhp";
+    error_type[UnknownLordName]     = "unknown_lord";
+}
 
 int SaveDataStruct::default_size = 5;
 
 bool SaveDataStruct::canRead() const{
     return default_size == this->size;
+}
+
+QString SaveDataStruct::getWrongType(WrongVersion error) const{
+    return error_type.value(error);
 }
 
 bool SaveDataStruct::checkDataFormat() const{
@@ -186,7 +194,7 @@ bool PassMode::askForLoadData(Room *room) const{
     if(sendWrongVersionLog(room, save))
         return false;
     room->setPlayerProperty(lord, "maxhp", save->lord_maxhp);
-    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
+    room->setPlayerProperty(lord, "hp", save->lord_maxhp);
     const General *general = Sanguosha->getGeneral(save->lord);
     if(lord->getKingdom() != general->getKingdom())
         room->setPlayerProperty(lord, "kingdom", general->getKingdom());
@@ -301,6 +309,7 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
 
             if(skill_name == "tipo"){
                 room->setPlayerProperty(lord, "maxhp", lord->getMaxHP() + 1);
+                room->setPlayerProperty(lord, "hp", lord->getMaxHP());
             }else if(skill_name == "niepan"){
                 lord->gainMark("@nirvana");
             }
@@ -598,24 +607,8 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(Room *room, SaveDataStru
 }
 
 bool PassMode::sendWrongVersionLog(Room *room, SaveDataStruct *savedata) const{
-    QString wrong_type = NULL;
-    switch(checkDataVersion(room, savedata)){
-    case SaveDataStruct::DifferentSkills:{
-            wrong_type = "different_skills";
-            break;
-        }
-    case SaveDataStruct::ExceptMaxHp:{
-            wrong_type = "except_maxhp";
-            break;
-        }
-    case SaveDataStruct::UnknownLordName:{
-        wrong_type = "unknown_lord";
-        break;
-        }
-    default:
-        break;
-    }
-
+    SaveDataStruct::WrongVersion error_type = checkDataVersion(room, savedata);
+    QString wrong_type = savedata->getWrongType(error_type);
     if(wrong_type != NULL){
         room->askForChoice(room->getLord(), "savefile", wrong_type);
         return true;
