@@ -74,7 +74,7 @@ PassMode::PassMode(QObject *parent)
     skill_raise["jijiu"] = "tipo";
 }
 
-static int Restart = 1;
+const int Restart = 1;
 
 bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
     Room *room = player->getRoom();
@@ -83,7 +83,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
     switch(event){
     case GameStart:{
-            if(room->getTag("Stage").toInt() == 0 && askForLoadData(room)){
+            if(room->getTag("Stage").isNull() && askForLoadData(room)){
                 setNextStageInfo(room, room->getTag("Stage").toInt()-1, true);
                 lord->hasSkill("fenjin") ? lord->drawCards(7) : lord->drawCards(6);
             }
@@ -180,7 +180,7 @@ bool PassMode::askForLoadData(Room *room) const{
 
     lord->gainMark("@exp", save->exp);
     room->setPlayerMark(lord, "@nirvana", save->nirvana);
-
+    room->setTag("SaveRead", true);
     setLoadedStageInfo(room);
     return true;
 }
@@ -210,7 +210,7 @@ void PassMode::initNextStageStart(ServerPlayer *player) const{
 
 void PassMode::initGameStart(ServerPlayer *player) const{
     Room *room = player->getRoom();
-    if(room->getTag("Stage").toInt() > 0)
+    if(room->getTag("SaveRead").toBool())
         return;
 
     if(player->isLord()){
