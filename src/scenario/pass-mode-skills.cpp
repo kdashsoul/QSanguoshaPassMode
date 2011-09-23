@@ -1527,8 +1527,11 @@ KurouPassCard::KurouPassCard(){
 
 void KurouPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
     room->loseHp(source);
+    int n = 2;
+    if(source->getHp() <= source->getMaxHP() / 2)
+        n += 1;
     if(source->isAlive())
-        room->drawCards(source, 3);
+        room->drawCards(source, n);
 }
 
 class Zhaxiang:public ViewAsSkill{
@@ -1719,7 +1722,7 @@ bool JieyinPassCard::targetFilter(const QList<const Player *> &targets, const Pl
     if(!targets.isEmpty())
         return false;
 
-    return to_select->getGeneral()->isMale() ;
+    return to_select->getGeneral()->isMale() && to_select->isWounded();
 }
 
 void JieyinPassCard::onEffect(const CardEffectStruct &effect) const{
@@ -1734,7 +1737,7 @@ void JieyinPassCard::onEffect(const CardEffectStruct &effect) const{
 
     room->playSkillEffect("jieyin");
     if(!effect.to->isKongcheng()){
-        int card_id = room->askForCardChosen(effect.from, effect.to, "h", "jieyin_pass");
+        int card_id = room->askForCardChosen(effect.from, effect.to, "he", "jieyin_pass");
         const Card *card = Sanguosha->getCard(card_id);
         room->moveCardTo(card, effect.from, Player::Hand, false);
     }
@@ -1811,9 +1814,9 @@ public:
 };
 
 
-class Tongji: public TriggerSkill{
+class TongjiPass: public TriggerSkill{
 public:
-    Tongji():TriggerSkill("tongji"){
+    TongjiPass():TriggerSkill("tongji_pass"){
         frequency = Compulsory;
         events << Predamage;
     }
@@ -1825,7 +1828,7 @@ public:
             Room *room = damage.to->getRoom();
 
             LogMessage log;
-            log.type = "#Tongji";
+            log.type = "#TongjiPass";
             log.from = player;
             log.to << damage.to;
             log.arg = QString::number(damage.damage);
@@ -1850,14 +1853,14 @@ public:
         const Card *card = NULL;
         CardUseStruct use = data.value<CardUseStruct>();
         card = use.card;
-        if(!card || !card->inherits("Dismantlement"))
-            return false ;
-        ServerPlayer *to = use.to.first();
-        Room *room = ganning->getRoom();
-        if(!to->getEquips().empty() && ganning->askForSkillInvoke(objectName(), QVariant::fromValue(to))){
-            int card_id = room->askForCardChosen(ganning, to, "e", objectName());
-            const Card *card = Sanguosha->getCard(card_id);
-            room->moveCardTo(card, ganning, Player::Hand, false);
+        if(card && card->inherits("Dismantlement") && card->getSuit() == Card::Spade){
+            ServerPlayer *to = use.to.first();
+            Room *room = ganning->getRoom();
+            if(!to->getEquips().empty() && ganning->askForSkillInvoke(objectName(), QVariant::fromValue(to))){
+                int card_id = room->askForCardChosen(ganning, to, "e", objectName());
+                const Card *card = Sanguosha->getCard(card_id);
+                room->moveCardTo(card, ganning, Player::Hand, false);
+            }
         }
         return false;
     }
@@ -1895,9 +1898,9 @@ public:
 };
 
 
-class Nuozhan : public TriggerSkill{
+class NuozhanPass : public TriggerSkill{
 public:
-    Nuozhan():TriggerSkill("nuozhan"){
+    NuozhanPass():TriggerSkill("nuozhan_pass"){
         events << DamageComplete << CardResponsed;
     }
 
@@ -1911,7 +1914,7 @@ public:
                 return false;
         }
 
-        if(!player->isKongcheng() && player->askForSkillInvoke("nuozhan"))
+        if(!player->isKongcheng() && player->askForSkillInvoke("nuozhan_pass"))
             player->getRoom()->askForUseCard(player, "slash", "yitian-slash");
 
         return false;
@@ -2011,7 +2014,7 @@ void QingnangPassCard::use(Room *room, ServerPlayer *source, const QList<ServerP
         recover.who = source;
         source->getRoom()->recover(source, recover);
     }else{
-        room->setPlayerFlag(source,"qingnang_buff");
+        source->gainMark("qingnang_buff");
     }
 }
 
@@ -2020,12 +2023,16 @@ public:
     QingnangBuff():PhaseChangeSkill("#qingnang"){
     }
     virtual bool onPhaseChange(ServerPlayer *huatuo) const{
-        if(huatuo->getPhase() == Player::Start && huatuo->hasFlag("qingnang_buff")){
-            huatuo->setFlags("-qingnang_buff");
+        if(huatuo->getPhase() == Player::Start && huatuo->getMark("qingnang_buff") > 0){
+            huatuo->loseMark("qingnang_buff");
             if(huatuo->isWounded()){
                 RecoverStruct recover;
                 recover.who = huatuo;
                 huatuo->getRoom()->recover(huatuo, recover);
+                LogMessage log;
+                log.type = "#QingnangBuff";
+                log.from = huatuo;
+                huatuo->getRoom()->sendLog(log);
             }
         }
         return false;
@@ -2238,8 +2245,8 @@ void PassModeScenario::addGeneralAndSkills(){
             << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new Jueduan
                 << new YijiPass << new Guimou << new LuoshenPass << new LuoyiPass << new Guantong  << new TuxiPass
             << new ZhihengPass << new FanjianPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass << new LianyingPass
-                << new JieyinPass << new Tongji << new Jielue << new Yuyue << new Shuangxing
-            << new Zhanshen << new Nuozhan << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
+                << new JieyinPass << new TongjiPass << new Jielue << new Yuyue << new Shuangxing
+            << new Zhanshen << new NuozhanPass << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
                 << new BuguaPass << new HuanshuPass
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
             << new Kuangji;
@@ -2355,10 +2362,10 @@ void PassModeScenario::addGeneralAndSkills(){
 
     General *ganning_p = new General(this, "ganning_p", "hero", 4 ,true, true);
     ganning_p->addSkill("qixi");
-    ganning_p->addSkill("tongji");
+    ganning_p->addSkill("tongji_pass");
     ganning_p->addSkill("jielue");
 
-    General *huanggai_p = new General(this, "huanggai_p", "hero", 3 ,true, true);
+    General *huanggai_p = new General(this, "huanggai_p", "hero", 4 ,true, true);
     huanggai_p->addSkill("kurou_pass");
     huanggai_p->addSkill("zhaxiang");
 
@@ -2375,7 +2382,7 @@ void PassModeScenario::addGeneralAndSkills(){
     General *lubu_p = new General(this, "lubu_p", "hero", 4, true, true);
     lubu_p->addSkill("wushuang");
     lubu_p->addSkill("zhanshen");
-    lubu_p->addSkill("nuozhan");
+    lubu_p->addSkill("nuozhan_pass");
 
     General *huatuo_p = new General(this, "huatuo_p", "hero", 3, true, true);
     huatuo_p->addSkill("qingnang_pass");
