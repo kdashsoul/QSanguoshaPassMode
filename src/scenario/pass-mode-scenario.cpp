@@ -190,9 +190,10 @@ bool PassMode::askForLoadData(Room *room) const{
         return false;
     }
 
-    room->transfigure(lord, save->lord, true);
     if(sendWrongVersionLog(room, save))
         return false;
+
+    room->transfigure(lord, save->lord, true);
     room->setPlayerProperty(lord, "maxhp", save->lord_maxhp);
     room->setPlayerProperty(lord, "hp", save->lord_maxhp);
     const General *general = Sanguosha->getGeneral(save->lord);
@@ -571,21 +572,24 @@ SaveDataStruct *PassMode::askForReadData() const{
     return save;
 }
 
-SaveDataStruct::WrongVersion PassMode::checkDataVersion(Room *room, SaveDataStruct *savedata) const{
+SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata) const{
     QString lord_name = savedata->lord;
     const Package *passpack = Sanguosha->findChild<const Package *>("pass_mode");
     QList<const General *> generals = passpack->findChildren<const General *>();
+    const General *lord_general = NULL;
 
     QStringList names;
     foreach(const General *general, generals){
         if(general->getKingdom() == "hero")
             names << general->objectName();
+        if(general->objectName() == lord_name)
+            lord_general = general;
     }
-    if(!names.contains(lord_name))
+    if(lord_general == NULL)
         return SaveDataStruct::UnknownLordName;
 
     QStringList skills = savedata->skills.split("+");
-    QList<const Skill *> lord_skills = room->getLord()->getVisibleSkillList();
+    QList<const Skill *> lord_skills = lord_general->getVisibleSkillList();
     QStringList lord_skill_list;
     foreach(const Skill *skill, lord_skills)
         lord_skill_list << skill->objectName();
@@ -597,7 +601,6 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(Room *room, SaveDataStru
         }
     }
 
-    const General *lord_general = room->getLord()->getGeneral();
     int maxhp = lord_general->getMaxHp()+1;
     maxhp = skills.contains("tipo") ? maxhp+1 : maxhp;
     if(savedata->lord_maxhp != maxhp)
@@ -607,7 +610,7 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(Room *room, SaveDataStru
 }
 
 bool PassMode::sendWrongVersionLog(Room *room, SaveDataStruct *savedata) const{
-    SaveDataStruct::WrongVersion error_type = checkDataVersion(room, savedata);
+    SaveDataStruct::WrongVersion error_type = checkDataVersion(savedata);
     QString wrong_type = savedata->getWrongType(error_type);
     if(wrong_type != NULL){
         room->askForChoice(room->getLord(), "savefile", wrong_type);
