@@ -50,15 +50,15 @@ PassMode::PassMode(QObject *parent)
 
     skill_map.insert("mashu", 15);
     skill_map.insert("kezhi", 15);
-    skill_map.insert("fenjin", 20);
     skill_map.insert("nuhou", 20);
+    skill_map.insert("xiuluo", 20);
+    skill_map.insert("fenjin", 25);
     skill_map.insert("duanyan", 25);
-    skill_map.insert("xiuluo", 25);
     skill_map.insert("quanheng", 30);
     skill_map.insert("niepan", 30);
     skill_map.insert("tipo" ,40);
-    skill_map.insert("feiying", 55);
-    skill_map.insert("xiongzi", 60);
+    skill_map.insert("feiying", 75);
+    skill_map.insert("xiongzi", 80);
 
     skill_map_hidden.insert("kuangji", 65);
     skill_map_hidden.insert("mengjin", 70);
