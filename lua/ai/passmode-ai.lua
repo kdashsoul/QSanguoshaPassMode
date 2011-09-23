@@ -99,6 +99,7 @@ sgs.ai_skill_invoke.longhou  = function(self, data)
 end
 
 sgs.ai_skill_invoke.jielue = sgs.ai_skill_invoke.jueduan
+sgs.ai_skill_invoke.wushen_pass = sgs.ai_skill_invoke.jueduan
 
 local kurou_pass_skill={}
 kurou_pass_skill.name="kurou_pass"

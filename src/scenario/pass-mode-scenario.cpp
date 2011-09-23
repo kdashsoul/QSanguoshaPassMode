@@ -28,9 +28,9 @@ PassMode::PassMode(QObject *parent)
                 << "jianwei+zhouyu_p+jianwei" << "yaodao+guojia_p+yaodao"
                 << "huwei+zhangliao_p+qibing" << "shizu+ganning_p+shizu"
                 << "huwei+sunshangxiang_p+lumeng_p" << "zhugeliang_p+huangyueying_p+gongshou"
-                << "qibing+xuchu_p+xiahoudun_p" <<"luxun_p+huangyueying_p+huwei"
+                << "qibing+xuchu_p+xiahoudun_p" <<"luxun_p+simayi_p+yaodao"
                 << "guojia_p+caocao_p+zhenji_p" << "zhouyu_p+sunquan_p+huanggai_p"
-                << "zhaoyun_p+liubei_p+zhangfei_p" << "lubu_p+diaochan_p+simayi_p";
+                << "zhaoyun_p+liubei_p+zhangfei_p" << "lubu_p+shenguanyu_p+diaochan_p";
 
     exp_map.insert("evil", 4);
     exp_map.insert("hero", 8);
@@ -577,6 +577,8 @@ public:
         case DrawNCards:{
             if(player->getKingdom() == "evil")
                 data = data.toInt() - 1 ;
+            else if(player->getKingdom() == "evil_god")
+                data = data.toInt() + 1 ;
 
             int times = room->getTag("Times").toInt();
             if(!player->isLord()){

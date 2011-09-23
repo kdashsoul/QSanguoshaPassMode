@@ -2261,6 +2261,67 @@ public:
     }
 };
 
+
+class WushenPass: public TriggerSkill{
+public:
+    WushenPass():TriggerSkill("wushen_pass"){
+        events << SlashProceed << SlashHit;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *shenguanyu, QVariant &data) const{
+        Room *room = shenguanyu->getRoom();
+        if(event == SlashProceed){
+            if(data.canConvert<SlashEffectStruct>()){
+                SlashEffectStruct effect = data.value<SlashEffectStruct>();
+
+                if(shenguanyu->isAlive() && effect.slash->getSuit() == Card::Spade && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                    room->slashResult(effect, NULL);
+                    return true;
+                }
+            }
+
+        }else if(event == SlashHit){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+
+            switch(effect.slash->getSuit()){
+                case Card::Heart:{
+                        if(shenguanyu->isWounded() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                            RecoverStruct recover;
+                            recover.who = shenguanyu;
+                            room->recover(shenguanyu, recover);
+                        }
+                        break;
+                    }
+
+                case Card::Diamond:{
+                        if(shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                            shenguanyu->drawCards(1);
+                        }
+                        break;
+                    }
+
+                case Card::Club:{
+                        if(effect.to && effect.to->isAlive() && !effect.to->isKongcheng() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                            room->askForDiscard(effect.to, objectName(), 1, false);
+                        }
+
+                        break;
+                    }
+
+                case Card::Spade:{
+
+                        break;
+                    }
+
+                default:
+                    break;
+                }
+            }
+
+        return false;
+    }
+};
+
 class Kuangji: public ViewAsSkill{
 public:
     Kuangji(): ViewAsSkill("kuangji"){
@@ -2305,6 +2366,7 @@ void PassModeScenario::addGeneralAndSkills(){
                 << new JieyinPass << new TongjiPass << new Jielue << new Yuyue << new Shuangxing
             << new Zhanshen << new NuozhanPass << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
                 << new BuguaPass << new HuanshuPass
+            << new WushenPass
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
             << new Kuangji;
 
@@ -2335,6 +2397,9 @@ void PassModeScenario::addGeneralAndSkills(){
     General *yaodao = new General(this,"yaodao","evil",3, true, true);
     yaodao->addSkill("yaoshu");
     yaodao->addSkill("jitian");
+
+    General *shenguanyu_p = new General(this, "shenguanyu_p", "evil_god", 5, true, true);
+    shenguanyu_p->addSkill("wushen_pass");
 
     General *liubei_p = new General(this,"liubei_p","hero",4, true, true);
     liubei_p->addSkill("rende_pass");
