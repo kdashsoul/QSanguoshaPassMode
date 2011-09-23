@@ -78,13 +78,14 @@ static int Restart = 1;
 
 bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
     Room *room = player->getRoom();
+    ServerPlayer *lord = room->getLord();
     qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
 
     switch(event){
     case GameStart:{
             if(room->getTag("Stage").toInt() == 0 && askForLoadData(room)){
-                setNextStageInfo(room, room->getTag("Stage").toInt()-1);
-                setLoadedStageInfo(room);
+                setNextStageInfo(room, room->getTag("Stage").toInt()-1, true);
+                lord->hasSkill("fenjin") ? lord->drawCards(7) : lord->drawCards(6);
             }
             else if(setjmp(env) == Restart)
                 initNextStageStart(player);
@@ -99,7 +100,6 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 if(! room->getAlivePlayers().empty())
                     room->gameOver("rebel");
             }else{
-                ServerPlayer *lord = room->getLord();
                 if(lord->hasSkill("fenjin")){
                     lord->drawCards(1);
                 }
@@ -181,6 +181,7 @@ bool PassMode::askForLoadData(Room *room) const{
     lord->gainMark("@exp", save->exp);
     room->setPlayerMark(lord, "@nirvana", save->nirvana);
 
+    setLoadedStageInfo(room);
     return true;
 }
 
@@ -191,11 +192,6 @@ void PassMode::setLoadedStageInfo(Room *room) const{
     log.arg = room->getTag("Stage").toString();
     log.arg2 = room->getTag("Times").toString();
     room->sendLog(log);
-
-    int n = 6;
-    if(room->getLord()->hasSkill("fenjin"))
-        n++;
-    room->getLord()->drawCards(n);
 }
 
 void PassMode::initNextStageStart(ServerPlayer *player) const{
@@ -214,6 +210,9 @@ void PassMode::initNextStageStart(ServerPlayer *player) const{
 
 void PassMode::initGameStart(ServerPlayer *player) const{
     Room *room = player->getRoom();
+    if(room->getTag("Stage").toInt() > 0)
+        return;
+
     if(player->isLord()){
         room->setTag("Stage", 1);
         room->setTag("Times", 1);
@@ -428,35 +427,37 @@ bool PassMode::askForSaveData(SaveDataStruct *save) const{
         return false;
 }
 
-void PassMode::setNextStageInfo(Room *room, int stage) const{
+void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     room->setTag("Stage", stage+1);
     ServerPlayer *lord = room->getLord();
 
-    LogMessage log;
-    log.type = "#NextStage";
-    log.from = lord;
-    log.arg = room->getTag("Stage").toString();
-    room->sendLog(log);
-
     askForLearnSkill(lord);
 
-    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
-    room->broadcastInvoke("frozenPlayer", lord->objectName());
-    lord->throwAllCards();
-    room->broadcastInvoke("revivePlayer", lord->objectName());
-    lord->clearFlags();
-    lord->clearHistory();
+    if(!save_loaded){
+        LogMessage log;
+        log.type = "#NextStage";
+        log.from = lord;
+        log.arg = room->getTag("Stage").toString();
+        room->sendLog(log);
 
-    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
-    int exp = lord->getMark("@exp");
-    int nirvana = lord->getMark("@nirvana");
-    lord->throwAllMarks();
-    lord->gainMark("@exp", exp);
-    if(nirvana > 0)
-        lord->gainMark("@nirvana");
+        room->setPlayerProperty(lord, "hp", lord->getMaxHP());
+        room->broadcastInvoke("frozenPlayer", lord->objectName());
+        lord->throwAllCards();
+        room->broadcastInvoke("revivePlayer", lord->objectName());
+        lord->clearFlags();
+        lord->clearHistory();
+
+        room->setPlayerProperty(lord, "hp", lord->getMaxHP());
+        int exp = lord->getMark("@exp");
+        int nirvana = lord->getMark("@nirvana");
+        lord->throwAllMarks();
+        lord->gainMark("@exp", exp);
+        if(nirvana > 0)
+            lord->gainMark("@nirvana");
+    }
 
     int i = 0;
-    QStringList enemys = enemy_list.at(stage).split("+") ;
+    QStringList enemys = enemy_list.at(stage).split("+");
     foreach(ServerPlayer *player, room->getPlayers()){
         if(!player->isLord()){
             room->transfigure(player, enemys.at(i), true, true);
