@@ -470,8 +470,8 @@ void RendePassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlay
         recover.card = this;
         recover.who = source;
         room->recover(source, recover);
-        source->gainMark("@renyi");
     }
+    source->gainMark("@renyi",subcards.length());
 }
 
 
@@ -501,7 +501,6 @@ bool JijiangPassCard::targetFilter(const QList<const Player *> &targets, const P
         return false;
     if(to_select == Self)
         return false;
-
     return true;
 }
 
@@ -517,6 +516,30 @@ void JijiangPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPl
     room->useCard(use);
 }
 
+class JijiangCost: public TriggerSkill{
+public:
+    JijiangCost():TriggerSkill("#jijiang_cost"){
+        events << SlashHit;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *liubei, QVariant &data) const{
+        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        Room *room = liubei->getRoom();
+        if(effect.slash->getSkillName() == "jijiang_pass"){
+            if(liubei->getMark("@renyi") > 0){
+                liubei->loseMark("@renyi");
+            }else{
+                room->loseHp(liubei);
+                LogMessage log;
+                log.type = "#JijiangLoseHp";
+                log.from = liubei;
+                room->sendLog(log);
+            }
+        }
+        return false;
+    }
+};
+
 class ZhaoliePass: public PhaseChangeSkill{
 public:
     ZhaoliePass():PhaseChangeSkill("zhaolie_pass"){
@@ -529,7 +552,7 @@ public:
     virtual bool triggerable(const ServerPlayer *target) const{
         return PhaseChangeSkill::triggerable(target)
                 && target->getPhase() == Player::NotActive
-                && target->getMark("@renyi") >= target->getHp() + target->getHandcardNum() ;
+                && target->getMark("@renyi") > target->getHp() + target->getHandcardNum() ;
     }
 
     virtual bool onPhaseChange(ServerPlayer *liubei) const{
@@ -571,7 +594,7 @@ public:
                     guanyu->drawCards(1);
                 }
                 if(guanyu->getMark("@wenjiu") > 0){
-                    guanyu->setFlags("luoyi");
+                    guanyu->setFlags("wenjiu");
                 }
             }else if(guanyu->getPhase() == Player::Finish){
                 if(guanyu->getMark("@wenjiu") > 0){
@@ -582,6 +605,40 @@ public:
                 }
             }
         }
+        return false;
+    }
+};
+
+class WenjiuBuff: public TriggerSkill{
+public:
+    WenjiuBuff():TriggerSkill("#wenjiu"){
+        events << Predamage;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return target->hasFlag("wenjiu") && target->isAlive();
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *guanyu, QVariant &data) const{
+        DamageStruct damage = data.value<DamageStruct>();
+
+        const Card *reason = damage.card;
+        if(reason == NULL)
+            return false;
+
+        if(reason->inherits("Slash") || reason->inherits("Duel")){
+            LogMessage log;
+            log.type = "#WenjiuBuff";
+            log.from = guanyu;
+            log.to << damage.to;
+            log.arg = QString::number(damage.damage);
+            log.arg2 = QString::number(damage.damage + 1);
+            guanyu->getRoom()->sendLog(log);
+
+            damage.damage ++;
+            data = QVariant::fromValue(damage);
+        }
+
         return false;
     }
 };
@@ -2240,8 +2297,8 @@ public:
 void PassModeScenario::addGeneralAndSkills(){
 
     skills << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
-            << new RendePass << new JijiangPass << new ZhaoliePass << new WenjiuPass << new TuodaoPass << new Baonu << new DuanhePass << new TiejiPass
-                << new MashuPass << new JizhiPass << new JumouPass << new ShipoPass << new LongweiPass << new Longhou
+            << new RendePass << new JijiangPass << new JijiangCost << new ZhaoliePass << new WenjiuPass << new WenjiuBuff << new TuodaoPass << new Baonu
+                 << new DuanhePass << new TiejiPass << new MashuPass << new JizhiPass << new JumouPass << new ShipoPass << new LongweiPass << new Longhou
             << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new Jueduan
                 << new YijiPass << new Guimou << new LuoshenPass << new LuoyiPass << new Guantong  << new TuxiPass
             << new ZhihengPass << new FanjianPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass << new LianyingPass
@@ -2251,7 +2308,8 @@ void PassModeScenario::addGeneralAndSkills(){
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
             << new Kuangji;
 
-    related_skills.insertMulti("wenjiu_pass", "#luoyi");
+    related_skills.insertMulti("jijiang_pass", "#jijiang_cost");
+    related_skills.insertMulti("wenjiu_pass", "#wenjiu");
     related_skills.insertMulti("qingnang_pass", "#qingnang");
     related_skills.insertMulti("badao_pass", "#badao_cost");
     related_skills.insertMulti("guhuo_pass", "#guhuo_pass_mark");
@@ -2281,12 +2339,13 @@ void PassModeScenario::addGeneralAndSkills(){
     General *liubei_p = new General(this,"liubei_p","hero",4, true, true);
     liubei_p->addSkill("rende_pass");
     liubei_p->addSkill("jijiang_pass");
+    liubei_p->addSkill("#jijiang_cost");
     liubei_p->addSkill("zhaolie_pass");
 
     General *guanyu_p = new General(this,"guanyu_p","hero",4, true, true);
     guanyu_p->addSkill("wusheng");
     guanyu_p->addSkill("wenjiu_pass");
-    guanyu_p->addSkill("#luoyi");
+    guanyu_p->addSkill("#wenjiu");
     guanyu_p->addSkill("tuodao_pass");
 
     General *zhangfei_p = new General(this,"zhangfei_p","hero",4, true, true);
