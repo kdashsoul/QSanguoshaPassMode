@@ -83,6 +83,7 @@ public:
     void setPileNumber(const QString &pile_num);
     void gameOver(const QString &result_str);
     void killPlayer(const QString &player_name);
+    void frozenPlayer(const QString &player_name);
     void revivePlayer(const QString &player_name);
     void warn(const QString &);
     void setMark(const QString &mark_str);
