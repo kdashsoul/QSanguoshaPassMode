@@ -11,12 +11,20 @@ SaveDataStruct::SaveDataStruct()
     exp(0), nirvana(0), lord_maxhp(0),
     times(1),
     read_success(false)
-{}
+{
+    error_type[DifferentSkills]     = "different_skills";
+    error_type[ExceptMaxHp]         = "except_maxhp";
+    error_type[UnknownLordName]     = "unknown_lord";
+}
 
 int SaveDataStruct::default_size = 5;
 
 bool SaveDataStruct::canRead() const{
     return default_size == this->size;
+}
+
+QString SaveDataStruct::getWrongType(WrongVersion error) const{
+    return error_type.value(error);
 }
 
 bool SaveDataStruct::checkDataFormat() const{
@@ -182,24 +190,25 @@ bool PassMode::askForLoadData(Room *room) const{
         return false;
     }
 
-    save->times = (save->stage >= enemy_list.length()) ? (save->times+1) : save->times;
-    save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
-    room->setTag("Stage", save->stage+1);
-    room->setTag("Times", save->times);
-
-    QStringList skills = save->skills.split("+");
-    foreach(QString skill, skills)
-        room->acquireSkill(lord, skill);
-
     room->transfigure(lord, save->lord, true);
+    if(sendWrongVersionLog(room, save))
+        return false;
     room->setPlayerProperty(lord, "maxhp", save->lord_maxhp);
-    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
+    room->setPlayerProperty(lord, "hp", save->lord_maxhp);
     const General *general = Sanguosha->getGeneral(save->lord);
     if(lord->getKingdom() != general->getKingdom())
         room->setPlayerProperty(lord, "kingdom", general->getKingdom());
 
     lord->gainMark("@exp", save->exp);
     room->setPlayerMark(lord, "@nirvana", save->nirvana);
+    QStringList skills = save->skills.split("+");
+    foreach(QString skill, skills)
+        room->acquireSkill(lord, skill);
+
+    save->times = (save->stage >= enemy_list.length()) ? (save->times+1) : save->times;
+    save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
+    room->setTag("Stage", save->stage+1);
+    room->setTag("Times", save->times);
     setLoadedStageInfo(room);
     return true;
 }
@@ -300,6 +309,7 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
 
             if(skill_name == "tipo"){
                 room->setPlayerProperty(lord, "maxhp", lord->getMaxHP() + 1);
+                room->setPlayerProperty(lord, "hp", lord->getMaxHP());
             }else if(skill_name == "niepan"){
                 lord->gainMark("@nirvana");
             }
@@ -446,12 +456,6 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     askForLearnSkill(lord);
 
     if(!save_loaded){
-        LogMessage log;
-        log.type = "#NextStage";
-        log.from = lord;
-        log.arg = room->getTag("Stage").toString();
-        room->sendLog(log);
-
         room->setPlayerProperty(lord, "hp", lord->getMaxHP());
         lord->setAlive(false);
         lord->throwAllCards();
@@ -466,6 +470,12 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
         lord->gainMark("@exp", exp);
         if(nirvana > 0)
             lord->gainMark("@nirvana");
+
+        LogMessage log;
+        log.type = "#NextStage";
+        log.from = lord;
+        log.arg = room->getTag("Stage").toString();
+        room->sendLog(log);
     }
 
     int i = 0;
@@ -559,6 +569,52 @@ SaveDataStruct *PassMode::askForReadData() const{
     save->size = line_num-1;
 
     return save;
+}
+
+SaveDataStruct::WrongVersion PassMode::checkDataVersion(Room *room, SaveDataStruct *savedata) const{
+    QString lord_name = savedata->lord;
+    const Package *passpack = Sanguosha->findChild<const Package *>("pass_mode");
+    QList<const General *> generals = passpack->findChildren<const General *>();
+
+    QStringList names;
+    foreach(const General *general, generals){
+        if(general->getKingdom() == "hero")
+            names << general->objectName();
+    }
+    if(!names.contains(lord_name))
+        return SaveDataStruct::UnknownLordName;
+
+    QStringList skills = savedata->skills.split("+");
+    QList<const Skill *> lord_skills = room->getLord()->getVisibleSkillList();
+    QStringList lord_skill_list;
+    foreach(const Skill *skill, lord_skills)
+        lord_skill_list << skill->objectName();
+    foreach(QString skill, skills){
+        if(!lord_skill_list.contains(skill)){
+            skill = skill.split("_").at(0);
+            if(!skill_map.keys().contains(skill) && !skill_map_hidden.keys().contains(skill))
+                return SaveDataStruct::DifferentSkills;
+        }
+    }
+
+    const General *lord_general = room->getLord()->getGeneral();
+    int maxhp = lord_general->getMaxHp()+1;
+    maxhp = skills.contains("tipo") ? maxhp+1 : maxhp;
+    if(savedata->lord_maxhp != maxhp)
+        return SaveDataStruct::ExceptMaxHp;
+
+    return SaveDataStruct::VersionConfirmed;
+}
+
+bool PassMode::sendWrongVersionLog(Room *room, SaveDataStruct *savedata) const{
+    SaveDataStruct::WrongVersion error_type = checkDataVersion(room, savedata);
+    QString wrong_type = savedata->getWrongType(error_type);
+    if(wrong_type != NULL){
+        room->askForChoice(room->getLord(), "savefile", wrong_type);
+        return true;
+    }
+
+    return false;
 }
 
 bool PassModeScenario::exposeRoles() const{
