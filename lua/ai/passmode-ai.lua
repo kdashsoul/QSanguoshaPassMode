@@ -55,21 +55,14 @@ local jieyin_pass_skill={}
 jieyin_pass_skill.name="jieyin_pass"
 table.insert(sgs.ai_skills,jieyin_pass_skill)
 jieyin_pass_skill.getTurnUseCard=function(self)
-	if self.player:isNude() then return end
+	if self.player:isKongcheng() then return end
 	if self.player:hasUsed("JieyinPassCard") then return end
 	
-	local card ;
-	if not self.player:getEquips():isEmpty() then
-		for _, zcard in sgs.qlist(self.player:getEquips()) do
-			card = zcard 
-			break
-		end
-	else
-		local cards = self.player:getHandcards()
-		cards=sgs.QList2Table(cards)
-		self:sortByCardNeed(cards)
-		card = cards[1]
-	end
+	local card
+	local cards = self.player:getHandcards()
+	cards=sgs.QList2Table(cards)
+	self:sortByCardNeed(cards)
+	card = cards[1]
 	
 	if card then
 		return sgs.Card_Parse("@JieyinPassCard="..card:getEffectiveId())

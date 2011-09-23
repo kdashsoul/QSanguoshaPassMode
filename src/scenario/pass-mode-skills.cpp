@@ -1761,7 +1761,7 @@ public:
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
-        return true;
+        return !to_select->isEquipped();
     }
 
     virtual const Card *viewAs(CardItem *card_item) const{
