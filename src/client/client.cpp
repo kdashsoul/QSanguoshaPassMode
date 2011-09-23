@@ -38,7 +38,6 @@ Client::Client(QObject *parent, const QString &filename)
 
     callbacks["hpChange"] = &Client::hpChange;
     callbacks["killPlayer"] = &Client::killPlayer;
-    callbacks["frozenPlayer"] = &Client::frozenPlayer;
     callbacks["revivePlayer"] = &Client::revivePlayer;
     callbacks["showCard"] = &Client::showCard;
     callbacks["setMark"] = &Client::setMark;
@@ -1062,16 +1061,6 @@ void Client::killPlayer(const QString &player_name){
     }
 
     emit player_killed(player_name);
-}
-
-void Client::frozenPlayer(const QString &player_name){
-    alive_count --;
-
-    ClientPlayer *player = getPlayer(player_name);
-    if(player == Self){
-        foreach(const Skill *skill, Self->getVisibleSkills())
-            emit skill_detached(skill->objectName());
-    }
 }
 
 void Client::revivePlayer(const QString &player_name){

@@ -441,9 +441,9 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
         room->sendLog(log);
 
         room->setPlayerProperty(lord, "hp", lord->getMaxHP());
-        room->broadcastInvoke("frozenPlayer", lord->objectName());
+        lord->setAlive(false);
         lord->throwAllCards();
-        room->broadcastInvoke("revivePlayer", lord->objectName());
+        lord->setAlive(true);
         lord->clearFlags();
         lord->clearHistory();
 
