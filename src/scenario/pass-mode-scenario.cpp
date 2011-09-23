@@ -78,13 +78,15 @@ static int Restart = 1;
 
 bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
     Room *room = player->getRoom();
+    ServerPlayer *lord = room->getLord();
     qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
 
     switch(event){
     case GameStart:{
             if(room->getTag("Stage").toInt() == 0 && askForLoadData(room)){
-                setNextStageInfo(room, room->getTag("Stage").toInt()-1);
                 setLoadedStageInfo(room);
+                setNextStageInfo(room, room->getTag("Stage").toInt()-1, true);
+                lord->hasSkill("fenjin") ? lord->drawCards(7) : lord->drawCards(6);
             }
             else if(setjmp(env) == Restart)
                 initNextStageStart(player);
@@ -99,7 +101,6 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 if(! room->getAlivePlayers().empty())
                     room->gameOver("rebel");
             }else{
-                ServerPlayer *lord = room->getLord();
                 if(lord->hasSkill("fenjin")){
                     lord->drawCards(1);
                 }
@@ -191,11 +192,6 @@ void PassMode::setLoadedStageInfo(Room *room) const{
     log.arg = room->getTag("Stage").toString();
     log.arg2 = room->getTag("Times").toString();
     room->sendLog(log);
-
-    int n = 6;
-    if(room->getLord()->hasSkill("fenjin"))
-        n++;
-    room->getLord()->drawCards(n);
 }
 
 void PassMode::initNextStageStart(ServerPlayer *player) const{
@@ -428,15 +424,17 @@ bool PassMode::askForSaveData(SaveDataStruct *save) const{
         return false;
 }
 
-void PassMode::setNextStageInfo(Room *room, int stage) const{
+void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     room->setTag("Stage", stage+1);
     ServerPlayer *lord = room->getLord();
 
-    LogMessage log;
-    log.type = "#NextStage";
-    log.from = lord;
-    log.arg = room->getTag("Stage").toString();
-    room->sendLog(log);
+    if(!save_loaded){
+        LogMessage log;
+        log.type = "#NextStage";
+        log.from = lord;
+        log.arg = room->getTag("Stage").toString();
+        room->sendLog(log);
+    }
 
     askForLearnSkill(lord);
 

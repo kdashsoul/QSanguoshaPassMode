@@ -205,7 +205,7 @@ public:
     void initGameStart(ServerPlayer *player) const;
     void initNextStageStart(ServerPlayer *player) const;
     void setLoadedStageInfo(Room *room) const;
-    void setNextStageInfo(Room *room, int stage) const;
+    void setNextStageInfo(Room *room, int stage, bool save_loaded = false) const;
     bool goToNextStage(ServerPlayer *player, int stage) const;
 
     void setTimesDifficult(Room *room) const;
