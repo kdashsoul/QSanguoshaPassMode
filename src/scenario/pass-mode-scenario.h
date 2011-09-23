@@ -202,6 +202,7 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const;
 
+    void stageStartDraw(Room *room, ServerPlayer *player = NULL) const;
     void initGameStart(ServerPlayer *player) const;
     void initNextStageStart(ServerPlayer *player) const;
     void setLoadedStageInfo(Room *room) const;

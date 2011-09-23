@@ -74,7 +74,7 @@ PassMode::PassMode(QObject *parent)
     skill_raise["jijiu"] = "tipo";
 }
 
-const int Restart = 1;
+static int Restart = 1;
 
 bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
     Room *room = player->getRoom();
@@ -83,15 +83,21 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
     switch(event){
     case GameStart:{
+            if(setjmp(env) == Restart){
+                initNextStageStart(player);
+                return false;
+            }
+            if(room->getTag("FirstRound").toBool())
+                return false;
+
             if(room->getTag("Stage").isNull() && askForLoadData(room)){
                 setNextStageInfo(room, room->getTag("Stage").toInt()-1, true);
-                lord->hasSkill("fenjin") ? lord->drawCards(7) : lord->drawCards(6);
+                stageStartDraw(room);
             }
-            else if(setjmp(env) == Restart)
-                initNextStageStart(player);
             else
                 initGameStart(player);
 
+            room->setTag("FirstRound", true);
             return false;
         }
 
@@ -147,6 +153,20 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
     return GameRule::trigger(event, player, data);
 }
 
+void PassMode::stageStartDraw(Room *room, ServerPlayer *player) const{
+    int n = 0;
+    if(player != NULL){
+        n = player->isLord() ? 6 : 4;
+        player->drawCards(player->hasSkill("fenjin") ? ++n : n);
+    }
+    else{
+        foreach(ServerPlayer *p, room->getPlayers()){
+            n = p->isLord() ? 6 : 4;
+            p->drawCards(p->hasSkill("fenjin") ? ++n : n);
+        }
+    }
+}
+
 bool PassMode::askForLoadData(Room *room) const{
     ServerPlayer *lord = room->getLord();
     SaveDataStar save = askForReadData();
@@ -180,7 +200,6 @@ bool PassMode::askForLoadData(Room *room) const{
 
     lord->gainMark("@exp", save->exp);
     room->setPlayerMark(lord, "@nirvana", save->nirvana);
-    room->setTag("SaveRead", true);
     setLoadedStageInfo(room);
     return true;
 }
@@ -198,54 +217,47 @@ void PassMode::initNextStageStart(ServerPlayer *player) const{
     Room *room = player->getRoom();
     room->setTag("SwapPile", 0);
     room->setPlayerProperty(player, "phase", "not_active");
+
     room->setCurrent(room->getLord());
-    foreach(ServerPlayer *p, room->getPlayers()){
-        int n = p->isLord() ? 6 : 4;
-        if(p->hasSkill("fenjin"))
-            n ++ ;
-        p->drawCards(n);
-    }
+    stageStartDraw(room);
     room->getLord()->play();
 }
 
 void PassMode::initGameStart(ServerPlayer *player) const{
     Room *room = player->getRoom();
-    if(room->getTag("SaveRead").toBool())
-        return;
+    foreach(ServerPlayer *p, room->getPlayers()){
+        if(p->isLord()){
+            room->setTag("Stage", 1);
+            room->setTag("Times", 1);
 
-    if(player->isLord()){
-        room->setTag("Stage", 1);
-        room->setTag("Times", 1);
+            const Package *passpack = Sanguosha->findChild<const Package *>("pass_mode");
+            QList<const General *> generals = passpack->findChildren<const General *>();
 
-        const Package *passpack = Sanguosha->findChild<const Package *>("pass_mode");
-        QList<const General *> generals = passpack->findChildren<const General *>();
+            QStringList names;
+            foreach(const General *general, generals){
+                if(general->getKingdom() == "hero")
+                    names << general->objectName();
+            }
 
-        QStringList names;
-        foreach(const General *general, generals){
-            if(general->getKingdom() == "hero")
-                names << general->objectName();
+            QString name = room->askForGeneral(p, names);
+
+            room->transfigure(p, name, true, true);
+            room->setPlayerProperty(p, "maxhp", p->getMaxHP() + 1);
+            room->setPlayerProperty(p, "hp", p->getMaxHP());
+            const General *general = Sanguosha->getGeneral(name);
+            if(p->getKingdom() != general->getKingdom())
+                room->setPlayerProperty(p, "kingdom", general->getKingdom());
+        }else{
+            QStringList enemys = enemy_list.at(0).split("+");
+            QString general_name = enemys.at(p->getSeat()-2) ;
+            room->transfigure(p, general_name, true, true);
+            const General *general = Sanguosha->getGeneral(general_name);
+            if(p->getKingdom() != general->getKingdom())
+                room->setPlayerProperty(p, "kingdom", general->getKingdom());
         }
 
-        QString name = room->askForGeneral(player, names);
-
-        room->transfigure(player, name, true, true);
-        room->setPlayerProperty(player, "maxhp", player->getMaxHP() + 1);
-        room->setPlayerProperty(player, "hp", player->getMaxHP());
-        const General *general = Sanguosha->getGeneral(name);
-        if(player->getKingdom() != general->getKingdom())
-            room->setPlayerProperty(player, "kingdom", general->getKingdom());
-    }else{
-        QStringList enemys = enemy_list.at(0).split("+");
-        QString general_name = enemys.at(player->getSeat()-2) ;
-        room->transfigure(player, general_name, true, true);
-        const General *general = Sanguosha->getGeneral(general_name);
-        if(player->getKingdom() != general->getKingdom())
-            room->setPlayerProperty(player, "kingdom", general->getKingdom());
+        stageStartDraw(room, p);
     }
-    int n = player->isLord() ? 6 : 4;
-    if(player->hasSkill("fenjin"))
-        n ++ ;
-    player->drawCards(n);
 }
 
 void PassMode::setTimesDifficult(Room *room) const{
@@ -477,6 +489,7 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     }
 
     setTimesDifficult(room);
+    room->setTag("FirstRound", false);
 }
 
 SaveDataStruct *PassMode::askForReadData() const{
