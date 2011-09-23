@@ -2275,6 +2275,7 @@ public:
                 SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
                 if(shenguanyu->isAlive() && effect.slash->getSuit() == Card::Spade && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                    room->playSkillEffect("wushen");
                     room->slashResult(effect, NULL);
                     return true;
                 }
@@ -2286,6 +2287,7 @@ public:
             switch(effect.slash->getSuit()){
                 case Card::Heart:{
                         if(shenguanyu->isWounded() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                            room->playSkillEffect("wushen");
                             RecoverStruct recover;
                             recover.who = shenguanyu;
                             room->recover(shenguanyu, recover);
@@ -2295,6 +2297,7 @@ public:
 
                 case Card::Diamond:{
                         if(shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                            room->playSkillEffect("wushen");
                             shenguanyu->drawCards(1);
                         }
                         break;
@@ -2302,6 +2305,7 @@ public:
 
                 case Card::Club:{
                         if(effect.to && effect.to->isAlive() && !effect.to->isKongcheng() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                            room->playSkillEffect("wushen");
                             room->askForDiscard(effect.to, objectName(), 1, false);
                         }
 
@@ -2321,6 +2325,68 @@ public:
         return false;
     }
 };
+
+class WuhunPass: public TriggerSkill{
+public:
+    WuhunPass():TriggerSkill("wuhun_pass"){
+        events << Death;
+        frequency = Compulsory;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return true;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        if(room->getAlivePlayers().length() == 1)
+            return false;
+        if(player->hasSkill(objectName())){
+            DamageStar damage = data.value<DamageStar>();
+            ServerPlayer *killer = damage ? damage->from : NULL;
+            if(killer && ! killer->isKongcheng()){
+                room->showAllCards(killer);
+                int n = 0 ;
+                foreach(const Card *card, killer->getHandcards()){
+                    if(card->isBlack())
+                        n++;
+                }
+
+                DamageStruct damage;
+                damage.card = NULL;
+                damage.from = killer;
+                damage.to = killer;
+                damage.damage = n;
+                room->damage(damage);
+
+                LogMessage log;
+                log.type = "#WuhunPassDamage";
+                log.from = player;
+                log.to << killer;
+                log.arg = QString::number(n);
+                room->sendLog(log);
+
+                room->playSkillEffect("wuhun");
+            }
+        }else{
+            ServerPlayer *shenguanyu = room->findPlayerBySkillName(objectName());
+            if(shenguanyu != NULL){
+                LogMessage log;
+                log.type = "#WuhunPassDraw";
+                log.from = player;
+                log.to << shenguanyu;
+                room->sendLog(log);
+                int n = shenguanyu->getMaxHP() - shenguanyu->getHandcardNum();
+                if(n > 0)
+                    shenguanyu->drawCards(n);
+            }
+        }
+
+
+        return false;
+    }
+};
+
 
 class Kuangji: public ViewAsSkill{
 public:
@@ -2366,7 +2432,7 @@ void PassModeScenario::addGeneralAndSkills(){
                 << new JieyinPass << new TongjiPass << new Jielue << new Yuyue << new Shuangxing
             << new Zhanshen << new NuozhanPass << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
                 << new BuguaPass << new HuanshuPass
-            << new WushenPass
+            << new WushenPass << new WuhunPass
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
             << new Kuangji;
 
@@ -2400,6 +2466,7 @@ void PassModeScenario::addGeneralAndSkills(){
 
     General *shenguanyu_p = new General(this, "shenguanyu_p", "evil_god", 5, true, true);
     shenguanyu_p->addSkill("wushen_pass");
+    shenguanyu_p->addSkill("wuhun_pass");
 
     General *liubei_p = new General(this,"liubei_p","hero",4, true, true);
     liubei_p->addSkill("rende_pass");
