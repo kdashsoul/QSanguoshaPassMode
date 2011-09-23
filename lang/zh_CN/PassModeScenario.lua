@@ -230,6 +230,9 @@ local pass_t = {
     ["notread"]         = "重新开始",
     ["save"]            = "保存",
     ["notsave"]         = "不保存",
+	["different_skills"] 	= "数据错误！\n技能不符\n（可能由于version不同造成）",
+	["unknown_lord"] = "数据错误！\n不允许的主公角色",
+	["except_maxhp"] = "数据错误！\n不允许的体力上限",
 
     ["#ChooseType"]     = "%from 选择了 %arg ，随机展示 %to 手中的1张牌",
     ["#JijiangLoseHp"]  = "%from 的【激将】效果触发，由于没有足够的仁义标记，%from 流失了1点体力",
