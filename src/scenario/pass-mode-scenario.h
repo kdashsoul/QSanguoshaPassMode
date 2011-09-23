@@ -231,7 +231,7 @@ public:
     SaveDataStruct *askForReadData() const;
     SaveDataStruct *catchSaveInfo(Room *room, int stage = -1) const;
 
-    SaveDataStruct::WrongVersion checkDataVersion(Room *room, SaveDataStruct *savedata) const;
+    SaveDataStruct::WrongVersion checkDataVersion(SaveDataStruct *savedata) const;
     bool sendWrongVersionLog(Room *room, SaveDataStruct *savedata) const;
 private:
     QList<QString> enemy_list;
