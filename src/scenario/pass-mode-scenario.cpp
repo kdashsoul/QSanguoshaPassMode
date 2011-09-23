@@ -4,6 +4,7 @@
 #include <QFileDialog>
 #include <QByteArray>
 #include <QMessageBox>
+#include <QTime>
 
 SaveDataStruct::SaveDataStruct()
     :size(0), stage(0),
@@ -77,6 +78,7 @@ static int Restart = 1;
 
 bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
     Room *room = player->getRoom();
+    qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
 
     switch(event){
     case GameStart:{
@@ -130,7 +132,6 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                     if(!goToNextStage(player, stage))
                         break;
 
-                    askForSaveData(room, stage);
                     setNextStageInfo(room, stage);
 
                     longjmp(env, Restart);
@@ -351,49 +352,19 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
     if(player->isChained())
         room->setPlayerProperty(player, "chained", false);
     if(stage >= enemy_list.length()){
-        /*SaveDataStar save = askForReadData();
+        SaveDataStar save = askForReadData();
         if(save->canRead() && save->read_success){
             save->stage = 0;
             save->times = room->getTag("Times").toInt()+1;
             save->exp = lord->getMark("@exp");
-            askForSaveData(save);
-        }*/
+          //  askForSaveData(save);
+        }
 
         room->gameOver("lord");
         return false;
     }
-    stage ++ ;
-    room->setTag("Stage", stage);
 
-    LogMessage log;
-    log.type = "#NextStage";
-    log.from = lord;
-    log.arg = QString::number(stage);
-    room->sendLog(log);
-
-    askForLearnSkill(lord);
-    SaveDataStar save_cache = catchSaveInfo(room);
-
-    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
-    lord->setAlive(false);
-    lord->loseAllSkills();
-    room->broadcastInvoke("killPlayer", lord->objectName());
-    lord->throwAllCards();
-    room->broadcastInvoke("revivePlayer", lord->objectName());
-    foreach(QString skill_name, save_cache->skills.split("+"))
-        room->acquireSkill(lord, skill_name);
-    lord->setAlive(true);
-    lord->clearFlags();
-    lord->clearHistory();
-
-    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
-    int exp = lord->getMark("@exp");
-    int nirvana = lord->getMark("@nirvana");
-    lord->throwAllMarks();
-    lord->gainMark("@exp", exp);
-    if(nirvana > 0)
-        lord->gainMark("@nirvana");
-
+    askForSaveData(room, stage);
     return true;
 }
 
@@ -458,6 +429,32 @@ bool PassMode::askForSaveData(SaveDataStruct *save) const{
 }
 
 void PassMode::setNextStageInfo(Room *room, int stage) const{
+    room->setTag("Stage", stage+1);
+    ServerPlayer *lord = room->getLord();
+
+    LogMessage log;
+    log.type = "#NextStage";
+    log.from = lord;
+    log.arg = room->getTag("Stage").toString();
+    room->sendLog(log);
+
+    askForLearnSkill(lord);
+
+    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
+    room->broadcastInvoke("frozenPlayer", lord->objectName());
+    lord->throwAllCards();
+    room->broadcastInvoke("revivePlayer", lord->objectName());
+    lord->clearFlags();
+    lord->clearHistory();
+
+    room->setPlayerProperty(lord, "hp", lord->getMaxHP());
+    int exp = lord->getMark("@exp");
+    int nirvana = lord->getMark("@nirvana");
+    lord->throwAllMarks();
+    lord->gainMark("@exp", exp);
+    if(nirvana > 0)
+        lord->gainMark("@nirvana");
+
     int i = 0;
     QStringList enemys = enemy_list.at(stage).split("+") ;
     foreach(ServerPlayer *player, room->getPlayers()){
