@@ -621,7 +621,7 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
             else if(or_skill != "." && !save->skills.contains(or_skill)){
                 continue;
             }
-            else if(or_skill == "." && (!save->skills.isEmpty() && save->skills == "useitem"))
+            else if(or_skill == "." && (!save->skills.isEmpty() || save->skills != "useitem"))
                 continue;
 
             foreach(QString reward_match, reward_match_list){
