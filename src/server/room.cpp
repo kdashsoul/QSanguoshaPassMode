@@ -555,10 +555,12 @@ bool Room::askForNullification(const TrickCard *trick, ServerPlayer *from, Serve
                 if(!from || player == from){
                     player->drawCards(1);
                 }else{
-                    DamageStruct damage;
-                    damage.from = player;
-                    damage.to = from;
-                    this->damage(damage);
+                    if(from->getHp() >= player->getHp()){
+                        DamageStruct damage;
+                        damage.from = player;
+                        damage.to = from;
+                        this->damage(damage);
+                    }
                 }
             }
             return !askForNullification(trick, from, to, !positive) ;

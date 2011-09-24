@@ -23,7 +23,7 @@ bool SaveDataStruct::canRead() const{
     return default_size == this->size;
 }
 
-QString SaveDataStruct::getWrongType(WrongVersion error) const{
+QString SaveDataStruct::getWrongType(SaveDataStruct::WrongVersion error) const{
     return error_type.value(error);
 }
 
@@ -43,7 +43,7 @@ PassMode::PassMode(QObject *parent)
     setObjectName("pass_mode_rule");
 
     enemy_list  << "shizu+gongshou+yaodao" << "jianwei+qibing+jianwei"
-                << "huwei+gongshou+huwei" << "jianwei+yaodao+shizu"
+                << "huwei+gongshou+jianwei" << "jianwei+yaodao+shizu"
                 << "huwei+caocao_p+jianwei" << "gongshou+luxun_p+shizu"
                 << "qibing+machao_p+qibing" << "jianwei+zhaoyun_p+huwei"
                 << "jianwei+zhouyu_p+jianwei" << "yaodao+guojia_p+yaodao"
@@ -60,11 +60,11 @@ PassMode::PassMode(QObject *parent)
     skill_map.insert("mashu", 15);
     skill_map.insert("kezhi", 15);
     skill_map.insert("nuhou", 20);
-    skill_map.insert("xiuluo", 20);
     skill_map.insert("fenjin", 25);
     skill_map.insert("duanyan", 25);
     skill_map.insert("quanheng", 30);
     skill_map.insert("niepan", 30);
+    skill_map.insert("xiuluo", 35);
     skill_map.insert("tipo" ,40);
     skill_map.insert("feiying", 75);
     skill_map.insert("xiongzi", 80);
@@ -203,8 +203,10 @@ bool PassMode::askForLoadData(Room *room) const{
     lord->gainMark("@exp", save->exp);
     room->setPlayerMark(lord, "@nirvana", save->nirvana);
     QStringList skills = save->skills.split("+");
-    foreach(QString skill, skills)
-        room->acquireSkill(lord, skill);
+    foreach(QString skill, skills){
+        if(skill_map.keys().contains(skill) || skill_map_hidden.keys().contains(skill))
+            room->acquireSkill(lord, skill);
+    }
 
     save->times = (save->stage >= enemy_list.length()) ? (save->times+1) : save->times;
     save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
@@ -346,7 +348,7 @@ bool PassMode::askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &
             if(!lord->hasSkill(key))
                 skills.append(key).append("_s+");
 
-            if(skill_map.value(key) > min_exp)
+            if(skill_map.value(key) < min_exp)
                 min_exp = skill_map.value(key);
         }
     }
@@ -355,7 +357,7 @@ bool PassMode::askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &
             if(!lord->hasSkill(key))
                 skills.append(key).append("_s+");
 
-            if(skill_map_hidden.value(key) > min_exp)
+            if(skill_map_hidden.value(key) < min_exp)
                 min_exp = skill_map_hidden.value(key);
         }
     }
@@ -593,13 +595,13 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata
     QStringList lord_skill_list;
     foreach(const Skill *skill, lord_skills)
         lord_skill_list << skill->objectName();
-    foreach(QString skill, skills){
+    /*foreach(QString skill, skills){
         if(!lord_skill_list.contains(skill)){
             skill = skill.split("_").at(0);
             if(!skill_map.keys().contains(skill) && !skill_map_hidden.keys().contains(skill))
                 return SaveDataStruct::DifferentSkills;
         }
-    }
+    }*/
 
     int maxhp = lord_general->getMaxHp()+1;
     maxhp = skills.contains("tipo") ? maxhp+1 : maxhp;
