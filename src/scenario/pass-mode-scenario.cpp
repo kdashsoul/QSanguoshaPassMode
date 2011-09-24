@@ -82,9 +82,9 @@ PassMode::PassMode(QObject *parent)
     skill_raise["wansha"] = "duanyan";
     skill_raise["jijiu"] = "tipo";
 
-    hidden_reward["xiongzi"] = "._reward-yingzi|feiying_qingnangshu";
-    hidden_reward["feiying"] = "mashu_reward-qibing|xiongzi_dunjiatianshu";
-    hidden_reward["niepan"] = "tipo_qiangjian";
+    hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
+    hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
+    hidden_reward["niepan"]  = "tipo_qiangjian";
 }
 
 static int Restart = 1;

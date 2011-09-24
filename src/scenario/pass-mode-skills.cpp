@@ -2472,9 +2472,9 @@ PassModeItemCard::PassModeItemCard(){
 
     items["dunjiatianshu"]  = Warlock;
     items["qingnangshu"]    = Recover;
-    items["reward-qibing"]  = Knight;
+    items["rewardqibing"]   = Knight;
     items["qiangjian"]      = Strong;
-    items["reward-yingzi"]  = Handsome;
+    items["rewardyingzi"]   = Handsome;
 }
 
 void PassModeItemCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{

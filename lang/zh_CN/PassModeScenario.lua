@@ -273,10 +273,10 @@ local pass_t = {
 	["#RewardGet"] 		= "%from 因学习技能获得了道具 【%arg】",
 	["#ItemUnlock"] 	= "<font color='red'><b>此道具暂未开放使用</b></font>",
 	
-	["reward-yingzi"]	= "英姿：摸两张牌然后指定一名角色翻面",
+	["rewardyingzi"]	= "英姿：摸两张牌然后指定一名角色翻面",
 	["dunjiatianshu"] 	= "遁甲天书：回复至体力上限并弃掉所有手牌，摸牌至体力上限",
 	["qingnangshu"] 	= "青囊书：指定一名角色回复一点体力，你获得该角色所有手牌",
-	["reward-qibing"] 	= "骑兵：弃掉所有角色的马，然后你摸等数量的牌",
+	["rewardqibing"] 	= "骑兵：弃掉所有角色的马，然后你摸等数量的牌",
 	["qiangjian"]		= "强健：回复两点体力",
 }
 
