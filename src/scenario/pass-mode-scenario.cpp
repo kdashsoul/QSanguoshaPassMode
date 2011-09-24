@@ -80,6 +80,10 @@ PassMode::PassMode(QObject *parent)
     skill_raise["zhiheng"] = "quanheng";
     skill_raise["wansha"] = "duanyan";
     skill_raise["jijiu"] = "tipo";
+
+    hidden_reward["xiongzi"] = ".|feiying:._yingzi|feiying_qingnangshu";
+    hidden_reward["feiying"] = "mashu:_qibing";
+    hidden_reward["niepan"] = "tipo:_qiangjian";
 }
 
 static int Restart = 1;
@@ -302,6 +306,8 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
             exp -= need_exp;
             room->setPlayerMark(lord, "@exp", exp);
             room->acquireSkill(lord, skill_name);
+            proceedSpecialReward(room, ".SKILL", QVariant::fromValue(skill_name));
+
             if(skill_raise[skill_name] != NULL){
                 room->detachSkillFromPlayer(lord, skill_raise[skill_name]);
                 if(skill_raise[skill_name] == "tipo")
@@ -572,6 +578,56 @@ SaveDataStruct *PassMode::askForReadData() const{
     save->size = line_num-1;
 
     return save;
+}
+
+void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) const{
+    if(!pattern.startsWith("."))
+        return;
+
+    if(pattern.contains("SKILL")){
+        QString skill = data.toString();
+        if(hidden_reward[skill] == NULL)
+            return;
+
+        SaveDataStar save = catchSaveInfo(room);
+        QStringList reward_rx       = hidden_reward[skill].split(":");
+        QStringList reward_list     = reward_rx.at(1).split("|");
+        QStringList need_skill_list = reward_rx.at(0).split("|");
+        foreach(QString or_skill, need_skill_list){
+            if(or_skill.contains("+")){
+                QStringList and_skills = or_skill.split("+");
+                foreach(QString and_skill, and_skills){
+                    if(!save->skills.contains(and_skill))
+                        continue;
+                }
+            }
+            else if(or_skill != "." && !save->skills.contains(or_skill)){
+                continue;
+            }
+
+            foreach(QString reward, reward_list){
+                if(!reward.startsWith(or_skill))
+                    continue;
+
+                reward = reward.split("_").last();
+                if(reward == NULL)
+                    continue;
+
+                LogMessage log;
+                log.type = "#RewardGet";
+                log.from = room->getLord();
+                log.arg = reward;
+                log.arg2 = skill;
+                room->sendLog(log);
+
+                QStringList reward_list = room->getTag("Reward").toStringList();
+                reward_list.append(reward);
+                room->setTag("Reward", reward_list);
+                break;
+            }
+
+        }
+    }
 }
 
 SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata) const{

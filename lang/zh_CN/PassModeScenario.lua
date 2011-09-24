@@ -264,6 +264,8 @@ local pass_t = {
     ["#CantGainExp"]    = "由于 %from 并非属于这个世界，因此无法获得经验值",
     ["#NextStage"]      = "%from 击败了所有敌人，来到了第【%arg】关",
     ["#LoadNextStage"]  = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",
+	
+	["#RewardGet"] 		= "%from 因学习技能获得了道具 【%arg】",
 }
 
 for k, v in pairs(pass_t) do
