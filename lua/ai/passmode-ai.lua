@@ -323,6 +323,7 @@ sgs.ai_skill_invoke.nuozhan_pass = function(self, data)
 	end
 	return false
 end
+sgs.ai_skill_invoke.yitian = sgs.ai_skill_invoke.nuozhan_pass
 sgs.ai_skill_invoke.longwei = function(self, data)
 	return self.enemies and #self.enemies > 0
 end
