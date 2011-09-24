@@ -17,7 +17,7 @@ SaveDataStruct::SaveDataStruct()
     error_type[UnknownLordName]     = "unknown_lord";
 }
 
-int SaveDataStruct::default_size = 5;
+int SaveDataStruct::default_size = 7;
 
 bool SaveDataStruct::canRead() const{
     return default_size == this->size;
@@ -31,11 +31,12 @@ bool SaveDataStruct::checkDataFormat() const{
     bool format_right = this->stage >= 0
                        && this->times > 0
                        && this->lord != NULL
-                       && this->skills != NULL
                        && this->lord_maxhp > 0;
 
     return format_right;
 }
+
+QString PassMode::version = "ver1.6";
 
 PassMode::PassMode(QObject *parent)
     :GameRule(parent)
@@ -81,8 +82,8 @@ PassMode::PassMode(QObject *parent)
     skill_raise["wansha"] = "duanyan";
     skill_raise["jijiu"] = "tipo";
 
-    hidden_reward["xiongzi"] = "._yingzi|feiying_qingnangshu";
-    hidden_reward["feiying"] = "mashu_qibing|xiongzi_dunjiatianshu";
+    hidden_reward["xiongzi"] = "._reward-yingzi|feiying_qingnangshu";
+    hidden_reward["feiying"] = "mashu_reward-qibing|xiongzi_dunjiatianshu";
     hidden_reward["niepan"] = "tipo_qiangjian";
 }
 
@@ -214,6 +215,8 @@ bool PassMode::askForLoadData(Room *room) const{
     save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
     room->setTag("Stage", save->stage+1);
     room->setTag("Times", save->times);
+    if(save->reward_list != NULL)
+        room->setTag("Reward", save->reward_list.split("+"));
     setLoadedStageInfo(room);
     return true;
 }
@@ -385,6 +388,7 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
             save->stage = 0;
             save->times = room->getTag("Times").toInt()+1;
             save->exp = lord->getMark("@exp");
+            save->reward_list = room->getTag("Reward").toStringList().join("+");
           //  askForSaveData(save);
         }
 
@@ -412,14 +416,15 @@ SaveDataStruct *PassMode::catchSaveInfo(Room *room, int stage) const{
     }
 
     SaveDataStruct *save_cache = new SaveDataStruct;
-    save_cache->stage      = stage >= 0 ? stage : room->getTag("Stage").toInt();
-    save_cache->lord       = lord->getGeneralName();
-    save_cache->lord_maxhp = lord->getMaxHP();
-    save_cache->exp        = lord->getMark("@exp");
-    save_cache->nirvana    = lord->getMark("@nirvana");
-    save_cache->skills     = lord_skills.join("+");
-    save_cache->times      = room->getTag("Times").toInt();
-    save_cache->size       = 5;
+    save_cache->stage       = stage >= 0 ? stage : room->getTag("Stage").toInt();
+    save_cache->lord        = lord->getGeneralName();
+    save_cache->lord_maxhp  = lord->getMaxHP();
+    save_cache->exp         = lord->getMark("@exp");
+    save_cache->nirvana     = lord->getMark("@nirvana");
+    save_cache->skills      = lord_skills.join("+");
+    save_cache->times       = room->getTag("Times").toInt();
+    save_cache->reward_list = room->getTag("Reward").toStringList().join("+");
+    save_cache->size        = 7;
 
     return save_cache;
 }
@@ -450,6 +455,10 @@ bool PassMode::askForSaveData(SaveDataStruct *save) const{
     data.append(marks.toUtf8().toBase64());
     data.append(QString("\n"));
     data.append(QString::number(save->times).toUtf8().toBase64());
+    data.append(QString("\n"));
+    data.append(save->reward_list.toUtf8().toBase64());
+    data.append(QString("\n"));
+    data.append(this->version.toUtf8().toBase64());
 
     QString filename = "savedata/pass_mode.sav";
     QFile file(filename);
@@ -564,6 +573,10 @@ SaveDataStruct *PassMode::askForReadData() const{
                     save->times = line.toInt();
                     break;
                 }
+            case 6:{
+                    save->reward_list = line;
+                    break;
+                }
             default:
                 break;
             }
@@ -608,7 +621,7 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
             else if(or_skill != "." && !save->skills.contains(or_skill)){
                 continue;
             }
-            else if(or_skill == "." && !save->skills.isEmpty())
+            else if(or_skill == "." && (!save->skills.isEmpty() && save->skills == "useitem"))
                 continue;
 
             foreach(QString reward_match, reward_match_list){
@@ -623,12 +636,15 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
                 log.arg2 = skill;
                 room->sendLog(log);
 
-                QStringList reward_list = room->getTag("Reward").toStringList();
-                reward_list.append(reward);
+                QStringList reward_list;
+                if(!room->getTag("Reward").isNull())
+                    reward_list = room->getTag("Reward").toStringList();
+
+                reward_list << reward;
                 room->setTag("Reward", reward_list);
+                room->acquireSkill(room->getLord(), "useitem");
                 break;
             }
-
         }
     }
 }
@@ -648,22 +664,19 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata
     }
     if(lord_general == NULL)
         return SaveDataStruct::UnknownLordName;
-
-    QStringList skills = savedata->skills.split("+");
-    QList<const Skill *> lord_skills = lord_general->getVisibleSkillList();
-    QStringList lord_skill_list;
-    foreach(const Skill *skill, lord_skills)
-        lord_skill_list << skill->objectName();
-    foreach(QString skill, skills){
-        if(!lord_skill_list.contains(skill)){
-            skill = skill.split("_").at(0);
-            if(!skill_map.keys().contains(skill) && !skill_map_hidden.keys().contains(skill))
-                return SaveDataStruct::DifferentSkills;
+    if(!savedata->skills.isEmpty()){
+        QStringList skills = savedata->skills.split("+");
+        foreach(QString skill, skills){
+                skill = skill.split("_").at(0);
+                if(!skill_map.keys().contains(skill)
+                    && !skill_map_hidden.keys().contains(skill)
+                    && skill != "useitem")
+                    return SaveDataStruct::DifferentSkills;
         }
     }
 
     int maxhp = lord_general->getMaxHp()+1;
-    maxhp = skills.contains("tipo") ? maxhp+1 : maxhp;
+    maxhp = savedata->skills.contains("tipo") ? maxhp+1 : maxhp;
     if(savedata->lord_maxhp != maxhp)
         return SaveDataStruct::ExceptMaxHp;
 

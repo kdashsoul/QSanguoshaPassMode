@@ -1503,7 +1503,7 @@ void ZhihengPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPl
     if(source->usedTimes("ZhihengPassCard") > 1)
         source->loseMark("@zhiba",n);
     if(all_same && n > 1){
-        source->gainMark("@zhiba", n - 1);
+        source->gainMark("@zhiba", n);
         n = n * 2 - 1 ;
     }
     source->drawCards(n);
@@ -2467,6 +2467,107 @@ public:
     }
 };
 
+PassModeItemCard::PassModeItemCard(){
+    target_fixed = true;
+
+    items["dunjiatianshu"]  = Warlock;
+    items["qingnangshu"]    = Recover;
+    items["reward-qibing"]  = Knight;
+    items["qiangjian"]      = Strong;
+    items["pass-yingzi"]    = Handsome;
+}
+
+void PassModeItemCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
+    QStringList choice = room->getTag("Reward").toStringList();
+    choice.append("cancel");
+    QString choose_item = room->askForChoice(source, "useitem", choice.join("+"));
+    if(choose_item == "cancel")
+        return;
+
+    getItemEffect(room, source, choose_item);
+    if(room->getTag("Reward").isNull())
+        room->detachSkillFromPlayer(source, "useitem");
+}
+
+void PassModeItemCard::getItemEffect(Room *room, ServerPlayer *source, const QString &item_str) const{
+    if(items[item_str] == NULL){
+        LogMessage log;
+        log.type = "#ItemUnlock";
+        room->sendLog(log);
+    }
+    else{
+        switch(items[item_str]){
+        case Warlock:{
+                RecoverStruct recover;
+                recover.who = source;
+                recover.recover = source->getLostHp();
+                room->recover(source, recover);
+                source->throwAllHandCards();
+                source->drawCards(source->getMaxHP());
+                break;
+            }
+        case Recover:{
+                ServerPlayer *target = room->askForPlayerChosen(source, room->getOtherPlayers(source), "useitem");
+                RecoverStruct recover;
+                recover.who = source;
+                room->recover(target, recover);
+                foreach(const Card *card, target->getHandcards())
+                    room->moveCardTo(card, source, Player::Hand, false);
+                break;
+            }
+        case Knight:{
+                int n = 0;
+                foreach(ServerPlayer *p, room->getAlivePlayers()){
+                    if(p->getDefensiveHorse()){
+                        room->throwCard(p->getDefensiveHorse()->getEffectiveId());
+                        n++;
+                    }
+                    if(p->getOffensiveHorse()){
+                        room->throwCard(p->getOffensiveHorse()->getEffectiveId());
+                        n++;
+                    }
+                }
+                source->drawCards(n);
+                break;
+            }
+        case Strong:{
+                RecoverStruct recover;
+                recover.who = source;
+                recover.recover = 2;
+                room->recover(source, recover);
+                break;
+            }
+        case Handsome:{
+                source->drawCards(2);
+                ServerPlayer *target = room->askForPlayerChosen(source, room->getOtherPlayers(source), "useitem");
+                target->turnOver();
+                break;
+            }
+        }
+        QStringList reward_update = room->getTag("Reward").toStringList();
+        reward_update.removeOne(item_str);
+        if(reward_update.isEmpty())
+            room->removeTag("Reward");
+        else
+            room->setTag("Reward", reward_update);
+    }
+}
+
+class ItemUse: public ZeroCardViewAsSkill{
+public:
+    ItemUse(): ZeroCardViewAsSkill("useitem"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return player->isLord();
+    }
+
+    virtual const Card *viewAs() const{
+        return new PassModeItemCard;
+    }
+};
+
 void PassModeScenario::addGeneralAndSkills(){
 
     skills << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
@@ -2480,7 +2581,7 @@ void PassModeScenario::addGeneralAndSkills(){
                 << new BuguaPass << new HuanshuPass
             << new WushenPass << new WuhunPass << new QishenPass
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
-            << new Kuangji;
+            << new Kuangji << new ItemUse;
 
     related_skills.insertMulti("jijiang_pass", "#jijiang_cost");
     related_skills.insertMulti("wenjiu_pass", "#wenjiu");
@@ -2658,6 +2759,7 @@ void PassModeScenario::addGeneralAndSkills(){
     addMetaObject<LijianPassCard>();
     addMetaObject<QingnangPassCard>();
 
+    addMetaObject<PassModeItemCard>();
 }
 
 class NothrowPattern: public CardPattern{

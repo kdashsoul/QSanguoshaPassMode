@@ -155,6 +155,27 @@ public:
     virtual void onEffect(const CardEffectStruct &effect) const;
 };
 
+class PassModeItemCard: public SkillCard{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE PassModeItemCard();
+
+    enum Item{
+        Warlock,
+        Recover,
+        Knight,
+        Strong,
+        Handsome,
+    };
+
+    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+
+    void getItemEffect(Room *room, ServerPlayer *source, const QString &item_str) const;
+private:
+    QMap<QString, PassModeItemCard::Item> items;
+};
+
 class PassModeScenario : public Scenario{
     Q_OBJECT
 
@@ -193,6 +214,7 @@ struct SaveDataStruct{
 
     QString lord;
     QString skills;
+    QString reward_list;
 
     bool read_success;
 
@@ -242,6 +264,8 @@ private:
     QMap<QString, QString> skill_raise;
 
     QMap<QString, QString> hidden_reward;
+
+    static QString version;
 
     mutable jmp_buf env;
 };

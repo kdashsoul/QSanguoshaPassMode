@@ -265,7 +265,19 @@ local pass_t = {
     ["#NextStage"]      = "%from 击败了所有敌人，来到了第【%arg】关",
     ["#LoadNextStage"]  = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",
 	
+--items
+	["useitem"] = "道具栏",
+	[":useitem"] = "使用你已获得的道具",
+	["passmodeitem"] = "使用道具",
+	
 	["#RewardGet"] 		= "%from 因学习技能获得了道具 【%arg】",
+	["#ItemUnlock"] 	= "<font color='red'><b>此道具暂未开放使用</b></font>",
+	
+	["reward-yingzi"]	= "英姿：摸两张牌然后指定一名角色翻面",
+	["dunjiatianshu"] 	= "遁甲天书：回复至体力上限并弃掉所有手牌，摸牌至体力上限",
+	["qingnangshu"] 	= "青囊书：指定一名角色回复一点体力，你获得该角色所有手牌",
+	["reward-qibing"] 	= "骑兵：弃掉所有角色的马，然后你摸等数量的牌",
+	["qiangjian"]		= "强健：回复两点体力",
 }
 
 for k, v in pairs(pass_t) do
