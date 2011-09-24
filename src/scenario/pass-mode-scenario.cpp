@@ -633,7 +633,6 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
                 log.type = "#RewardGet";
                 log.from = room->getLord();
                 log.arg = reward;
-                log.arg2 = skill;
                 room->sendLog(log);
 
                 QStringList reward_list;
