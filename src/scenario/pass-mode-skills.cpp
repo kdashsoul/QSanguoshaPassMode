@@ -2490,7 +2490,7 @@ void PassModeItemCard::use(Room *room, ServerPlayer *source, const QList<ServerP
 }
 
 void PassModeItemCard::getItemEffect(Room *room, ServerPlayer *source, const QString &item_str) const{
-    if(items[item_str] == NULL){
+    if(!items.keys().contains(item_str)){
         LogMessage log;
         log.type = "#ItemUnlock";
         room->sendLog(log);
