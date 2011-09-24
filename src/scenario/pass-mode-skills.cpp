@@ -965,18 +965,14 @@ public:
     virtual void onDamaged(ServerPlayer *caocao, const DamageStruct &damage) const{
         Room *room = caocao->getRoom();
         const Card *card = damage.card;
-
-        caocao->gainMark("@jianxiong",damage.damage);
-
-        if(!room->obtainable(card, caocao))
-            return;
-
         QVariant data = QVariant::fromValue(card);
-        room->playSkillEffect("jianxiong"); 
         if(room->askForSkillInvoke(caocao, "jianxiong_pass", data)){
-            caocao->obtainCard(card);
-        }else{
-            caocao->drawCards(1);
+            caocao->gainMark("@jianxiong",damage.damage);
+            if(room->obtainable(card, caocao)){
+                room->playSkillEffect("jianxiong");
+                    caocao->obtainCard(card);
+            }
+            caocao->drawCards(damage.damage);
         }
     }
 };
