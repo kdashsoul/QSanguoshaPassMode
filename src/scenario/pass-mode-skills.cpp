@@ -2544,6 +2544,12 @@ void PassModeItemCard::getItemEffect(Room *room, ServerPlayer *source, const QSt
                 break;
             }
         }
+        LogMessage log;
+        log.type = "#ItemUsed";
+        log.from = source;
+        log.arg = item_str;
+        room->sendLog(log);
+
         QStringList reward_update = room->getTag("Reward").toStringList();
         reward_update.removeOne(item_str);
         if(reward_update.isEmpty())
