@@ -399,15 +399,16 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
 SaveDataStruct *PassMode::catchSaveInfo(Room *room, int stage) const{
     ServerPlayer *lord = room->getLord();
     QStringList lord_skills;
-    QList<const Skill *> skills = lord->getVisibleSkillList();
-    foreach(const Skill *skill, skills){
-        if(skill->objectName() == "axe" || skill->objectName() == "spear")
-            continue;
-        if(skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill"))
+    QSet<QString> skill_names = lord->getAcquiredSkills();
+    foreach(QString skill_name, skill_names){
+        const Skill *skill = Sanguosha->getSkill(skill_name);
+        if(skill->inherits("WeaponSkill")
+            || skill->inherits("ArmorSkill")
+            || skill_name == "axe"
+            || skill_name == "spear")
             continue;
 
-        if(!lord_skills.contains(skill->objectName()))
-            lord_skills << skill->objectName();
+        lord_skills << skill_name;
     }
 
     SaveDataStruct *save_cache = new SaveDataStruct;
@@ -596,7 +597,6 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
             need_skill_list << reward_match.split("_").first();
             reward_match_list << reward_match;
         }
-
         foreach(QString or_skill, need_skill_list){
             if(or_skill.contains("+")){
                 QStringList and_skills = or_skill.split("+");
@@ -608,6 +608,8 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
             else if(or_skill != "." && !save->skills.contains(or_skill)){
                 continue;
             }
+            else if(or_skill == "." && !save->skills.isEmpty())
+                continue;
 
             foreach(QString reward_match, reward_match_list){
                 if(!reward_match.startsWith(or_skill))
