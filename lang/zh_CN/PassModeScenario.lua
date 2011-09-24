@@ -272,7 +272,7 @@ local pass_t = {
 	
 	["#RewardGet"] 		= "%from 因学习技能获得了道具 %arg",
 	["#ItemUnlock"] 	= "<font color='red'><b>此道具暂未开放使用</b></font>",
-	["#ItemUsed"] 		= "%from 使用了道具 %arg"
+	["#ItemUsed"] 		= "%from 使用了道具 %arg",
 	
 	["rewardyingzi"]	= "英姿：摸两张牌然后指定一名角色翻面",
 	["dunjiatianshu"] 	= "遁甲天书：回复至体力上限并弃掉所有手牌，摸牌至体力上限",
