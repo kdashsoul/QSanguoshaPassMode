@@ -222,6 +222,8 @@ public:
 
     void setTimesDifficult(Room *room) const;
 
+    void proceedSpecialReward(Room *room,const QString pattern, QVariant data) const;
+
     bool askForLearnSkill(ServerPlayer *lord) const;
     bool askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &min_exp) const;
 
@@ -238,6 +240,8 @@ private:
     QMap<QString, int> exp_map;
     QMap<QString, int> skill_map, skill_map_hidden;
     QMap<QString, QString> skill_raise;
+
+    QMap<QString, QString> hidden_reward;
 
     mutable jmp_buf env;
 };

@@ -80,6 +80,10 @@ PassMode::PassMode(QObject *parent)
     skill_raise["zhiheng"] = "quanheng";
     skill_raise["wansha"] = "duanyan";
     skill_raise["jijiu"] = "tipo";
+
+    hidden_reward["xiongzi"] = "._yingzi|feiying_qingnangshu";
+    hidden_reward["feiying"] = "mashu_qibing|xiongzi_dunjiatianshu";
+    hidden_reward["niepan"] = "tipo_qiangjian";
 }
 
 static int Restart = 1;
@@ -302,6 +306,8 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
             exp -= need_exp;
             room->setPlayerMark(lord, "@exp", exp);
             room->acquireSkill(lord, skill_name);
+            proceedSpecialReward(room, ".SKILL", QVariant::fromValue(skill_name));
+
             if(skill_raise[skill_name] != NULL){
                 room->detachSkillFromPlayer(lord, skill_raise[skill_name]);
                 if(skill_raise[skill_name] == "tipo")
@@ -393,15 +399,16 @@ bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
 SaveDataStruct *PassMode::catchSaveInfo(Room *room, int stage) const{
     ServerPlayer *lord = room->getLord();
     QStringList lord_skills;
-    QList<const Skill *> skills = lord->getVisibleSkillList();
-    foreach(const Skill *skill, skills){
-        if(skill->objectName() == "axe" || skill->objectName() == "spear")
-            continue;
-        if(skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill"))
+    QSet<QString> skill_names = lord->getAcquiredSkills();
+    foreach(QString skill_name, skill_names){
+        const Skill *skill = Sanguosha->getSkill(skill_name);
+        if(skill->inherits("WeaponSkill")
+            || skill->inherits("ArmorSkill")
+            || skill_name == "axe"
+            || skill_name == "spear")
             continue;
 
-        if(!lord_skills.contains(skill->objectName()))
-            lord_skills << skill->objectName();
+        lord_skills << skill_name;
     }
 
     SaveDataStruct *save_cache = new SaveDataStruct;
@@ -572,6 +579,58 @@ SaveDataStruct *PassMode::askForReadData() const{
     save->size = line_num-1;
 
     return save;
+}
+
+void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) const{
+    if(!pattern.startsWith("."))
+        return;
+
+    if(pattern.contains("SKILL")){
+        QString skill = data.toString();
+        if(hidden_reward[skill] == NULL)
+            return;
+
+        SaveDataStar save = catchSaveInfo(room);
+        QStringList reward_rx       = hidden_reward[skill].split("|");
+        QStringList reward_match_list, need_skill_list;
+        foreach(QString reward_match, reward_rx){
+            need_skill_list << reward_match.split("_").first();
+            reward_match_list << reward_match;
+        }
+        foreach(QString or_skill, need_skill_list){
+            if(or_skill.contains("+")){
+                QStringList and_skills = or_skill.split("+");
+                foreach(QString and_skill, and_skills){
+                    if(!save->skills.contains(and_skill))
+                        continue;
+                }
+            }
+            else if(or_skill != "." && !save->skills.contains(or_skill)){
+                continue;
+            }
+            else if(or_skill == "." && !save->skills.isEmpty())
+                continue;
+
+            foreach(QString reward_match, reward_match_list){
+                if(!reward_match.startsWith(or_skill))
+                    continue;
+
+                QString reward = reward_match.split("_").last();
+                LogMessage log;
+                log.type = "#RewardGet";
+                log.from = room->getLord();
+                log.arg = reward;
+                log.arg2 = skill;
+                room->sendLog(log);
+
+                QStringList reward_list = room->getTag("Reward").toStringList();
+                reward_list.append(reward);
+                room->setTag("Reward", reward_list);
+                break;
+            }
+
+        }
+    }
 }
 
 SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata) const{
