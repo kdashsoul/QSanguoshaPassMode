@@ -81,9 +81,9 @@ PassMode::PassMode(QObject *parent)
     skill_raise["wansha"] = "duanyan";
     skill_raise["jijiu"] = "tipo";
 
-    hidden_reward["xiongzi"] = ".|feiying:._yingzi|feiying_qingnangshu";
-    hidden_reward["feiying"] = "mashu|xiongzi:mashu_qibing|xiongzi_dunjiatianshu";
-    hidden_reward["niepan"] = "tipo:tipo_qiangjian";
+    hidden_reward["xiongzi"] = "._yingzi|feiying_qingnangshu";
+    hidden_reward["feiying"] = "mashu_qibing|xiongzi_dunjiatianshu";
+    hidden_reward["niepan"] = "tipo_qiangjian";
 }
 
 static int Restart = 1;
@@ -590,9 +590,13 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
             return;
 
         SaveDataStar save = catchSaveInfo(room);
-        QStringList reward_rx       = hidden_reward[skill].split(":");
-        QStringList reward_list     = reward_rx.at(1).split("|");
-        QStringList need_skill_list = reward_rx.at(0).split("|");
+        QStringList reward_rx       = hidden_reward[skill].split("|");
+        QStringList reward_match_list, need_skill_list;
+        foreach(QString reward_match, reward_rx){
+            need_skill_list << reward_match.split("_").first();
+            reward_match_list << reward_match;
+        }
+
         foreach(QString or_skill, need_skill_list){
             if(or_skill.contains("+")){
                 QStringList and_skills = or_skill.split("+");
@@ -605,14 +609,11 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
                 continue;
             }
 
-            foreach(QString reward, reward_list){
-                if(!reward.startsWith(or_skill))
+            foreach(QString reward_match, reward_match_list){
+                if(!reward_match.startsWith(or_skill))
                     continue;
 
-                reward = reward.split("_").last();
-                if(reward == NULL)
-                    continue;
-
+                QString reward = reward_match.split("_").last();
                 LogMessage log;
                 log.type = "#RewardGet";
                 log.from = room->getLord();
