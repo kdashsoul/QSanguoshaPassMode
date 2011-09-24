@@ -1503,7 +1503,7 @@ void ZhihengPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPl
     if(source->usedTimes("ZhihengPassCard") > 1)
         source->loseMark("@zhiba",n);
     if(all_same && n > 1){
-        source->gainMark("@zhiba", n);
+        source->gainMark("@zhiba", n - 1);
         n = n * 2 - 1 ;
     }
     source->drawCards(n);
