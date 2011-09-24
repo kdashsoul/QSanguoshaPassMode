@@ -965,6 +965,9 @@ public:
     virtual void onDamaged(ServerPlayer *caocao, const DamageStruct &damage) const{
         Room *room = caocao->getRoom();
         const Card *card = damage.card;
+
+        caocao->gainMark("@jianxiong",damage.damage);
+
         if(!room->obtainable(card, caocao))
             return;
 
@@ -975,7 +978,6 @@ public:
         }else{
             caocao->drawCards(1);
         }
-        caocao->gainMark("@jianxiong");
     }
 };
 

@@ -1138,7 +1138,7 @@ function SmartAI:getAoeValueTo(card, to , from)
 	
 	if self:aoeIsEffective(card, to) then
 		if to:getHp() > 1 or (self:getPeachNum(to) + self:getAnalepticNum(to) > 0) then
-			if to:hasSkill("yiji") or to:hasSkill("jianxiong") then
+			if to:hasSkill("yiji") or to:hasSkill("jianxiong") or to:hasSkill("zhanshang_pass") then
 				value = value + 20
 			end
 			if to:hasSkill("jieming") then

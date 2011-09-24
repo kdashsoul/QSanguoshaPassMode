@@ -205,19 +205,28 @@ badao_pass_skill.getTurnUseCard=function(self)
 	local same_suit=false
 	cards = sgs.QList2Table(cards)
 	self:sortByCardNeed(cards)
-	
+	local red,black
 	for _, fcard in ipairs(cards) do
 		if not (fcard:inherits("Peach") or fcard:inherits("ExNihilo") or fcard:inherits("SavageAssault") or fcard:inherits("ArcheryAttack")) then
-			local vaoe,card_name
 			if fcard:isRed() then 
-				card_name = "archery_attack"
+				red = sgs.Card_Parse(("archery_attack:badao_pass[%s:%s]=%d"):format(fcard:getSuitString(), fcard:getNumberString(), fcard:getId()))
 			else
-				card_name =  "savage_assault"
+				black = sgs.Card_Parse(("savage_assault:badao_pass[%s:%s]=%d"):format(fcard:getSuitString(), fcard:getNumberString(), fcard:getId()))
 			end
-			vaoe = sgs.Sanguosha:cloneCard(card_name, sgs.Card_NoSuit, 0)
-			local card = sgs.Card_Parse(card_name..":badao_pass[%s:%s]=%d"):format(first_suit, first_number, first_id)
-			if self:getAoeValue(vaa) < 10 then return card end
+			if red and black then break end
 		end
+	end
+
+	local vaa = self:getAoeValue(sgs.Sanguosha:cloneCard("archery_attack", sgs.Card_NoSuit, 0))
+	local vsa = self:getAoeValue(sgs.Sanguosha:cloneCard("savage_assault", sgs.Card_NoSuit, 0))
+	
+	if vaa < -10 then red = nil end
+	if vsa < -10 then black = nil end
+	
+	if red and black then
+		if vsa > vaa then return black else return red end
+	elseif red then return red
+	elseif black then return black
 	end
 
 end
