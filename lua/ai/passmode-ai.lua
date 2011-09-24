@@ -304,6 +304,11 @@ sgs.ai_skill_invoke.longhou  = function(self, data)
 	return not self:isFriend(target) and not self.player:isKongcheng()
 end
 
+sgs.ai_skill_invoke.jianxiong_pass  = function(self, data)
+	local card = data:toCard() 
+	return not sgs.Shit_HasShit(card) and not (card:inherits("Slash") and not self.player:hasWeapon("crossbow"))
+end
+
 sgs.ai_skill_invoke.jielue_pass = sgs.ai_skill_invoke.jueduan_pass
 sgs.ai_skill_invoke.wushen_pass = sgs.ai_skill_invoke.jueduan_pass
 sgs.ai_skill_invoke.jumou_pass = true

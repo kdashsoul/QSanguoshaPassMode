@@ -973,7 +973,7 @@ public:
 
         QVariant data = QVariant::fromValue(card);
         room->playSkillEffect("jianxiong"); 
-        if(room->askForSkillInvoke(caocao, "jianxiong", data)){
+        if(room->askForSkillInvoke(caocao, "jianxiong_pass", data)){
             caocao->obtainCard(card);
         }else{
             caocao->drawCards(1);
