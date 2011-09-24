@@ -23,7 +23,7 @@ bool SaveDataStruct::canRead() const{
     return default_size == this->size;
 }
 
-QString SaveDataStruct::getWrongType(SaveDataStruct::WrongVersion error) const{
+QString SaveDataStruct::getWrongType(WrongVersion error) const{
     return error_type.value(error);
 }
 
@@ -203,10 +203,8 @@ bool PassMode::askForLoadData(Room *room) const{
     lord->gainMark("@exp", save->exp);
     room->setPlayerMark(lord, "@nirvana", save->nirvana);
     QStringList skills = save->skills.split("+");
-    foreach(QString skill, skills){
-        if(skill_map.keys().contains(skill) || skill_map_hidden.keys().contains(skill))
+    foreach(QString skill, skills)
             room->acquireSkill(lord, skill);
-    }
 
     save->times = (save->stage >= enemy_list.length()) ? (save->times+1) : save->times;
     save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
@@ -397,6 +395,8 @@ SaveDataStruct *PassMode::catchSaveInfo(Room *room, int stage) const{
     QStringList lord_skills;
     QList<const Skill *> skills = lord->getVisibleSkillList();
     foreach(const Skill *skill, skills){
+        if(skill->objectName() == "axe" || skill->objectName() == "spear")
+            continue;
         if(skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill"))
             continue;
 
@@ -595,13 +595,13 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata
     QStringList lord_skill_list;
     foreach(const Skill *skill, lord_skills)
         lord_skill_list << skill->objectName();
-    /*foreach(QString skill, skills){
+    foreach(QString skill, skills){
         if(!lord_skill_list.contains(skill)){
             skill = skill.split("_").at(0);
             if(!skill_map.keys().contains(skill) && !skill_map_hidden.keys().contains(skill))
                 return SaveDataStruct::DifferentSkills;
         }
-    }*/
+    }
 
     int maxhp = lord_general->getMaxHp()+1;
     maxhp = skills.contains("tipo") ? maxhp+1 : maxhp;
