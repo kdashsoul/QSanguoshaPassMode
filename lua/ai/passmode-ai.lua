@@ -9,7 +9,7 @@ yaoshu_skill.getTurnUseCard=function(self)
 	self:sortByCardNeed(cards)
 	
 	for _,card in ipairs(cards)  do
-		if card:getSuit() == sgs.Card_Spade and card:inherits("Shit") then
+		if card:getSuit() == sgs.Card_Spade and not card:inherits("Shit") then
 			return sgs.Card_Parse("@YaoshuCard="..card:getEffectiveId())
 		end
 	end
