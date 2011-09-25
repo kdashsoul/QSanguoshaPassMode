@@ -76,8 +76,7 @@ PassMode::PassMode(QObject *parent)
 
     skill_raise["kuangji"] = "nuhou";
     skill_raise["mengjin"] = "feiying";
-    skill_raise["zhiheng"] = "quanheng";
-    skill_raise["wansha"] = "duanyan";
+    skill_raise["wansha"]  = "duanyan";
 
     hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
     hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
@@ -607,18 +606,21 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
             need_skill_list << reward_match.split("_").first();
             reward_match_list << reward_match;
         }
+
+        QStringList lord_skills = save->skills.split("+");
+        lord_skills.removeOne("useitem");
         foreach(QString or_skill, need_skill_list){
             if(or_skill.contains("+")){
                 QStringList and_skills = or_skill.split("+");
                 foreach(QString and_skill, and_skills){
-                    if(!save->skills.contains(and_skill))
+                    if(!lord_skills.contains(and_skill))
                         continue;
                 }
             }
-            else if(or_skill != "." && !save->skills.contains(or_skill)){
+            else if(or_skill != "." && !lord_skills.contains(or_skill)){
                 continue;
             }
-            else if(or_skill == "." && (!save->skills.isEmpty() || save->skills != "useitem"))
+            else if(or_skill == "." && (lord_skills.length() != 1 || lord_skills.first() != skill))
                 continue;
 
             foreach(QString reward_match, reward_match_list){
@@ -752,7 +754,7 @@ public:
             }
         case Predamaged:{
                 DamageStruct damage = data.value<DamageStruct>();
-                if(damage.card && damage.card->inherits("Lightning") && damage.damage == 3){
+                if(damage.card && damage.card->inherits("Lightning")){
                     damage.damage--;
                     data = QVariant::fromValue(damage);
                 }
