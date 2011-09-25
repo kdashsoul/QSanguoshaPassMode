@@ -306,7 +306,7 @@ end
 
 sgs.ai_skill_invoke.jianxiong_pass  = function(self, data)
 	local card = data:toCard() 
-	return not sgs.Shit_HasShit(card) and not (card:inherits("Slash") and not self.player:hasWeapon("crossbow"))
+	return not sgs.Shit_HasShit(card) -- and not (card:inherits("Slash") and not self.player:hasWeapon("crossbow"))
 end
 
 sgs.ai_skill_invoke.dujiang_pass  = function(self, data)

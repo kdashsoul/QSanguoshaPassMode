@@ -72,15 +72,12 @@ PassMode::PassMode(QObject *parent)
 
     skill_map_hidden.insert("kuangji", 65);
     skill_map_hidden.insert("mengjin", 70);
-    skill_map_hidden.insert("zhiheng", 80);
     skill_map_hidden.insert("wansha", 110);
-    skill_map_hidden.insert("jijiu", 120);
 
     skill_raise["kuangji"] = "nuhou";
     skill_raise["mengjin"] = "feiying";
     skill_raise["zhiheng"] = "quanheng";
     skill_raise["wansha"] = "duanyan";
-    skill_raise["jijiu"] = "tipo";
 
     hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
     hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
@@ -755,7 +752,7 @@ public:
             }
         case Predamaged:{
                 DamageStruct damage = data.value<DamageStruct>();
-                if(damage.card && damage.card->inherits("Lightning")){
+                if(damage.card && damage.card->inherits("Lightning") && damage.damage == 3){
                     damage.damage--;
                     data = QVariant::fromValue(damage);
                 }
