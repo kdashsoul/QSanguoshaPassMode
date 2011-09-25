@@ -70,14 +70,9 @@ PassMode::PassMode(QObject *parent)
     skill_map.insert("feiying", 75);
     skill_map.insert("xiongzi", 80);
 
-    skill_map_hidden.insert("kuangji", 65);
-    skill_map_hidden.insert("mengjin", 70);
-    skill_map_hidden.insert("wansha", 110);
-
-    skill_raise["kuangji"] = "nuhou";
-    skill_raise["mengjin"] = "feiying";
-    skill_raise["zhiheng"] = "quanheng";
-    skill_raise["wansha"] = "duanyan";
+    skill_map_hidden.insert("kuangji", QPair<QString, int>("nuhou", 65));
+    skill_map_hidden.insert("mengjin", QPair<QString, int>("feiying", 70));
+    skill_map_hidden.insert("wansha", QPair<QString, int>("duanyan", 110));
 
     hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
     hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
@@ -300,17 +295,18 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
 
         choice = room->askForChoice(lord, "study", skill_names);
         QString skill_name = choice.split("_").at(0);
+        QPair<QString, int> skill_raise = skill_map_hidden.value(skill_name);
         int exp = lord->getMark("@exp");
-        int need_exp = hidden_learn ? skill_map_hidden.value(skill_name) : skill_map.value(skill_name);
+        int need_exp = hidden_learn ? skill_raise.second : skill_map.value(skill_name);
         if(exp >= need_exp){
             exp -= need_exp;
             room->setPlayerMark(lord, "@exp", exp);
             room->acquireSkill(lord, skill_name);
             proceedSpecialReward(room, ".SKILL", QVariant::fromValue(skill_name));
 
-            if(skill_raise[skill_name] != NULL){
-                room->detachSkillFromPlayer(lord, skill_raise[skill_name]);
-                if(skill_raise[skill_name] == "tipo")
+            if(skill_raise.first != NULL){
+                room->detachSkillFromPlayer(lord, skill_raise.first);
+                if(skill_raise.first == "tipo")
                     room->setPlayerProperty(lord, "maxhp", lord->getMaxHP() - 1);
             }
 
@@ -361,8 +357,8 @@ bool PassMode::askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &
             if(!lord->hasSkill(key))
                 skills.append(key).append("_s+");
 
-            if(skill_map_hidden.value(key) < min_exp)
-                min_exp = skill_map_hidden.value(key);
+            if(skill_map_hidden.value(key).second < min_exp)
+                min_exp = skill_map_hidden.value(key).second;
         }
     }
     skills.append("cancel");
@@ -607,18 +603,21 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
             need_skill_list << reward_match.split("_").first();
             reward_match_list << reward_match;
         }
+
+        QStringList lord_skills = save->skills.split("+");
+        lord_skills.removeOne("useitem");
         foreach(QString or_skill, need_skill_list){
             if(or_skill.contains("+")){
                 QStringList and_skills = or_skill.split("+");
                 foreach(QString and_skill, and_skills){
-                    if(!save->skills.contains(and_skill))
+                    if(!lord_skills.contains(and_skill))
                         continue;
                 }
             }
-            else if(or_skill != "." && !save->skills.contains(or_skill)){
+            else if(or_skill != "." && !lord_skills.contains(or_skill)){
                 continue;
             }
-            else if(or_skill == "." && (!save->skills.isEmpty() || save->skills != "useitem"))
+            else if(or_skill == "." && (lord_skills.length() != 1 || lord_skills.first() != skill))
                 continue;
 
             foreach(QString reward_match, reward_match_list){
@@ -752,7 +751,7 @@ public:
             }
         case Predamaged:{
                 DamageStruct damage = data.value<DamageStruct>();
-                if(damage.card && damage.card->inherits("Lightning") && damage.damage == 3){
+                if(damage.card && damage.card->inherits("Lightning")){
                     damage.damage--;
                     data = QVariant::fromValue(damage);
                 }

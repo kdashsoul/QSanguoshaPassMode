@@ -260,8 +260,8 @@ public:
 private:
     QList<QString> enemy_list;
     QMap<QString, int> exp_map;
-    QMap<QString, int> skill_map, skill_map_hidden;
-    QMap<QString, QString> skill_raise;
+    QMap<QString, int> skill_map;
+    QMap<QString, QPair<QString, int> > skill_map_hidden;
 
     QMap<QString, QString> hidden_reward;
 
