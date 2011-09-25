@@ -9,7 +9,7 @@ yaoshu_skill.getTurnUseCard=function(self)
 	self:sortByCardNeed(cards)
 	
 	for _,card in ipairs(cards)  do
-		if card:getSuit() == sgs.Card_Spade then
+		if card:getSuit() == sgs.Card_Spade and card:inherits("Shit") then
 			return sgs.Card_Parse("@YaoshuCard="..card:getEffectiveId())
 		end
 	end
@@ -307,6 +307,10 @@ end
 sgs.ai_skill_invoke.jianxiong_pass  = function(self, data)
 	local card = data:toCard() 
 	return not sgs.Shit_HasShit(card) and not (card:inherits("Slash") and not self.player:hasWeapon("crossbow"))
+end
+
+sgs.ai_skill_invoke.dujiang_pass  = function(self, data)
+	return (self.player:getEquips():length() > 1 and self.player:getEquips():length() < 4)
 end
 
 sgs.ai_skill_invoke.jielue_pass = sgs.ai_skill_invoke.jueduan_pass

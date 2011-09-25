@@ -1086,7 +1086,7 @@ public:
         ServerPlayer *from = damage.from;
         Room *room = simayi->getRoom();
         QVariant data = QVariant::fromValue(from);
-        if(from && room->askForSkillInvoke(simayi, "fankui", data)){
+        if(from && from->isAlive() && room->askForSkillInvoke(simayi, "fankui", data)){
             int x = damage.damage, i;
             for(i=0; i<x; i++){
                 if(!from->isNude()){
