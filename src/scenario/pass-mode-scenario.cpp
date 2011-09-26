@@ -77,6 +77,13 @@ PassMode::PassMode(QObject *parent)
     hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
     hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
     hidden_reward["niepan"]  = "tipo_qiangjian";
+
+    shop_items["huifushu"]      = 25;
+    shop_items["qingnangshu"]   = 60;
+    shop_items["dunjiatianshu"] = 80;
+    shop_items["qiangjian"]     = 45;
+    shop_items["rewardyingzi"]  = 40;
+    shop_items["rewardqibing"]  = 40;
 }
 
 static int Restart = 1;
@@ -466,6 +473,8 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     ServerPlayer *lord = room->getLord();
 
     askForLearnSkill(lord);
+    if(room->getTag("Times").toInt() > 1)
+        getIntoShop(room);
 
     if(!save_loaded){
         room->setPlayerProperty(lord, "hp", lord->getMaxHP());
@@ -631,16 +640,84 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
                 log.arg = reward;
                 room->sendLog(log);
 
-                QStringList reward_list;
-                if(!room->getTag("Reward").isNull())
-                    reward_list = room->getTag("Reward").toStringList();
-
-                reward_list << reward;
-                room->setTag("Reward", reward_list);
-                room->acquireSkill(room->getLord(), "useitem");
+                getRewardItem(room, reward);
                 break;
             }
         }
+    }
+}
+
+void PassMode::buyItem(Room *room) const{
+    ServerPlayer *lord = room->getLord();
+    QStringList items;
+    foreach(QString item, shop_items.keys())
+        items << item;
+
+    items << "cancel";
+    QList<int> item_exp = shop_items.values();
+    qSort(item_exp);
+
+    while(item_exp.first() <= lord->getMark("@exp")){
+        QString item_name = room->askForChoice(lord, "buy", items.join("+"));
+        if(item_name == "cancel")
+            return;
+        if(getRewardItem(room, item_name)){
+           item_exp.removeOne(shop_items.value(item_name));
+           room->setPlayerMark(lord, "@exp", lord->getMark("@exp")-shop_items.value(item_name));
+       }
+    }
+}
+
+void PassMode::sellItem(Room *room) const{
+    QStringList owned_items = room->getTag("Reward").toStringList();
+    if(owned_items.isEmpty())
+        return;
+
+    ServerPlayer *lord = room->getLord();
+    owned_items << "cancel";
+    while(owned_items.length() != 1){
+        QString sold_item = room->askForChoice(room->getLord(), "sell", owned_items.join("+"));
+        if(sold_item == "cancel")
+            return;
+        if(sellRewardItem(room, sold_item)){
+            owned_items.removeOne(sold_item);
+            room->setPlayerMark(lord, "@exp", lord->getMark("@exp")+(int)(shop_items.value(sold_item)*0.8));
+        }
+        else
+            return;
+    }
+}
+
+bool PassMode::getRewardItem(Room *room, QString &item_name) const{
+    QStringList rewards;
+    if(!room->getTag("Reward").isNull())
+        rewards = room->getTag("Reward").toStringList();
+
+    rewards << item_name;
+    room->setTag("Reward", rewards);
+    room->acquireSkill(room->getLord(), "useitem");
+    return true;
+}
+
+bool PassMode::sellRewardItem(Room *room, QString &item_name) const{
+    QStringList reward = room->getTag("Reward").toStringList();
+    if(!reward.removeOne(item_name))
+        return false;
+
+    room->setTag("Reward", reward);
+    return true;
+}
+
+void PassMode::getIntoShop(Room *room) const{
+    ServerPlayer *lord = room->getLord();
+    while(true){
+        QString choice = room->askForChoice(lord, "shop", "buy+sell+cancel");
+        if(choice == "cancel")
+            return;
+        else if(choice == "buy")
+            buyItem(room);
+        else
+            sellItem(room);
     }
 }
 

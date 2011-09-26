@@ -279,11 +279,30 @@ local pass_t = {
 	["qingnangshu"] 	= "青囊书：指定一名角色回复一点体力，你获得该角色所有手牌",
 	["rewardqibing"] 	= "骑兵：弃掉所有角色的马，然后你摸等数量的牌",
 	["qiangjian"]		= "强健：回复两点体力",
+	
+--shop
+	["shop"]				= "商店",
+	
+	["buy"] 				= "道具商店",
+	["buy:huifushu"] 		= "回复术：花费：25EXP",	
+	["buy:rewardyingzi"]	= "英姿：摸两张牌然后指定一名角色翻面。花费：40EXP",
+	["buy:dunjiatianshu"] 	= "遁甲天书：回复至体力上限并弃掉所有手牌，摸牌至体力上限。花费：80EXP",
+	["buy:qingnangshu"] 	= "青囊书：指定一名角色回复一点体力，你获得该角色所有手牌。花费：60EXP",
+	["buy:rewardqibing"] 	= "骑兵：弃掉所有角色的马，然后你摸等数量的牌。花费：40EXP",
+	["buy:qiangjian"]		= "强健：回复两点体力。花费：45EXP",
+	
+	["sell"]				= "道具收购",
+	["sell:huifushu"] 		= "回复术：花费：25EXP",	
+	["sell:rewardyingzi"]	= "英姿：摸两张牌然后指定一名角色翻面。卖出：32EXP",
+	["sell:dunjiatianshu"] 	= "遁甲天书：回复至体力上限并弃掉所有手牌，摸牌至体力上限。卖出：64EXP",
+	["sell:qingnangshu"] 	= "青囊书：指定一名角色回复一点体力，你获得该角色所有手牌。卖出：48EXP",
+	["sell:rewardqibing"] 	= "骑兵：弃掉所有角色的马，然后你摸等数量的牌。卖出：32EXP",
+	["sell:qiangjian"]		= "强健：回复两点体力。卖出：36EXP",
 }
 
 for k, v in pairs(pass_t) do
     local ks = k:split("_")
-    if not k:find(":") ~= 0 and #ks > 1 and ks[2] == "pass" then
+    if k:find(":") == 0 and #ks > 1 and ks[2] == "pass" then
         pass_t[ks[1]..ks[2]] = pass_t[k]
     end
 end

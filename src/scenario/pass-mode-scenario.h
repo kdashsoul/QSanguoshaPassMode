@@ -246,6 +246,13 @@ public:
 
     void proceedSpecialReward(Room *room,const QString pattern, QVariant data) const;
 
+    void getIntoShop(Room *room) const;
+    void buyItem(Room *room) const;
+    void sellItem(Room *room) const;
+
+    bool getRewardItem(Room *room, QString &item_name) const;
+    bool sellRewardItem(Room *room, QString &item_name) const;
+
     bool askForLearnSkill(ServerPlayer *lord) const;
     bool askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &min_exp) const;
 
@@ -264,6 +271,7 @@ private:
     QMap<QString, QPair<QString, int> > skill_map_hidden;
 
     QMap<QString, QString> hidden_reward;
+    QMap<QString, int> shop_items;
 
     static QString version;
 
