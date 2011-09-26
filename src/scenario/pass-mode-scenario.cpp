@@ -127,6 +127,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                     lord->drawCards(3);
 
                 int exp = exp_map.value(player->getKingdom(), 0);
+                exp += exp_map.value(player->getKingdom(), 0)*(room->getTag("Times").toInt()-1)/2;
                 exp = qrand()%(exp + 1) + exp/2;
                 if(lord->getKingdom() == "hero"){
                     int orgin_exp = lord->getMark("@exp") ;
