@@ -198,6 +198,16 @@ bool PassMode::askForLoadData(Room *room) const{
     if(sendWrongVersionLog(room, save))
         return false;
 
+    save->times = (save->stage >= enemy_list.length()) ? (save->times+1) : save->times;
+    save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
+    room->setTag("Stage", save->stage+1);
+    room->setTag("Times", save->times);
+
+    if(resetPlayerSkills(save)){
+        LogMessage log;
+        log.type = "#ResetPlayer";
+        room->sendLog(log);
+    }
     room->transfigure(lord, save->lord, true);
     room->setPlayerProperty(lord, "maxhp", save->lord_maxhp);
     room->setPlayerProperty(lord, "hp", save->lord_maxhp);
@@ -211,10 +221,6 @@ bool PassMode::askForLoadData(Room *room) const{
     foreach(QString skill, skills)
             room->acquireSkill(lord, skill);
 
-    save->times = (save->stage >= enemy_list.length()) ? (save->times+1) : save->times;
-    save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
-    room->setTag("Stage", save->stage+1);
-    room->setTag("Times", save->times);
     if(save->reward_list != NULL)
         room->setTag("Reward", save->reward_list.split("+"));
     setLoadedStageInfo(room);
@@ -599,6 +605,20 @@ SaveDataStruct *PassMode::askForReadData() const{
     save->size = line_num-1;
 
     return save;
+}
+
+bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
+    if(savedata->times != 2 && savedata->stage != 0)
+        return false;
+
+    QString item_use = savedata->skills.contains("useitem") ? "useitem" : NULL;
+    if(savedata->skills.contains("tipo"))
+        savedata->lord_maxhp --;
+
+    savedata->skills = item_use;
+    savedata->nirvana = 0;
+    savedata->exp += 50;
+    return true;
 }
 
 void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) const{

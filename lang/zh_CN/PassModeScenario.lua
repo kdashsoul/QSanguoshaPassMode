@@ -263,6 +263,7 @@ local pass_t = {
     ["#CantGainExp"]    = "由于 %from 并非属于这个世界，因此无法获得经验值",
     ["#NextStage"]      = "%from 击败了所有敌人，来到了第【%arg】关",
     ["#LoadNextStage"]  = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",
+	["#ResetPlayer"] 	= "<font color='red'><b>进入了2周目，所有技能重置，并额外获得初始的50点经验值</b></font>",
 	
 --items
 	["useitem"] = "道具栏",
