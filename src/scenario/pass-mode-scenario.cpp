@@ -380,7 +380,7 @@ bool PassMode::askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &
         }
     }
     if(lord->getRoom()->getTag("Times").toInt() > 1)
-        skills.append("shop");
+        skills.append("shop+");
     skills.append("cancel");
 
     return has_learnt;
@@ -617,7 +617,7 @@ bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
 
     savedata->skills = item_use;
     savedata->nirvana = 0;
-    savedata->exp += 50;
+    savedata->exp = 50;
     return true;
 }
 
