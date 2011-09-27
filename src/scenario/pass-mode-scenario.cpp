@@ -686,6 +686,8 @@ void PassMode::buyItem(Room *room) const{
         QString item_name = room->askForChoice(lord, "buy", items.join("+"));
         if(item_name == "cancel")
             return;
+        if(lord->getMark("@exp") < shop_items.value(item_name))
+            continue;
         if(getRewardItem(room, item_name)){
            item_exp.removeOne(shop_items.value(item_name));
            room->setPlayerMark(lord, "@exp", lord->getMark("@exp")-shop_items.value(item_name));
