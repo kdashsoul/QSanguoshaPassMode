@@ -167,6 +167,7 @@ public:
         Knight,
         Strong,
         Handsome,
+        OnePeach,
     };
 
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
