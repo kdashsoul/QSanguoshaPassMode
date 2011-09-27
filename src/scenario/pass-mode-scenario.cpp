@@ -608,7 +608,7 @@ SaveDataStruct *PassMode::askForReadData() const{
 }
 
 bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
-    if(savedata->times != 2 && savedata->stage != 0)
+    if(savedata->times != 2 || savedata->stage != 0)
         return false;
 
     QString item_use = savedata->skills.contains("useitem") ? "useitem" : NULL;
