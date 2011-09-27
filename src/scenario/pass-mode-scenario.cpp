@@ -78,12 +78,12 @@ PassMode::PassMode(QObject *parent)
     hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
     hidden_reward["niepan"]  = "tipo_qiangjian";
 
-    shop_items["huifushu"]      = 25;
-    shop_items["qingnangshu"]   = 60;
-    shop_items["dunjiatianshu"] = 80;
-    shop_items["qiangjian"]     = 45;
+    shop_items["huifushu"]      = 15;
+    shop_items["qingnangshu"]   = 55;
+    shop_items["dunjiatianshu"] = 70;
+    shop_items["qiangjian"]     = 25;
     shop_items["rewardyingzi"]  = 40;
-    shop_items["rewardqibing"]  = 40;
+    shop_items["rewardqibing"]  = 30;
 }
 
 static int Restart = 1;
@@ -302,6 +302,10 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
         bool hidden_learn = askForLearnHiddenSkill(lord, skill_names, min_exp);
 
         choice = room->askForChoice(lord, "study", skill_names);
+        if(choice == "shop"){
+            getIntoShop(room);
+            continue;
+        }
         QString skill_name = choice.split("_").at(0);
         QPair<QString, int> skill_raise = skill_map_hidden.value(skill_name);
         int exp = lord->getMark("@exp");
@@ -369,6 +373,8 @@ bool PassMode::askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &
                 min_exp = skill_map_hidden.value(key).second;
         }
     }
+    if(lord->getRoom()->getTag("Times").toInt() > 1)
+        skills.append("shop");
     skills.append("cancel");
 
     return has_learnt;
@@ -412,8 +418,8 @@ SaveDataStruct *PassMode::catchSaveInfo(Room *room, int stage) const{
             || skill_name == "axe"
             || skill_name == "spear")
             continue;
-
-        lord_skills << skill_name;
+        if(skill->isVisible())
+            lord_skills << skill_name;
     }
 
     SaveDataStruct *save_cache = new SaveDataStruct;
@@ -474,8 +480,6 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     ServerPlayer *lord = room->getLord();
 
     askForLearnSkill(lord);
-    if(room->getTag("Times").toInt() > 1)
-        getIntoShop(room);
 
     if(!save_loaded){
         room->setPlayerProperty(lord, "hp", lord->getMaxHP());
@@ -739,11 +743,11 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata
         return SaveDataStruct::UnknownLordName;
     if(!savedata->skills.isEmpty()){
         QStringList skills = savedata->skills.split("+");
+        skills.removeOne("useitem");
         foreach(QString skill, skills){
                 skill = skill.split("_").at(0);
                 if(!skill_map.keys().contains(skill)
-                    && !skill_map_hidden.keys().contains(skill)
-                    && skill != "useitem")
+                    && !skill_map_hidden.keys().contains(skill))
                     return SaveDataStruct::DifferentSkills;
         }
     }

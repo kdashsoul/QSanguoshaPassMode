@@ -2426,6 +2426,7 @@ PassModeItemCard::PassModeItemCard(){
     items["rewardqibing"]   = Knight;
     items["qiangjian"]      = Strong;
     items["rewardyingzi"]   = Handsome;
+    items["huifushu"]       = OnePeach;
 }
 
 void PassModeItemCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
@@ -2491,6 +2492,12 @@ void PassModeItemCard::getItemEffect(Room *room, ServerPlayer *source, const QSt
                 RecoverStruct recover;
                 recover.who = source;
                 recover.recover = 2;
+                room->recover(source, recover);
+                break;
+            }
+        case OnePeach:{
+                RecoverStruct recover;
+                recover.who = source;
                 room->recover(source, recover);
                 break;
             }
