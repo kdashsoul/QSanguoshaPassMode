@@ -244,8 +244,8 @@ public:
     bool goToNextStage(ServerPlayer *player, int stage) const;
 
     void setTimesDifficult(Room *room) const;
-
     void proceedSpecialReward(Room *room,const QString pattern, QVariant data) const;
+    bool resetPlayerSkills(SaveDataStruct *savedata) const;
 
     void getIntoShop(Room *room) const;
     void buyItem(Room *room) const;
