@@ -619,7 +619,7 @@ void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) 
         }
 
         QStringList lord_skills = save->skills.split("+");
-        lord_skills.removeOne("");
+        lord_skills.removeOne("useitem");
         foreach(QString or_skill, need_skill_list){
             if(or_skill.contains("+")){
                 QStringList and_skills = or_skill.split("+");
@@ -700,7 +700,7 @@ bool PassMode::getRewardItem(Room *room, QString &item_name) const{
 
     rewards << item_name;
     room->setTag("Reward", rewards);
-    room->acquireSkill(room->getLord(), "");
+    room->acquireSkill(room->getLord(), "useitem");
     return true;
 }
 
