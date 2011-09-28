@@ -315,6 +315,7 @@ end
 
 sgs.ai_skill_invoke.jielue_pass = sgs.ai_skill_invoke.jueduan_pass
 sgs.ai_skill_invoke.wushen_pass = sgs.ai_skill_invoke.jueduan_pass
+sgs.ai_skill_invoke.tongji_pass = sgs.ai_skill_invoke.jueduan_pass
 sgs.ai_skill_invoke.jumou_pass = true
 sgs.ai_skill_invoke.zhaolie_pass = true
 sgs.ai_skill_invoke.nuozhan_pass = function(self, data)

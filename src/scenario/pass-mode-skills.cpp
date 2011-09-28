@@ -406,7 +406,6 @@ public:
             damage.damage = 0;
             data = QVariant::fromValue(damage);
         }
-
         return false;
     }
 };
@@ -1490,6 +1489,7 @@ void FanjianPassCard::onEffect(const CardEffectStruct &effect) const{
     ServerPlayer *zhouyu = effect.from;
     ServerPlayer *target = effect.to;
     Room *room = zhouyu->getRoom();
+    room->playSkillEffect("fanjian");
 
     int card_id = getSubcards().first();
     const Card *card = Sanguosha->getCard(card_id);
@@ -1856,16 +1856,14 @@ public:
 class TongjiPass: public TriggerSkill{
 public:
     TongjiPass():TriggerSkill("tongji_pass"){
-        frequency = Compulsory;
         events << Predamage;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         DamageStruct damage = data.value<DamageStruct>();
-        if(damage.card && damage.card->inherits("Slash") && damage.to->isKongcheng())
+        if(damage.card && damage.card->inherits("Slash") && damage.to->isKongcheng() && player->askForSkillInvoke(objectName(), QVariant::fromValue(damage.to)) )
         {
             Room *room = damage.to->getRoom();
-
             LogMessage log;
             log.type = "#TongjiPass";
             log.from = player;
@@ -2047,6 +2045,7 @@ QingnangPassCard::QingnangPassCard(){
 
 void QingnangPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
     room->throwCard(this);
+    room->playSkillEffect("qingnang");
     if(source->isWounded()){
         RecoverStruct recover;
         recover.card = this;
@@ -2072,6 +2071,8 @@ public:
                 log.type = "#QingnangBuff";
                 log.from = huatuo;
                 huatuo->getRoom()->sendLog(log);
+            }else{
+                huatuo->drawCards(1);
             }
         }
         return false;
@@ -2081,23 +2082,33 @@ public:
 class Xuanhu: public TriggerSkill{
 public:
     Xuanhu():TriggerSkill("xuanhu"){
+        frequency = Compulsory;
         events << HpRecover ;
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
-        return ! target->hasSkill(objectName()) ;
+        return true ;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         ServerPlayer *huatuo = room->findPlayerBySkillName(objectName());
+        RecoverStruct recover = data.value<RecoverStruct>();
+        LogMessage log;
 
         if(huatuo == NULL)
             return false;
-
-        if(!player->isKongcheng()){
-            LogMessage log;
-            log.type = "#Xuanhu";
+        if(huatuo == player){
+            if(recover.card && recover.card->inherits("Peach")){
+                log.type = "#XuanhuSelf";
+                log.from = huatuo;
+                room->sendLog(log);
+                RecoverStruct recover;
+                recover.who = huatuo;
+                room->recover(huatuo, recover);
+            }
+        }else if(!player->isKongcheng()){
+            log.type = "#XuanhuOther";
             log.from = huatuo;
             log.to << player;
             room->sendLog(log);
