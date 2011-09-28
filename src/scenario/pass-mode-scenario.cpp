@@ -380,7 +380,7 @@ bool PassMode::askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &
         }
     }
     if(lord->getRoom()->getTag("Times").toInt() > 1)
-        skills.append("shop");
+        skills.append("shop+");
     skills.append("cancel");
 
     return has_learnt;
@@ -608,7 +608,7 @@ SaveDataStruct *PassMode::askForReadData() const{
 }
 
 bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
-    if(savedata->times != 2 && savedata->stage != 0)
+    if(savedata->times != 2 || savedata->stage != 0)
         return false;
 
     QString item_use = savedata->skills.contains("useitem") ? "useitem" : NULL;
@@ -617,7 +617,7 @@ bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
 
     savedata->skills = item_use;
     savedata->nirvana = 0;
-    savedata->exp += 50;
+    savedata->exp = 50;
     return true;
 }
 
@@ -686,6 +686,8 @@ void PassMode::buyItem(Room *room) const{
         QString item_name = room->askForChoice(lord, "buy", items.join("+"));
         if(item_name == "cancel")
             return;
+        if(lord->getMark("@exp") < shop_items.value(item_name))
+            continue;
         if(getRewardItem(room, item_name)){
            item_exp.removeOne(shop_items.value(item_name));
            room->setPlayerMark(lord, "@exp", lord->getMark("@exp")-shop_items.value(item_name));
