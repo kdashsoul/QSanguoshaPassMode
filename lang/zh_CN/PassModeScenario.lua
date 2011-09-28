@@ -264,6 +264,7 @@ local pass_t = {
     ["#NextStage"]      = "%from 击败了所有敌人，来到了第【%arg】关",
     ["#LoadNextStage"]  = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",
 	["#ResetPlayer"] 	= "<font color='red'><b>进入了2周目，所有技能重置，并获得初始的50点经验值</b></font>",
+	["#TreasureGain"] 	= "<font color='yellow'><b>恭喜你获得了一个 %arg</b></font>",
 	
 --items
 	["useitem"] = "道具栏",
