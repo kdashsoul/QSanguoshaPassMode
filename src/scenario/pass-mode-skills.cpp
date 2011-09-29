@@ -66,6 +66,7 @@ void DuanyanCard::onEffect(const CardEffectStruct &effect) const{
         room->throwCard(card_id);
     }else{
         if(!room->askForDiscard(player, objectName(), 1, true , true)){
+            player->drawCards(1);
             DamageStruct damage;
             damage.card = NULL;
             damage.from = target;
@@ -569,6 +570,9 @@ public:
         log.arg = QString::number(n);
         room->sendLog(log);
 
+        RecoverStruct recover;
+        recover.who = liubei;
+        room->recover(liubei, recover);
         room->getThread()->trigger(TurnStart, liubei);
 
         return false;
@@ -1632,7 +1636,7 @@ public:
                 if(n == 1){
                     // lumeng->drawCards(1);
                 }else if(n == 2){
-                    lumeng->drawCards(3);
+                    lumeng->drawCards(2);
                 }else if(n == 3){
                     QList<ServerPlayer *> players = room->getOtherPlayers(lumeng);
                     int count = 0 ;
@@ -1643,8 +1647,8 @@ public:
                             count++;
                         }
                     }
-                    if(count < 5)
-                        lumeng->drawCards(5-count);
+                    if(count < 4)
+                        lumeng->drawCards(4-count);
                 }else if(n == 4){
                     QList<ServerPlayer *> players = room->getOtherPlayers(lumeng);
                     int count = 0 ;
@@ -2254,16 +2258,131 @@ public:
     }
 };
 
+class HuangtianPass : public TriggerSkill{
+public:
+    HuangtianPass():TriggerSkill("huangtian_pass"){
+        events << CardFinished << CardResponsed;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *zhangjiao, QVariant &data) const{
+        if(zhangjiao->getPhase() != Player::NotActive)
+            return false;
+        Room *room = zhangjiao->getRoom() ;
+        CardStar card = NULL;
+        if(event == CardFinished){
+            CardUseStruct card_use = data.value<CardUseStruct>();
+            card = card_use.card;
+        }else if(event == CardResponsed){
+            card = data.value<CardStar>();
+        }
+        if(card && (card->isBlack() || card->inherits("GuidaoCard")) && room->askForSkillInvoke(zhangjiao, objectName(), data)){
+            ServerPlayer *target = room->askForPlayerChosen(zhangjiao,room->getAlivePlayers(),objectName());
+            if(target){
+                bool chained = ! target->isChained();
+                target->setChained(chained);
+                room->broadcastProperty(target, "chained");
+            }
+        }
+        return false;
+    }
+};
+
+class LeijiPass: public TriggerSkill{
+public:
+    LeijiPass():TriggerSkill("leiji_pass"){
+        events << CardFinished;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *zhangjiao, QVariant &data) const{
+        if(zhangjiao->getPhase() == Player::NotActive)
+            return false;
+        CardUseStruct use = data.value<CardUseStruct>();
+        Room *room = zhangjiao->getRoom();
+        if(use.card && use.card->getSuit() == Card::Spade && room->askForSkillInvoke(zhangjiao, objectName(), data)){
+            ServerPlayer *target = room->askForPlayerChosen(zhangjiao,room->getOtherPlayers(zhangjiao),objectName());
+
+            JudgeStruct judge;
+            judge.pattern = QRegExp("(.*):(spade):(.*)");
+            judge.good = false;
+            judge.reason = "leiji";
+            judge.who = target;
+            room->judge(judge);
+
+            DamageStruct damage;
+            damage.card = NULL;
+            damage.from = zhangjiao;
+            damage.nature = DamageStruct::Thunder;
+            if(judge.isBad()){
+                damage.to = target;
+                room->damage(damage);
+            }else if(judge.card->getSuit() == Card::Club){
+                damage.to = zhangjiao;
+                room->damage(damage);
+            }
+        }
+        return false;
+    }
+};
+
+class DajiPass : public TriggerSkill{
+public:
+    DajiPass():TriggerSkill("daji_pass"){
+        frequency = Frequent;
+        events << Damage << Damaged;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *zhangjiao, QVariant &data) const{
+        DamageStruct damage = data.value<DamageStruct>();
+        if(damage.nature != damage.Normal){
+            zhangjiao->drawCards(damage.damage);
+        }
+        return false;
+    }
+};
 
 class WushenPass: public TriggerSkill{
 public:
     WushenPass():TriggerSkill("wushen_pass"){
-        events << SlashProceed << SlashHit;
+        events << SlashEffect << SlashProceed;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *shenguanyu, QVariant &data) const{
         Room *room = shenguanyu->getRoom();
-        if(event == SlashProceed){
+
+        if(event == SlashEffect){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+
+            switch(effect.slash->getSuit()){
+            case Card::Heart:{
+                if(shenguanyu->isWounded() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                    room->playSkillEffect("wushen");
+                    RecoverStruct recover;
+                    recover.who = shenguanyu;
+                    room->recover(shenguanyu, recover);
+                }
+                break;
+            }
+            case Card::Diamond:{
+                if(shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                    room->playSkillEffect("wushen");
+                    shenguanyu->drawCards(1);
+                }
+                break;
+            }
+            case Card::Club:{
+                if(effect.to && effect.to->isAlive() && !effect.to->isKongcheng() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
+                    room->playSkillEffect("wushen");
+                    room->askForDiscard(effect.to, objectName(), 1, false);
+                }
+                break;
+            }
+            case Card::Spade:{
+                break;
+            }
+            default:
+                break;
+            }
+        }else if(event == SlashProceed){
             if(data.canConvert<SlashEffectStruct>()){
                 SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
@@ -2273,48 +2392,7 @@ public:
                     return true;
                 }
             }
-
-        }else if(event == SlashHit){
-            SlashEffectStruct effect = data.value<SlashEffectStruct>();
-
-            switch(effect.slash->getSuit()){
-                case Card::Heart:{
-                        if(shenguanyu->isWounded() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
-                            room->playSkillEffect("wushen");
-                            RecoverStruct recover;
-                            recover.who = shenguanyu;
-                            room->recover(shenguanyu, recover);
-                        }
-                        break;
-                    }
-
-                case Card::Diamond:{
-                        if(shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
-                            room->playSkillEffect("wushen");
-                            shenguanyu->drawCards(1);
-                        }
-                        break;
-                    }
-
-                case Card::Club:{
-                        if(effect.to && effect.to->isAlive() && !effect.to->isKongcheng() && shenguanyu->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
-                            room->playSkillEffect("wushen");
-                            room->askForDiscard(effect.to, objectName(), 1, false);
-                        }
-
-                        break;
-                    }
-
-                case Card::Spade:{
-
-                        break;
-                    }
-
-                default:
-                    break;
-                }
-            }
-
+        }
         return false;
     }
 };
@@ -2322,7 +2400,7 @@ public:
 class WuhunPass: public TriggerSkill{
 public:
     WuhunPass():TriggerSkill("wuhun_pass"){
-        events << Death;
+        events << Damaged << Death;
         frequency = Compulsory;
     }
 
@@ -2330,51 +2408,52 @@ public:
         return true;
     }
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         if(room->getAlivePlayers().length() == 1)
             return false;
         if(player->hasSkill(objectName())){
-            DamageStar damage = data.value<DamageStar>();
-            ServerPlayer *killer = damage ? damage->from : NULL;
-            if(killer && ! killer->isKongcheng()){
-                room->showAllCards(killer);
-                int n = 0 ;
-                foreach(const Card *card, killer->getHandcards()){
-                    if(card->isBlack())
-                        n++;
+            if(event == Damaged){
+                DamageStruct damage = data.value<DamageStruct>();
+                ServerPlayer *from = damage.from;
+                if(from && ! from->isKongcheng()){
+                    room->showAllCards(from);
+                    QList<const Card *> black_cards;
+                    foreach(const Card *card, from->getHandcards()){
+                        if(card->isBlack())
+                            black_cards << card ;
+                    }
+                    if(!black_cards.isEmpty()){
+                        int index = qrand() % black_cards.length();
+                        room->throwCard(black_cards.at(index)->getEffectiveId());
+
+                        DamageStruct damage;
+                        damage.from = from;
+                        damage.to = from;
+                        room->damage(damage);
+
+                        LogMessage log;
+                        log.type = "#WuhunPassDamage";
+                        log.from = player;
+                        log.to << from;
+                        room->sendLog(log);
+                    }
                 }
-
-                DamageStruct damage;
-                damage.card = NULL;
-                damage.from = killer;
-                damage.to = killer;
-                damage.damage = n;
-                room->damage(damage);
-
-                LogMessage log;
-                log.type = "#WuhunPassDamage";
-                log.from = player;
-                log.to << killer;
-                log.arg = QString::number(n);
-                room->sendLog(log);
-
-                room->playSkillEffect("wuhun");
             }
         }else{
-            ServerPlayer *shenguanyu = room->findPlayerBySkillName(objectName());
-            if(shenguanyu != NULL){
-                LogMessage log;
-                log.type = "#WuhunPassDraw";
-                log.from = player;
-                log.to << shenguanyu;
-                log.arg = QString::number(player->getMaxHP());
-                room->sendLog(log);
-                shenguanyu->drawCards(player->getMaxHP());
+            if(event == Death){
+                ServerPlayer *shenguanyu = room->findPlayerBySkillName(objectName());
+                if(shenguanyu != NULL){
+                    LogMessage log;
+                    log.type = "#WuhunPassDraw";
+                    log.from = player;
+                    log.to << shenguanyu;
+                    log.arg = QString::number(player->getMaxHP());
+                    room->sendLog(log);
+                    shenguanyu->drawCards(player->getMaxHP());
+                }
             }
         }
-
-
         return false;
     }
 };
@@ -2391,7 +2470,6 @@ public:
             correct --;
         if(to->hasSkill(objectName()))
             correct ++;
-
         return correct;
     }
 };
@@ -2553,7 +2631,7 @@ void PassModeScenario::addGeneralAndSkills(){
             << new ZhihengPass << new FanjianPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass << new LianyingPass
                 << new JieyinPass << new JinguoPass << new TongjiPass << new JieluePass << new Yuyue << new Shuangxing
             << new ZhanshenPass << new NuozhanPass << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
-                << new BuguaPass << new HuanshuPass
+                << new BuguaPass << new HuanshuPass << new HuangtianPass << new LeijiPass << new DajiPass
             << new WushenPass << new WuhunPass << new QishenPass
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
             << new Kuangji << new ItemUse;
@@ -2587,7 +2665,6 @@ void PassModeScenario::addGeneralAndSkills(){
     yaodao->addSkill("jitian");
 
     General *shenguanyu_p = new General(this, "shenguanyu_p", "evil_god", 5, true, true);
-    shenguanyu_p->addSkill("wusheng");
     shenguanyu_p->addSkill("wushen_pass");
     shenguanyu_p->addSkill("wuhun_pass");
     shenguanyu_p->addSkill("qishen_pass");
@@ -2619,7 +2696,7 @@ void PassModeScenario::addGeneralAndSkills(){
     machao_p->addSkill("mashu_pass");
 
     General *zhugeliang_p = new General(this,"zhugeliang_p","hero",3, true, true);
-    zhugeliang_p->addSkill("super_guanxing");
+    zhugeliang_p->addSkill("guanxing");
     zhugeliang_p->addSkill("kongcheng");
 
     General *huangyueying_p = new General(this,"huangyueying_p","hero",3, false, true);
@@ -2716,6 +2793,13 @@ void PassModeScenario::addGeneralAndSkills(){
     yuji_p->addSkill("bugua_pass");
     yuji_p->addSkill("huanshu_pass");
 
+
+    General *zhangjiao_p = new General(this, "zhangjiao_p", "hero", 3, true, true);
+    zhangjiao_p->addSkill("huangtian_pass");
+    zhangjiao_p->addSkill("leiji_pass");
+    zhangjiao_p->addSkill("daji_pass");
+    zhangjiao_p->addSkill("guidao");
+
     addMetaObject<DuanyanCard>();
     addMetaObject<QuanhengCard>();
     addMetaObject<YaoshuCard>();
@@ -2752,4 +2836,4 @@ HeroPackage::HeroPackage()
 {
     patterns[".NT"] = new NothrowPattern;
 }
-ADD_PACKAGE(Hero);
+ADD_PACKAGE(Hero)

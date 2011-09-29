@@ -550,17 +550,12 @@ bool Room::askForNullification(const TrickCard *trick, ServerPlayer *from, Serve
             thread->trigger(ChoiceMade, player, decisionData);
             setTag("NullifyingTimes",getTag("NullifyingTimes").toInt()+1);
 
-            if(player->hasSkill("shipo_pass") && askForSkillInvoke(player, "shipo_pass")){
-                playSkillEffect("shipo_pass");
-                if(!from || player == from){
-                    player->drawCards(1);
-                }else{
-                    if(from->getHp() >= player->getHp()){
-                        DamageStruct damage;
-                        damage.from = player;
-                        damage.to = from;
-                        this->damage(damage);
-                    }
+            if(player->hasSkill("shipo_pass")){
+                if(from && player != from && from->getHp() >= player->getHp() && askForSkillInvoke(player, "shipo_pass")){
+                    DamageStruct damage;
+                    damage.from = player;
+                    damage.to = from;
+                    this->damage(damage);
                 }
             }
             return !askForNullification(trick, from, to, !positive) ;
