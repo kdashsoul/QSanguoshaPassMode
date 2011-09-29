@@ -829,49 +829,87 @@ bool PassModeScenario::generalSelection() const{
 }
 
 
-class PassModeRule: public ScenarioRule{
-public:
-    PassModeRule(Scenario *scenario)
-        :ScenarioRule(scenario)
-    {
-        events << GameOverJudge << DrawNCards << Predamaged;
-    }
+PassModeRule::PassModeRule(Scenario *scenario)
+    :ScenarioRule(scenario)
+{
+    events << GameOverJudge << DrawNCards << Predamaged << CardUsed;
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-        Room *room = player->getRoom();
-        switch(event){
-        case DrawNCards:{
-            if(player->getKingdom() == "evil")
-                data = data.toInt() - 1 ;
-            else if(player->getKingdom() == "evil_god")
-                data = data.toInt() + 1 ;
+    item_lottery["qingnangshu"]    = 20;
+    item_lottery["dunjiatianshu"]  = 5;
+    item_lottery["qiangjian"]      = 35;
+    item_lottery["rewardyingzi"]   = 10;
+    item_lottery["rewardqibing"]   = 20;
+    item_lottery["huifushu"]       = 70;
+}
 
-            int times = room->getTag("Times").toInt();
-            if(!player->isLord()){
-                    int n = (int)(2.0/times - 2/times + 0.5);
-                    data = data.toInt() + (n == 0 ? times/2 : n);
-                }
-            break;
+bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    Room *room = player->getRoom();
+    qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
+    switch(event){
+    case DrawNCards:{
+        if(player->getKingdom() == "evil")
+            data = data.toInt() - 1 ;
+        else if(player->getKingdom() == "evil_god")
+            data = data.toInt() + 1 ;
+
+        int times = room->getTag("Times").toInt();
+        if(!player->isLord()){
+                int n = (int)(2.0/times - 2/times + 0.5);
+                data = data.toInt() + (n == 0 ? times/2 : n);
             }
-        case Predamaged:{
-                DamageStruct damage = data.value<DamageStruct>();
-                if(damage.card && damage.card->inherits("Lightning")){
-                    damage.damage--;
-                    data = QVariant::fromValue(damage);
-                }
-                break;
+        break;
+        }
+    case Predamaged:{
+            DamageStruct damage = data.value<DamageStruct>();
+            if(damage.card && damage.card->inherits("Lightning")){
+                damage.damage--;
+                data = QVariant::fromValue(damage);
             }
-        case GameOverJudge:{
-                return true ;
-                break;
-            }
-        default:
             break;
         }
+    case CardUsed:{
+            CardUseStruct use = data.value<CardUseStruct>();
+            if(room->getTag("Times").toInt() == 1 ||
+               use.from != room->getLord() ||
+               use.to.contains(use.from) ||
+               use.to.isEmpty() ||
+               use.card->getSkillName() == "passmodeitem")
+                break;
 
-        return false;
+            QString item;
+            foreach(QString lottery, item_lottery.keys()){
+                int percent = qrand() % 1000;
+                if((percent + item_lottery[lottery]) >= 1000){
+                    item = lottery;
+                    break;
+                }
+            }
+            if(item != NULL){
+                QStringList rewards;
+                if(!room->getTag("Reward").isNull())
+                    rewards = room->getTag("Reward").toStringList();
+                else
+                    room->acquireSkill(room->getLord(), "useitem");
+                rewards << item;
+                room->setTag("Reward", rewards);
+
+                LogMessage log;
+                log.type = "#TreasureGain";
+                log.arg = item;
+                room->sendLog(log);
+            }
+            break;
+        }
+    case GameOverJudge:{
+            return true ;
+            break;
+        }
+    default:
+        break;
     }
-};
+
+    return false;
+}
 
 PassModeScenario::PassModeScenario()
         :Scenario("pass_mode")

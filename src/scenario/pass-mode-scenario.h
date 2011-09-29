@@ -193,6 +193,15 @@ private:
     void addGeneralAndSkills();
 };
 
+class PassModeRule: public ScenarioRule{
+public:
+    PassModeRule(Scenario *scenario);
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const;
+private:
+    QMap<QString, int> item_lottery;
+};
+
 struct SaveDataStruct{
     SaveDataStruct();
 
