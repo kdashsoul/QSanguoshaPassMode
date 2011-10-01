@@ -2626,7 +2626,7 @@ function SmartAI:askForCardChosen(who, flags, reason)
 end
 
 function SmartAI:askForCard(pattern, prompt)
-	self.room:output(prompt)
+	self.room:output(pattern)
 	
 	if sgs.ai_skill_invoke[pattern] then return sgs.ai_skill_invoke[pattern](self, prompt) end
 	local target, target2

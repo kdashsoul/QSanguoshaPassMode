@@ -48,7 +48,7 @@ PassMode::PassMode(QObject *parent)
                 << "huwei+caocao_p+jianwei" << "gongshou+luxun_p+shizu"
                 << "qibing+machao_p+qibing" << "jianwei+zhaoyun_p+huwei"
                 << "jianwei+zhouyu_p+jianwei" << "yaodao+guojia_p+yaodao"
-                << "huwei+zhangliao_p+qibing" << "shizu+ganning_p+shizu"
+                << "huwei+zhangliao_p+qibing" << "shizu+shenlumeng_p+shizu"
                 << "huwei+sunshangxiang_p+lumeng_p" << "zhugeliang_p+huangyueying_p+gongshou"
                 << "qibing+xuchu_p+xiahoudun_p" <<"luxun_p+simayi_p+yaodao"
                 << "guojia_p+caocao_p+zhenji_p" << "zhouyu_p+sunquan_p+huanggai_p"
@@ -59,23 +59,21 @@ PassMode::PassMode(QObject *parent)
     exp_map.insert("evil_god", 16);
 
     skill_map.insert("mashu", 15);
-    skill_map.insert("kezhi", 15);
+    skill_map.insert("kezhi", 20);
     skill_map.insert("nuhou", 20);
-    skill_map.insert("fenjin", 25);
     skill_map.insert("duanyan", 25);
-    skill_map.insert("quanheng", 30);
+    skill_map.insert("fenjin", 30);
     skill_map.insert("niepan", 30);
-    skill_map.insert("xiuluo", 35);
+    skill_map.insert("quanheng", 40);
+    skill_map.insert("xiuluo", 40);
     skill_map.insert("tipo" ,40);
-    skill_map.insert("feiying", 75);
+    skill_map.insert("qiangong",50);
     skill_map.insert("xiongzi", 80);
 
-    skill_map_hidden.insert("kuangji", QPair<QString, int>("nuhou", 65));
-    skill_map_hidden.insert("mengjin", QPair<QString, int>("feiying", 70));
     skill_map_hidden.insert("wansha", QPair<QString, int>("duanyan", 110));
 
     hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
-    hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
+    //hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
     hidden_reward["niepan"]  = "tipo_qiangjian";
 
     shop_items["huifushu"]      = 15;
@@ -168,13 +166,15 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
 void PassMode::stageStartDraw(Room *room, ServerPlayer *player) const{
     int n = 0;
+    int hero_draw = 6 ;
+    int enemy_draw = room->getTag("Stage").toInt() > 10 ? 4 : 3 ;
     if(player != NULL){
-        n = player->isLord() ? 6 : 4;
+        n = player->isLord() ? hero_draw : enemy_draw;
         player->drawCards(player->hasSkill("fenjin") ? ++n : n);
     }
     else{
         foreach(ServerPlayer *p, room->getPlayers()){
-            n = p->isLord() ? 6 : 4;
+            n = p->isLord() ? hero_draw : enemy_draw;
             p->drawCards(p->hasSkill("fenjin") ? ++n : n);
         }
     }
@@ -494,6 +494,10 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
         lord->setAlive(true);
         lord->clearFlags();
         lord->clearHistory();
+        if(!lord->faceUp())
+            lord->turnOver();
+        if(lord->isChained())
+            room->setPlayerProperty(lord, "chained", false);
 
         room->setPlayerProperty(lord, "hp", lord->getMaxHP());
         int exp = lord->getMark("@exp");

@@ -318,6 +318,7 @@ sgs.ai_skill_invoke.wushen_pass = sgs.ai_skill_invoke.jueduan_pass
 sgs.ai_skill_invoke.tongji_pass = sgs.ai_skill_invoke.jueduan_pass
 sgs.ai_skill_invoke.jumou_pass = true
 sgs.ai_skill_invoke.zhaolie_pass = true
+sgs.ai_skill_invoke.jinghong_pass = true
 sgs.ai_skill_invoke.nuozhan_pass = function(self, data)
 	if self.enemies and #self.enemies > 0 and self:getSlashNumber() > 0 then
 		for _,enemy in ipairs(self.enemies) do
@@ -331,6 +332,14 @@ end
 sgs.ai_skill_invoke.yitian = sgs.ai_skill_invoke.nuozhan_pass
 sgs.ai_skill_invoke.longwei = function(self, data)
 	return self.enemies and #self.enemies > 0
+end
+
+sgs.ai_skill_invoke["@quwu_pass"] = function(self, data)
+	player = self.player
+	if player:getOffensiveHorse() then return player:getOffensiveHorse():getId() end
+	if player:getWeapon() then return player:getWeapon():getId() end
+	if player:getArmor() then return player:getArmor():getId() end
+	if player:getDefensiveHorse() then return player:getDefensiveHorse():getId() end
 end
 
 local kurou_pass_skill={}

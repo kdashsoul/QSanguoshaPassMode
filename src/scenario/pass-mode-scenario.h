@@ -57,6 +57,15 @@ public:
     virtual void onEffect(const CardEffectStruct &effect) const;
 };
 
+
+class BeifaPassCard: public SkillCard{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE BeifaPassCard();
+    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+};
+
 class LuoyiPassCard: public SkillCard{
     Q_OBJECT
 

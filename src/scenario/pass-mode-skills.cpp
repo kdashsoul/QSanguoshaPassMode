@@ -95,6 +95,44 @@ public:
 };
 
 
+class Qiangong:public TriggerSkill{
+public:
+    Qiangong():TriggerSkill("qiangong"){
+        events << CardEffected ;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        CardEffectStruct effect = data.value<CardEffectStruct>();
+        Room *room = player->getRoom();
+        if((effect.card->inherits("Dismantlement") || effect.card->inherits("Snatch")) && player->askForSkillInvoke(objectName())){
+            LogMessage log;
+            log.from = player;
+            if(effect.card->inherits("Dismantlement") && player->getEquips().empty()){
+                room->askForDiscard(player, objectName(), 1 , false , true) ;
+                log.type = "#Qiangong1";
+                player->getRoom()->sendLog(log);
+                return true;
+            }else{
+                const Card *card = room->askForCard(player,".NT","@qiangong");
+                if(!card){
+                    if(player->isKongcheng()){
+                        card = player->getEquips().at(0);
+                    }else{
+                        card = player->getRandomHandCard() ;
+                    }
+                }
+                room->moveCardTo(card, effect.from, Player::Hand);
+                log.to << effect.from;
+                log.type = "#Qiangong2";
+                player->getRoom()->sendLog(log);
+                return true;
+            }
+        }
+        return false ;
+    }
+};
+
+
 class Quanheng:public ViewAsSkill{
 public:
     Quanheng():ViewAsSkill("quanheng"){
@@ -102,8 +140,8 @@ public:
     }
 
     virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
-        int n = qMax(1, 4 - Self->getHp());
-        if(selected.isEmpty() || selected.length() != n)
+        int n = qMin(4, Self->getLostHp());
+        if(selected.length() != n)
             return !to_select->isEquipped() ;
         return false ;
     }
@@ -119,7 +157,7 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("QuanhengCard") && player->getHp() < 4 ;
+        return ! player->hasUsed("QuanhengCard") && player->isWounded() ;
     }
 };
 
@@ -654,7 +692,7 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return true;
+        return ! player->hasUsed("TuodaoPassCard");
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
@@ -755,7 +793,6 @@ bool DuanhePassCard::targetFilter(const QList<const Player *> &targets, const Pl
 void DuanhePassCard::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.from->getRoom();
 
-    room->playSkillEffect("duanhe_pass");
     if(!effect.to->isNude()){
         int card_id = room->askForCardChosen(effect.from, effect.to, "he", "duanhe_pass");
         room->throwCard(card_id);
@@ -852,11 +889,13 @@ public:
             if(room->askForSkillInvoke(zhaoyun, objectName())){
                 QList<ServerPlayer *> targets;
                 foreach(ServerPlayer *target, room->getAlivePlayers()){
-                    if(zhaoyun->canSlash(target, false))
+                    if(zhaoyun->canSlash(target, false) && target->getHp() > zhaoyun->getHp())
                         targets << target;
                 }
 
                 ServerPlayer *target = room->askForPlayerChosen(zhaoyun, targets, "xuanfeng-slash");
+                if(!target)
+                    return false;
 
                 Slash *slash = new Slash(Card::NoSuit, 0);
                 slash->setSkillName(objectName());
@@ -883,13 +922,101 @@ public:
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
         Room *room = zhaoyun->getRoom();
         if(effect.to->getWeapon() != NULL && !zhaoyun->isNude() && zhaoyun->askForSkillInvoke(objectName(), QVariant::fromValue(effect.to))){
-            if(room->askForDiscard(zhaoyun, "longhou", 1 , true , true)){
+            if(room->askForDiscard(zhaoyun, "longhou", 1 , true)){
                 room->moveCardTo(effect.to->getWeapon(),zhaoyun,Player::Hand);
             }
         }
         return false;
     }
 };
+
+
+class GuanxingPass:public PhaseChangeSkill{
+public:
+    GuanxingPass():PhaseChangeSkill("guanxing_pass"){
+        frequency = Frequent;
+    }
+
+    virtual bool onPhaseChange(ServerPlayer *zhuge) const{
+        if(zhuge->getPhase() == Player::Start &&
+           zhuge->askForSkillInvoke(objectName()))
+        {
+            Room *room = zhuge->getRoom();
+            room->playSkillEffect(objectName());
+            int n = 3 + qMax(0, (zhuge->getLostHp() + 1) / 2) ;
+            room->doGuanxing(zhuge, room->getNCards(n, false), false);
+        }
+        return false;
+    }
+};
+
+class BeifaPass: public ViewAsSkill{
+public:
+    BeifaPass():ViewAsSkill("beifa_pass"){
+    }
+
+    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
+        if(selected.isEmpty())
+            return !to_select->isEquipped();
+        else if(selected.length() == 1){
+            const Card *card = selected.first()->getFilteredCard();
+            return !to_select->isEquipped() && to_select->getFilteredCard()->getSuit() == card->getSuit();
+        }else
+            return false;
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return !player->hasUsed("BeifaPassCard") ;
+    }
+
+    virtual const Card *viewAs(const QList<CardItem *> &cards) const{
+        if(cards.length() == 2){
+            Card *card = new BeifaPassCard;
+            card->addSubcards(cards);
+            return card;
+        }else
+            return NULL;
+    }
+};
+
+BeifaPassCard::BeifaPassCard(){
+    once = true;
+    target_fixed = true;
+}
+
+void BeifaPassCard::use(Room *room, ServerPlayer *zhuge, const QList<ServerPlayer *> &) const{
+    int card_id = this->getSubcards().first();
+    room->showCard(zhuge, card_id);
+    const Card *card = Sanguosha->getCard(card_id);
+    foreach(ServerPlayer *player, room->getOtherPlayers(zhuge)){
+        bool success = false;
+        if(player->isKongcheng()){
+            success = true;
+        }else{
+            QString suit_str = card->getSuitString();
+            QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
+            QString prompt = QString("@beifa_pass:%1::%2").arg(zhuge->getGeneralName()).arg(suit_str);
+            const Card *acard = room->askForCard(player, pattern, prompt);
+            if(acard){
+                room->showCard(player, acard->getEffectiveId());
+            }else
+                success = true;
+        }
+        if(success){
+            if(player->isNude()){
+                DamageStruct damage;
+                damage.from = zhuge;
+                damage.to = player;
+                room->damage(damage);
+            }else{
+                room->throwCard(room->askForCardChosen(zhuge, player, "he", "beifa_pass"));
+            }
+        }else{
+            room->loseHp(zhuge);
+        }
+    }
+    room->throwCard(card_id);
+}
 
 class JizhiPass:public TriggerSkill{
 public:
@@ -1236,6 +1363,63 @@ public:
     }
 };
 
+class JinghongPass: public TriggerSkill{
+public:
+    JinghongPass():TriggerSkill("jinghong_pass"){
+        frequency = Frequent;
+        events << CardLost << PhaseChange;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *zhenji, QVariant &data) const{
+        if(event == CardLost){
+            if(zhenji->getPhase() != Player::Discard)
+                return false;
+            CardMoveStar move = data.value<CardMoveStar>();
+            if(move->to_place == Player::DiscardedPile){
+                zhenji->addMark("jinghong_pass");
+            }
+        }else if(event == PhaseChange){
+            if(zhenji->getPhase() != Player::Finish)
+                return false;
+            if(zhenji->getMark("jinghong_pass") >= qMax(1,zhenji->getHp())){
+                Room *room = zhenji->getRoom();
+                if(zhenji->askForSkillInvoke(objectName())){
+                    QList<int> cards = room->getNCards(zhenji->getMark("jinghong_pass"));
+
+                    QList<int> black_cards;
+                    foreach(int card_id, cards){
+                        const Card *card = Sanguosha->getCard(card_id);
+                        if(card->isBlack())
+                            black_cards << card_id;
+                    }
+
+                    room->fillAG(cards, zhenji);
+
+                    while(true){
+                        int card_id = room->askForAG(zhenji, black_cards, true, "jinghong");
+                        if(card_id == -1)
+                            break;
+
+                        if(!black_cards.contains(card_id))
+                            continue;
+
+                        black_cards.removeOne(card_id);
+
+                        zhenji->obtainCard(Sanguosha->getCard(card_id));
+                        room->showCard(zhenji, card_id);
+                        break;
+                    }
+
+                    zhenji->invoke("clearAG");
+                }
+            }
+            zhenji->setMark("jinghong_pass", 0);
+        }
+
+        return false;
+    }
+};
+
 class LuoyiPass:public ViewAsSkill{
 public:
     LuoyiPass():ViewAsSkill("luoyi_pass"){
@@ -1312,6 +1496,7 @@ public:
                 xuchu->setFlags("guantong_used");
                 damage.to = player->getNextAlive();
                 damage.card = NULL;
+                damage.damage = 1;
                 damage.nature = DamageStruct::Normal ;
                 room->damage(damage);
             }
@@ -1526,6 +1711,70 @@ void FanjianPassCard::onEffect(const CardEffectStruct &effect) const{
     }
 }
 
+
+class QuwuPassViewAsSkill: public ViewAsSkill{
+public:
+    QuwuPassViewAsSkill():ViewAsSkill(""){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *) const{
+        return false;
+    }
+
+    virtual bool isEnabledAtResponse(const Player *, const QString &pattern) const{
+        return pattern == "@quwu_pass";
+    }
+
+    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
+        if(selected.length() >= 1)
+            return false;
+
+        if(!to_select->getCard()->isEquipped())
+            return false;
+
+        return true;
+    }
+
+    virtual const Card *viewAs(const QList<CardItem *> &cards) const{
+        if(cards.length() != 1)
+            return NULL;
+
+        DummyCard *card = new DummyCard;
+        card->setSkillName(objectName());
+        card->addSubcards(cards);
+        return card;
+    }
+};
+
+class QuwuPass: public TriggerSkill{
+public:
+    QuwuPass():TriggerSkill("quwu_pass"){
+        view_as_skill = new QuwuPassViewAsSkill;
+        events << Predamaged;
+    }
+
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return TriggerSkill::triggerable(target) && ! target->getEquips().empty() ;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        DamageStruct damage = data.value<DamageStruct>();
+        Room *room = player->getRoom();
+        CardStar card = room->askForCard(player, "@quwu_pass", "@quwu_pass:" + damage.from->objectName());
+        if(card){
+            LogMessage log;
+            log.type = "#QuwuPass";
+            log.from = player;
+            room->sendLog(log);
+
+            damage.damage--;
+            data = QVariant::fromValue(damage);
+        }
+        return false;
+    }
+};
+
 class KurouPass: public ZeroCardViewAsSkill{
 public:
     KurouPass():ZeroCardViewAsSkill("kurou_pass"){
@@ -1544,7 +1793,7 @@ KurouPassCard::KurouPassCard(){
 void KurouPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
     room->loseHp(source);
     int n = 2;
-    if(source->getHp() <= source->getMaxHP() / 2)
+    if(source->usedTimes("KurouPassCard") == 1)
         n += 1;
     if(source->isAlive())
         room->drawCards(source, n);
@@ -1942,18 +2191,16 @@ public:
 class NuozhanPass : public TriggerSkill{
 public:
     NuozhanPass():TriggerSkill("nuozhan_pass"){
-        events << DamageComplete << CardResponsed;
+        events << CardResponsed;
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         if(player->getPhase() != Player::NotActive)
            return false;
 
-        if(event == CardResponsed){
-            CardStar card_star = data.value<CardStar>();
-            if(!card_star->inherits("Jink"))
-                return false;
-        }
+        CardStar card_star = data.value<CardStar>();
+        if(!card_star->inherits("Jink"))
+            return false;
 
         if(!player->isKongcheng() && player->askForSkillInvoke("nuozhan_pass"))
             player->getRoom()->askForUseCard(player, "slash", "yitian-slash");
@@ -1990,11 +2237,9 @@ LijianPassCard::LijianPassCard(){
 }
 
 bool LijianPassCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
-
-    if(targets.isEmpty() && to_select->hasSkill("kongcheng") && to_select->isKongcheng()){
+    if(targets.isEmpty() && ((to_select->hasSkill("kongcheng") && to_select->isKongcheng()) || Self == to_select)){
         return false;
     }
-
     return true;
 }
 
@@ -2003,10 +2248,10 @@ bool LijianPassCard::targetsFeasible(const QList<const Player *> &targets, const
 }
 
 void LijianPassCard::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &targets) const{
-    room->throwCard(this);
-
     ServerPlayer *to = targets.at(0);
     ServerPlayer *from = targets.at(1);
+
+    to->obtainCard(this);
 
     Duel *duel = new Duel(Card::NoSuit, 0);
     duel->setSkillName("lijian");
@@ -2247,7 +2492,7 @@ public:
                     return false;
 
                 room->moveCardTo(Sanguosha->getCard(card_id), yuji, Player::Hand);
-                const Card *card = room->askForCard(yuji,".NT","@huanshu-card");
+                const Card *card = room->askForCard(yuji,".NTH","@huanshu-card");
                 if(!card)
                     card = yuji->getRandomHandCard() ;
                 room->moveCardTo(card, damage.to, Player::Hand);
@@ -2474,36 +2719,38 @@ public:
     }
 };
 
-class Kuangji: public ViewAsSkill{
+class SheliePass:public PhaseChangeSkill{
 public:
-    Kuangji(): ViewAsSkill("kuangji"){
-
+    SheliePass():PhaseChangeSkill("shelie_pass"){
+        frequency = Frequent;
+        view_as_skill = new TuxiPassViewAsSkill;
     }
 
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return !player->hasFlag("kuangji_used");
-    }
+    virtual bool onPhaseChange(ServerPlayer *shenlumeng) const{
+        if(shenlumeng->getPhase() == Player::Draw){
+            Room *room = shenlumeng->getRoom();
 
-    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
-        if(selected.isEmpty())
-            return !to_select->isEquipped();
-        else if(selected.length() == 1){
-            const Card *card = selected.first()->getFilteredCard();
-            return !to_select->isEquipped() && to_select->getFilteredCard()->isRed() == card->isRed();
-        }else
-            return false;
-    }
-
-    virtual const Card *viewAs(const QList<CardItem *> &cards) const{
-        if(cards.length() == 2){
-            Self->setFlags("kuangji_used");
-            const Card *first = cards.first()->getCard();
-            ArcheryAttack *aa = new ArcheryAttack(first->getSuit(), 0);
-            aa->addSubcards(cards);
-            aa->setSkillName(objectName());
-            return aa;
-        }else
-            return NULL;
+            if(shenlumeng->askForSkillInvoke(objectName())){
+                shenlumeng->drawCards(2);
+                room->playSkillEffect("shelie");
+                int n = 0 ;
+                while(true){
+                    int card_id = room->drawCard();
+                    room->moveCardTo(Sanguosha->getCard(card_id), NULL, Player::Special, true);
+                    room->getThread()->delay();
+                    const Card *card = Sanguosha->getCard(card_id);
+                    if(card->getNumber() > n){
+                        room->obtainCard(shenlumeng, card_id);
+                        n = card->getNumber();
+                    }else{
+                        room->throwCard(card_id);
+                        break;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
     }
 };
 
@@ -2625,16 +2872,18 @@ void PassModeScenario::addGeneralAndSkills(){
 
     skills << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
             << new RendePass << new JijiangPass << new JijiangCost << new ZhaoliePass << new WenjiuPass << new WenjiuBuff << new TuodaoPass << new Baonu
-                 << new DuanhePass << new TiejiPass << new MashuPass << new JizhiPass << new JumouPass << new ShipoPass << new LongweiPass << new Longhou
+                 << new DuanhePass << new TiejiPass << new MashuPass << new GuanxingPass << new BeifaPass << new JizhiPass << new JumouPass << new ShipoPass
+                 << new LongweiPass << new Longhou
             << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new JueduanPass
-                << new YijiPass << new Guimou << new LuoyiPass << new Guantong  << new TuxiPass
-            << new ZhihengPass << new FanjianPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass << new LianyingPass
-                << new JieyinPass << new JinguoPass << new TongjiPass << new JieluePass << new Yuyue << new Shuangxing
+                << new YijiPass << new Guimou << new JinghongPass << new LuoyiPass << new Guantong  << new TuxiPass
+            << new ZhihengPass << new FanjianPass << new QuwuPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass
+                << new LianyingPass << new JieyinPass << new JinguoPass << new TongjiPass << new JieluePass << new Yuyue << new Shuangxing
             << new ZhanshenPass << new NuozhanPass << new LijianPass << new QingnangPass << new QingnangBuff << new Xuanhu << new GuhuoPass << new GuhuoPassMark
                 << new BuguaPass << new HuanshuPass << new HuangtianPass << new LeijiPass << new DajiPass
-            << new WushenPass << new WuhunPass << new QishenPass
+            << new WushenPass << new WuhunPass << new QishenPass << new SheliePass
             << new Skill("nuhou") << new Skill("tipo") << new Skill("kezhi") << new Skill("fenjin") << new Quanheng << new Duanyan << new Xiongzi
-            << new Kuangji << new ItemUse;
+                << new Qiangong
+            << new ItemUse;
 
     related_skills.insertMulti("jijiang_pass", "#jijiang_cost");
     related_skills.insertMulti("wenjiu_pass", "#wenjiu");
@@ -2669,6 +2918,10 @@ void PassModeScenario::addGeneralAndSkills(){
     shenguanyu_p->addSkill("wuhun_pass");
     shenguanyu_p->addSkill("qishen_pass");
 
+    General *shenlumeng_p = new General(this, "shenlumeng_p", "evil_god", 4, true, true);
+    shenlumeng_p->addSkill("shelie_pass");
+    shenlumeng_p->addSkill("gongxin");
+
     General *liubei_p = new General(this,"liubei_p","hero",4, true, true);
     liubei_p->addSkill("rende_pass");
     liubei_p->addSkill("jijiang_pass");
@@ -2696,8 +2949,9 @@ void PassModeScenario::addGeneralAndSkills(){
     machao_p->addSkill("mashu_pass");
 
     General *zhugeliang_p = new General(this,"zhugeliang_p","hero",3, true, true);
-    zhugeliang_p->addSkill("guanxing");
+    zhugeliang_p->addSkill("guanxing_pass");
     zhugeliang_p->addSkill("kongcheng");
+    zhugeliang_p->addSkill("beifa_pass");
 
     General *huangyueying_p = new General(this,"huangyueying_p","hero",3, false, true);
     huangyueying_p->addSkill("jizhi_pass");
@@ -2727,6 +2981,7 @@ void PassModeScenario::addGeneralAndSkills(){
     General *zhenji_p = new General(this,"zhenji_p","hero",3, false, true);
     zhenji_p->addSkill("luoshen");
     zhenji_p->addSkill("qingguo");
+    zhenji_p->addSkill("jinghong_pass");
 
     General *xuchu_p = new General(this,"xuchu_p","hero",4, true, true);
     xuchu_p->addSkill("luoyi_pass");
@@ -2742,6 +2997,7 @@ void PassModeScenario::addGeneralAndSkills(){
     General *zhouyu_p = new General(this, "zhouyu_p", "hero", 3, true, true);
     zhouyu_p->addSkill("yingzi");
     zhouyu_p->addSkill("fanjian_pass");
+    zhouyu_p->addSkill("quwu_pass");
 
     General *lumeng_p = new General(this, "lumeng_p", "hero", 4 ,true, true);
     lumeng_p->addSkill("keji_pass");
@@ -2807,6 +3063,7 @@ void PassModeScenario::addGeneralAndSkills(){
     addMetaObject<JijiangPassCard>();
     addMetaObject<TuodaoPassCard>();
     addMetaObject<DuanhePassCard>();
+    addMetaObject<BeifaPassCard>();
     addMetaObject<LuoyiPassCard>();
     addMetaObject<TuxiPassCard>();
     addMetaObject<ZhihengPassCard>();
@@ -2821,10 +3078,19 @@ void PassModeScenario::addGeneralAndSkills(){
     addMetaObject<PassModeItemCard>();
 }
 
-class NothrowPattern: public CardPattern{
+class NothrowHandcardsPattern: public CardPattern{
 public:
     virtual bool match(const Player *player, const Card *card) const{
         return ! player->hasEquip(card) ;
+    }
+    virtual bool willThrow() const{
+        return false;
+    }
+};
+class NothrowPattern: public CardPattern{
+public:
+    virtual bool match(const Player *player, const Card *card) const{
+        return true;
     }
     virtual bool willThrow() const{
         return false;
@@ -2834,6 +3100,7 @@ public:
 HeroPackage::HeroPackage()
     :Package("hero")
 {
+    patterns[".NTH"] = new NothrowHandcardsPattern;
     patterns[".NT"] = new NothrowPattern;
 }
 ADD_PACKAGE(Hero)

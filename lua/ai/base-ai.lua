@@ -24,7 +24,7 @@ function SmartAI:getSkillViewCard(card,class_name,only_equip,player)
 		if not only_equip then
 			if player:hasSkill("longdan") and card:inherits("Jink") then
 				return ("slash:longdan[%s:%s]=%d"):format(suit, number, card_id)
-			elseif player:hasSkill("zhanshen_pass") and (card:inherits("EquipCard") or card:isNDTrick())then
+			elseif player:hasSkill("zhanshen_pass") and (card:inherits("TrickCard") or card:inherits("EquipCard"))then
 				return ("slash:zhanshen_pass[%s:%s]=%d"):format(suit, number, card_id)
 			end
 		end
