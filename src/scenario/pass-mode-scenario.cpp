@@ -865,7 +865,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
         }
     case Predamaged:{
             DamageStruct damage = data.value<DamageStruct>();
-            if(damage.card && damage.card->inherits("Lightning")){
+            if(damage.card && damage.card->inherits("Lightning") && damage.damage == 3){
                 damage.damage--;
                 data = QVariant::fromValue(damage);
             }

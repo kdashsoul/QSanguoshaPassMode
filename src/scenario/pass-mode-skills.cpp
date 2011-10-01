@@ -1095,15 +1095,17 @@ public:
     virtual void onDamaged(ServerPlayer *caocao, const DamageStruct &damage) const{
         Room *room = caocao->getRoom();
         const Card *card = damage.card;
-        QVariant data = QVariant::fromValue(card);
-        if(room->askForSkillInvoke(caocao, "jianxiong_pass", data)){
-            if(room->obtainable(card, caocao)){
-                room->playSkillEffect("jianxiong");
-                    caocao->obtainCard(card);
+        if(damage.card){
+            QVariant data = QVariant::fromValue(card);
+            if(room->askForSkillInvoke(caocao, "jianxiong_pass", data)){
+                if(room->obtainable(card, caocao)){
+                    room->playSkillEffect("jianxiong");
+                        caocao->obtainCard(card);
+                }
             }
-            caocao->gainMark("@jianxiong",damage.damage);
-            caocao->drawCards(damage.damage);
         }
+        caocao->gainMark("@jianxiong",damage.damage);
+        caocao->drawCards(damage.damage);
     }
 };
 
@@ -1761,8 +1763,9 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         DamageStruct damage = data.value<DamageStruct>();
         Room *room = player->getRoom();
-        CardStar card = room->askForCard(player, "@quwu_pass", "@quwu_pass:" + damage.from->objectName());
+        const Card *card = room->askForCard(player, "@quwu_pass", "@quwu_pass");
         if(card){
+            room->throwCard(card->getEffectiveId());
             LogMessage log;
             log.type = "#QuwuPass";
             log.from = player;
@@ -2321,7 +2324,7 @@ public:
                 log.from = huatuo;
                 huatuo->getRoom()->sendLog(log);
             }else{
-                huatuo->drawCards(1);
+                huatuo->drawCards(2);
             }
         }
         return false;
@@ -2348,7 +2351,7 @@ public:
         if(huatuo == NULL)
             return false;
         if(huatuo == player){
-            if(recover.card && recover.card->inherits("Peach")){
+            if(recover.card && (recover.card->inherits("Peach") || recover.card->inherits("Analeptic"))){
                 log.type = "#XuanhuSelf";
                 log.from = huatuo;
                 room->sendLog(log);
@@ -2543,7 +2546,7 @@ public:
             return false;
         CardUseStruct use = data.value<CardUseStruct>();
         Room *room = zhangjiao->getRoom();
-        if(use.card && use.card->getSuit() == Card::Spade && room->askForSkillInvoke(zhangjiao, objectName(), data)){
+        if(use.card && use.card->getSuit() == Card::Spade && !use.card->inherits("EquipCard") && room->askForSkillInvoke(zhangjiao, objectName(), data)){
             ServerPlayer *target = room->askForPlayerChosen(zhangjiao,room->getOtherPlayers(zhangjiao),objectName());
 
             JudgeStruct judge;
