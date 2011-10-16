@@ -2300,6 +2300,8 @@ end
 function SmartAI:askForDiscard(reason, discard_num, optional, include_equip) 
   local to_discard = {}
   if reason == "ganglie" then
+  		if self.player:getHandcardNum()<2 then return {} end 
+  		
 		local cards = self.player:getHandcards()
 		cards = sgs.QList2Table(cards)
 		self:sortByUseValue(cards, true)  
@@ -2309,7 +2311,7 @@ function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)
 			return to_discard
 		end  
   
-    if self.player:getHp()>self.player:getHandcardNum() or (self.player:hasSkill("yiji") and self.player:getHp() > 2) then return {} end
+    	if self.player:getHp()>self.player:getHandcardNum() or (self.player:hasSkill("yiji") and self.player:getHp() > 2) then return {} end
 		
 		if self.player:getHandcardNum() >= 3 then		
 			if self:getPeachNum() > 2 then return {} end
@@ -2323,8 +2325,6 @@ function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)
 			end
 			return to_discard
 		end
-		
-    if self.player:getHandcardNum()<2 then return {} end 
   elseif reason == "gongmou" then
 		local cards = self.player:getHandcards()
 		local result = {}
@@ -2340,12 +2340,17 @@ function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)
 		end
 		return result
 	elseif reason == "longhou" then
-		if self.player:getWeapon() then 
-			table.insert(to_discard, self.player:getWeapon():getEffectiveId())
-		elseif self:isLionValid() then 
-			table.insert(to_discard, self.player:getArmor():getEffectiveId()) 
+		local cards = self.player:getHandcards()
+		cards = sgs.QList2Table(cards)
+		self:sortByUseValue(cards, true)
+		for _, card in ipairs(cards) do
+			if not card:inherits("Peach") and not card:inherits("Shit") and not card:inherits("Weapon") then
+				table.insert(to_discard, card:getEffectiveId())
+				index = index + 1
+				if index == 2 then break end
+			end
 		end
-		if #to_discard == 1 then return to_discard end
+		if #to_discard == 2 then return to_discard else return {} end
 	elseif optional then
 		return {}
 	end

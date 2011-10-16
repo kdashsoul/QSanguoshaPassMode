@@ -73,7 +73,6 @@ PassMode::PassMode(QObject *parent)
     skill_map_hidden.insert("wansha", QPair<QString, int>("duanyan", 110));
 
     hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
-    //hidden_reward["feiying"] = "mashu_rewardqibing|xiongzi_dunjiatianshu";
     hidden_reward["niepan"]  = "tipo_qiangjian";
 
     shop_items["huifushu"]      = 15;
