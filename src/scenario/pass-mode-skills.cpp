@@ -275,7 +275,7 @@ class ZhanshangPass: public TriggerSkill{
 public:
     ZhanshangPass():TriggerSkill("zhanshang_pass"){
         events << CardEffected;
-        frequency = Compulsory ;
+        frequency = Frequent ;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
@@ -454,33 +454,82 @@ public:
 };
 
 
-//class JifengPass: public TriggerSkill{
-//public:
-//    JifengPass():TriggerSkill("jifeng_pass"){
-//        events << TurnStart;
-//        frequency = Frequent ;
-//    }
+class LianzhanPass: public TriggerSkill{
+public:
+    LianzhanPass():TriggerSkill("lianzhan_pass"){
+        events << SlashMissed << Predamage;
+    }
 
-//    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-//        Room *room = player->getRoom();
-//        if(player->isKongcheng() && player->askForSkillInvoke(objectName())){
-//            int card_id = room->drawCard();
-//            room->moveCardTo(Sanguosha->getCard(card_id), NULL, Player::Special, true);
-//            room->getThread()->delay();
-//            const Card *card = Sanguosha->getCard(card_id);
-//            if(card->inherits("Slash")){
-//                room->askForPlayerChosen(player,room->get);
-//                CardUseStruct use;
-//                use.from = player;
-//                use.to << to;
-//                use.card = card;
-//                room->useCard(use);
-//            }
-//        }
-//        return false;
-//    }
-//};
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        Room *room = player->getRoom();
+        if(event == SlashMissed){
+            if(effect.to->hasSkill("kongcheng") && effect.to->isKongcheng())
+                return false;
+            const Card *card = room->askForCard(player, "slash", "blade-slash");
+            if(card){
+                // if player is drank, unset his flag
+                if(player->hasFlag("drank"))
+                    room->setPlayerFlag(player, "-drank");
 
+                room->setPlayerFlag(player, "lianzhan");
+                CardUseStruct use;
+                use.card = card;
+                use.from = player;
+                use.to << effect.to;
+                room->useCard(use, false);
+                room->setPlayerFlag(player, "-lianzhan");
+            }
+        }else if(event == Predamage){
+            DamageStruct damage = data.value<DamageStruct>();
+            const Card *reason = damage.card;
+            if(reason && reason->inherits("Slash") && player->hasFlag("lianzhan")){
+                LogMessage log;
+                log.type = "#LianzhanPass";
+                log.from = player;
+                log.to << damage.to;
+                log.arg = QString::number(damage.damage);
+                log.arg2 = QString::number(damage.damage + 1);
+                player->getRoom()->sendLog(log);
+
+                damage.damage ++;
+                data = QVariant::fromValue(damage);
+            }
+        }
+        return false;
+    }
+};
+
+class DouzhiPass: public TriggerSkill{
+public:
+    DouzhiPass():TriggerSkill("douzhi_pass"){
+        events << PhaseChange;
+        frequency = Frequent ;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        int n = 0;
+        if(player->getPhase() == Player::Draw){
+            if(player->isKongcheng() && player->askForSkillInvoke(objectName())){
+                n = player->getHp() ;
+            }
+        }else if(player->getPhase() == Player::Finish){
+            if(player->getHandcardNum() < player->getHp() && player->askForSkillInvoke(objectName())){
+                n = player->getHp() - player->getHandcardNum() ;
+            }
+        }
+        if(n > 0){
+            player->drawCards(n);
+            LogMessage log;
+            log.type = "#DouzhiPass";
+            log.from = player;
+            log.arg = QString::number(n);
+            room->sendLog(log);
+        }
+        return false;
+    }
+};
 
 
 class RendePassViewAsSkill:public ViewAsSkill{
@@ -904,7 +953,6 @@ class LongweiPass: public TriggerSkill{
 public:
     LongweiPass():TriggerSkill("longwei_pass"){
         events << CardLost;
-        frequency = Frequent;
     }
 
     virtual bool trigger(TriggerEvent, ServerPlayer *zhaoyun, QVariant &data) const{
@@ -914,11 +962,11 @@ public:
             if(room->askForSkillInvoke(zhaoyun, objectName())){
                 QList<ServerPlayer *> targets;
                 foreach(ServerPlayer *target, room->getOtherPlayers(zhaoyun)){
-                    if(zhaoyun->canSlash(target) && target->getHp() > zhaoyun->getHp() || target->getHandcardNum() > zhaoyun->getHandcardNum())
+                    if(zhaoyun->canSlash(target,false) && (target->getHp() > zhaoyun->getHp() || target->getHandcardNum() > zhaoyun->getHandcardNum()))
                         targets << target;
                 }
 
-                ServerPlayer *target = room->askForPlayerChosen(zhaoyun, targets, "xuanfeng-slash");
+                ServerPlayer *target = room->askForPlayerChosen(zhaoyun, targets, "longwei-slash");
                 if(!target)
                     return false;
 
@@ -1114,33 +1162,90 @@ public:
     }
 };
 
-class LiegongPass: public TriggerSkill{
+class LiegongPass: public OneCardViewAsSkill{
 public:
-    LiegongPass():TriggerSkill("liegong_pass"){
-        events << SlashEffect;
+    LiegongPass():OneCardViewAsSkill("liegong_pass"){
     }
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *huangzhong, QVariant &data) const{
-        SlashEffectStruct effect = data.value<SlashEffectStruct>();
-        Room *room = huangzhong->getRoom();
+    virtual bool viewFilter(const CardItem *to_select) const{
+        int card_id = Self->getMark("liegong_mark");
+        const Card *card = Sanguosha->getCard(card_id);
+        return to_select->getFilteredCard()->getSuit() == card->getSuit();
+        return !to_select->isEquipped() ;
+    }
 
-        if(effect.slash && !huangzhong->isNude() && huangzhong->askForSkillInvoke(objectName(), QVariant::fromValue(effect))){
-            QString suit_str = effect.slash->getSuitString();
-            QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
-            QString prompt = QString("@liegong_pass:::%1").arg(suit_str);
-            if(room->askForCard(huangzhong, pattern, prompt)){
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return Self->getMark("liegong_mark") > 0 && ! player->hasUsed("LiegongPassCard") ;
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        LiegongPassCard *card = new LiegongPassCard;
+        card->addSubcard(card_item->getCard()->getId());
+        return card;
+    }
+};
+
+LiegongPassCard::LiegongPassCard(){
+    mute = true;
+}
+
+bool LiegongPassCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
+    if(!targets.isEmpty())
+        return false;
+    if(to_select->hasSkill("kongcheng") && to_select->isKongcheng())
+        return false;
+    if(to_select == Self)
+        return false;
+    return true;
+}
+
+void LiegongPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    room->playSkillEffect("liegong");
+    room->throwCard(this);
+    int card_id = getSubcards().first();
+    const Card *card = Sanguosha->getCard(card_id);
+    Slash *slash = new Slash(card->getSuit(), card->getNumber());
+    slash->setSkillName("liegong_pass");
+    CardUseStruct use;
+    use.card = slash;
+    use.from = source;
+    use.to = targets;
+    room->useCard(use,false);
+}
+
+
+class LiegongPassMark: public TriggerSkill{
+public:
+    LiegongPassMark():TriggerSkill("#liegong_pass_mark"){
+        events << SlashEffect << PhaseChange;
+    }
+
+    virtual int getPriority() const{
+        return -1;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *huangzhong, QVariant &data) const{
+        Room *room = huangzhong->getRoom() ;
+        if(event == SlashEffect){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+            room->setPlayerMark(huangzhong,"liegong_mark",effect.slash->getEffectiveId());
+            if(effect.slash->getSkillName() == "liegong_pass"){
                 room->playSkillEffect("liegong");
                 foreach(const Card *card, effect.to->getEquips()){
-                    if(card->isRed() == effect.slash->isRed())
+                    if(card->getSuit() == effect.slash->getSuit())
                         room->throwCard(card->getEffectiveId());
                 }
                 room->slashResult(effect, NULL);
                 return true;
             }
+        }else if(event == PhaseChange && huangzhong->getPhase() == Player::Finish){
+            room->setPlayerMark(huangzhong,"liegong_mark",0);
         }
         return false;
+
     }
 };
+
 
 class GongshenPass: public TriggerSkill{
 public:
@@ -1167,12 +1272,13 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *huangzhong, QVariant &data) const{
         Room *room = huangzhong->getRoom();
         CardUseStruct use = data.value<CardUseStruct>();
-        if((use.card->inherits("Slash") || use.card->inherits("Jink")) && use.card->getNumber() < huangzhong->getMark("@gongshen") + huangzhong->getLostHp() && huangzhong->askForSkillInvoke(objectName())){
+        if(use.card->inherits("Slash") && huangzhong->getMark("@gongshen") >= huangzhong->getHp()){
+            huangzhong->loseMark("@gongshen", qMin(huangzhong->getMark("@gongshen"),2));
+            huangzhong->drawCards(1);
             LogMessage log;
             log.type = "#JianhunPass";
             log.from = huangzhong;
             room->sendLog(log);
-            huangzhong->drawCards(1);
         }
         return false;
     }
@@ -1363,7 +1469,8 @@ public:
                         room->damage(damage);
                     }
                 }
-                xiahou->obtainCard(judge.card);
+                if(judge.card->isRed())
+                    xiahou->obtainCard(judge.card);
             }
         }
     }
@@ -1429,10 +1536,6 @@ public:
 
     virtual bool triggerable(const ServerPlayer *target) const{
         return true ;
-    }
-
-    virtual int getPriority() const{
-        return 3;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
@@ -1801,7 +1904,7 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *caopi, QVariant &data) const{
         if(event == TurnStart){
-            if(!caopi->faceUp() && !caopi->isKongcheng())
+            if(caopi->faceUp() || caopi->isKongcheng())
                 return false;
             Room *room = caopi->getRoom();
             QList<ServerPlayer *> targets;
@@ -1809,7 +1912,7 @@ public:
                 if(!target->isKongcheng())
                     targets << target;
             }
-            if(targets.isEmpty() && room->askForSkillInvoke(caopi, objectName(), data)){
+            if(!targets.isEmpty() && room->askForSkillInvoke(caopi, objectName(), data)){
                 ServerPlayer *target = room->askForPlayerChosen(caopi,room->getOtherPlayers(caopi),objectName());
                 if(target)
                     caopi->pindian(target, "fanzhi_pass");
@@ -3139,10 +3242,11 @@ public:
 
 void PassModeScenario::addGeneralAndSkills(){
 
-    skills << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
+    skills  << new Shiqi << new Qianggong << new Pojia << new ZhanshangPass << new Qishu << new Chenwen << new Zhongzhuang << new Yaoshu << new Jitian
+                 << new LianzhanPass << new DouzhiPass
             << new RendePass << new JijiangPass << new JijiangCost << new ZhaoliePass << new WenjiuPass << new WenjiuBuff << new TuodaoPass << new BaonuPass
                  << new DuanhePass << new TiejiPass << new MashuPass << new GuanxingPass << new BeifaPass << new JizhiPass << new JumouPass << new ShipoPass
-                 << new LongweiPass << new Longhou << new LiegongPass << new GongshenPass << new JianhunPass
+                 << new LongweiPass << new Longhou << new LiegongPass << new LiegongPassMark << new GongshenPass << new JianhunPass
             << new JianxiongPass << new Xietian << new BadaoPass << new BadaoCost << new FankuiPass << new Langgu << new GangliePass  << new JueduanPass
                 << new YijiPass << new Guimou << new JinghongPass << new LuoyiPass << new Guantong  << new TuxiPass << new XingshangPass << new FangzhuPass
                 << new FanzhiPass
@@ -3157,6 +3261,7 @@ void PassModeScenario::addGeneralAndSkills(){
 
     related_skills.insertMulti("jijiang_pass", "#jijiang_cost");
     related_skills.insertMulti("wenjiu_pass", "#wenjiu");
+    related_skills.insertMulti("liegong_pass", "#liegong_pass_mark");
     related_skills.insertMulti("qingnang_pass", "#qingnang");
     related_skills.insertMulti("mafei_pass", "#mafei");
     related_skills.insertMulti("badao_pass", "#badao_cost");
@@ -3183,6 +3288,10 @@ void PassModeScenario::addGeneralAndSkills(){
     General *yaodao = new General(this,"yaodao","evil",3, true, true);
     yaodao->addSkill("yaoshu");
     yaodao->addSkill("jitian");
+
+    General *kuangdaoke = new General(this,"kuangdaoke","evil",3, true, true);
+    kuangdaoke->addSkill("lianzhan_pass");
+    kuangdaoke->addSkill("douzhi_pass");
 
     General *shenguanyu_p = new General(this, "shenguanyu_p", "evil_god", 5, true, true);
     shenguanyu_p->addSkill("wushen_pass");
@@ -3232,6 +3341,7 @@ void PassModeScenario::addGeneralAndSkills(){
 
     General *huangzhong_p = new General(this,"huangzhong_p","hero",4, true, true);
     huangzhong_p->addSkill("liegong_pass");
+    huangzhong_p->addSkill("#liegong_pass_mark");
     huangzhong_p->addSkill("gongshen_pass");
     huangzhong_p->addSkill("jianhun_pass");
 
@@ -3342,6 +3452,7 @@ void PassModeScenario::addGeneralAndSkills(){
     addMetaObject<YaoshuCard>();
     addMetaObject<RendePassCard>();
     addMetaObject<JijiangPassCard>();
+    addMetaObject<LiegongPassCard>();
     addMetaObject<TuodaoPassCard>();
     addMetaObject<DuanhePassCard>();
     addMetaObject<BeifaPassCard>();

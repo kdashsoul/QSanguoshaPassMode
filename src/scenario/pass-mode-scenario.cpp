@@ -44,13 +44,13 @@ PassMode::PassMode(QObject *parent)
     setObjectName("pass_mode_rule");
 
     enemy_list  << "shizu+gongshou+yaodao" << "jianwei+qibing+jianwei"
-                << "huwei+gongshou+jianwei" << "jianwei+yaodao+shizu"
-                << "huwei+caocao_p+jianwei" << "gongshou+luxun_p+shizu"
-                << "qibing+machao_p+qibing" << "jianwei+zhaoyun_p+huwei"
+                << "huwei+gongshou+jianwei" << "jianwei+kuangdaoke+shizu"
+                << "huwei+caocao_p+jianwei" << "kuangdaoke+luxun_p+shizu"
+                << "qibing+machao_p+qibing" << "jianwei+zhaoyun_p+kuangdaoke"
                 << "jianwei+zhouyu_p+jianwei" << "yaodao+guojia_p+yaodao"
-                << "huwei+zhangliao_p+qibing" << "shizu+shenlumeng_p+shizu"
-                << "huwei+sunshangxiang_p+lumeng_p" << "zhugeliang_p+huangyueying_p+gongshou"
-                << "qibing+xuchu_p+xiahoudun_p" <<"luxun_p+simayi_p+yaodao"
+                << "huwei+zhangliao_p+kuangdaoke" << "shizu+shenlumeng_p+shizu"
+                << "huwei+sunshangxiang_p+lumeng_p" << "zhugeliang_p+huangyueying_p+kuangdaoke"
+                << "kuangdaoke+xuchu_p+xiahoudun_p" <<"luxun_p+simayi_p+yaodao"
                 << "guojia_p+caocao_p+zhenji_p" << "zhouyu_p+sunquan_p+huanggai_p"
                 << "zhaoyun_p+liubei_p+zhangfei_p" << "lubu_p+shenguanyu_p+diaochan_p";
 

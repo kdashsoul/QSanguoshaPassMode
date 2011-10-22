@@ -333,8 +333,24 @@ sgs.ai_skill_invoke.nuozhan_pass = function(self, data)
 	return false
 end
 sgs.ai_skill_invoke.yitian = sgs.ai_skill_invoke.nuozhan_pass
-sgs.ai_skill_invoke.longwei = function(self, data)
-	return self.enemies and #self.enemies > 0
+sgs.ai_skill_invoke.longwei_pass = function(self, data)
+	player = player or self.player
+	if self.enemies and #self.enemies > 0 then
+		local target = self.enemies[1]
+		local can_longwei = target:getHp() > player:getHp() or target:getHandcardNum() > player:getHandcardNum() 
+		if can_longwei and self.player:canSlash(target) and not self:slashProhibit(slash ,target)  then
+			return true
+		end
+	end
+	return false
+end
+sgs.ai_skill_playerchosen.longwei_slash = function(self,targets)
+	local slash = sgs.Card_Parse(("slash[%s:%s]"):format(sgs.Card_NoSuit, 0))
+	for _, target in ipairs(targets) do
+		if self:isEnemy(target) and self.player:canSlash(target) and not self:slashProhibit(slash ,target) then
+			return target
+		end
+	end
 end
 
 sgs.ai_skill_invoke["@quwu_pass"] = function(self, data)
