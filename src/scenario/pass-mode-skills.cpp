@@ -1593,7 +1593,9 @@ public:
                     while(true){
                         int card_id;
                         if(zhenji->getState() == "robot" || zhenji->getState() == "offline" || zhenji->getState() == "trust"){
-                            card_id = black_cards.at(qrand() % black_cards.length()) ;
+                            if(black_cards.empty())
+                                break;
+                             card_id = black_cards.at(qrand() % black_cards.length()) ;
                         }else{
                             card_id = room->askForAG(zhenji, black_cards, true, "jinghong");
                         }
