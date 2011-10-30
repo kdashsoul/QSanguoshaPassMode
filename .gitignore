@@ -11,6 +11,8 @@ records/*
 users.db
 doc/*.html
 swig/*.bat
+.DS_Store
+liblua5.1.dylib
 savedata/*
 *.bat
 QSanguosha.pro.user.2.1pre1

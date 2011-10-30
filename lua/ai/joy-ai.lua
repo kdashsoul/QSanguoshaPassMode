@@ -4,41 +4,44 @@ sgs.ai_skill_invoke["grab_peach"] = function(self, data)
 	return self:isEnemy(struct.from)
 end
 
-local gale_shell_skill = {}
-gale_shell_skill.name = "gale-shell"
-table.insert(sgs.ai_skills, gale_shell_skill)
-gale_shell_skill.getTurnUseCard = function(self)
-	local cards = self.player:getHandcards()
-	local fcard
-	for _, card in sgs.qlist(cards) do
-		if card:objectName() == "gale-shell" then fcard = card break end
+-- when murder Caiwenji
+
+sgs.ai_skill_invoke["yx_sword"] = function(self, data)
+	local damage= data:toDamage()
+	local dmg = damage.damage
+	if damage.to:getArmor() and damage.to:getArmor():objectName() == "vine" and damage.nature == sgs.DamageStruct_Fire then dmg = dmg + 1 end
+	if damage.to:getArmor() and damage.to:getArmor():objectName() == "silver_lion" then dmg = 1 end
+
+	if (damage.to:hasSkill("duanchang") and damage.to:getHp() - dmg < 1) or self:hasSkills("ganglie|fankui|enyuan", damage.to) then
+		return true
 	end
-	if not fcard then return "." end
-	
-	return sgs.Card_Parse(fcard:getEffectiveId() .."->".. final:objectName())
 end
-	
-sgs.ai_skill_use_func["GaleShell"] = function(card, use, self)
-	local players = self.room:getOtherPlayers(self.player)
-	local targets
-	for _, target in sgs.qlist(players) do
-		if self.player:distanceTo(target) <= 1 then 
-			table.insert(targets, target)
+
+sgs.ai_skill_playerchosen["yx_sword"] = function(self, targets)
+	local who = self.room:getTag("YxSwordVictim"):toPlayer()
+	if who then
+		if who:getRole() == "rebel" then
+			for _, player in sgs.qlist(targets) do
+				if self:isFriend(player) then
+					return player
+				end
+			end
+		elseif who:getRole() == "loyalist" then
+			if self:isEnemy(who) then return self.room:getLord() end
 		end
 	end
 	
-	local final
-	for _, select in ipairs(targets) do
-		if self.player:isEnemy(select) then
-			final = select
-			break
+	return self.enemies[1]
+end
+
+function SmartAI:useGaleShell(card, use)
+	for _, enemy in ipairs(self.enemies) do
+		if self.player:distanceTo(enemy) <=1 then
+			use.card = card
+			if use.to then
+				use.to:append(enemy)
+			end
+			return
 		end
 	end
-	if not final then return "." end
-	
-	if use.to then
-		use.to:append(final)
-	end
-	use.card = card
 end
-	

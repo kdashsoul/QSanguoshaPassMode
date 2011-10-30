@@ -40,11 +40,13 @@ extern "C" {
     Package *NewSP();
     Package *NewYJCM();
     Package *NewWisdom();
+	Package *NewTest();
     Package *NewHero();
 
     Package *NewStandardCard();
     Package *NewStandardExCard();
     Package *NewManeuvering();
+    Package *NewSPCard();
     Package *NewNostalgia();
     Package *NewYitianCard();
     Package *NewJoy();
@@ -80,17 +82,12 @@ Engine::Engine()
     addPackage(NewYitian());
     addPackage(NewWisdom());
     addPackage(NewHero());
-
-    {
-        Package *test_package = new Package("test");
-        (new General(test_package, "sujiang", "god", 5, true, true));
-        (new General(test_package, "sujiangf", "god", 5, false, true));
-        addPackage(test_package);
-    }
+	addPackage(NewTest());
 
     addPackage(NewStandardCard());
     addPackage(NewStandardExCard());
     addPackage(NewManeuvering());
+    addPackage(NewSPCard());
     addPackage(NewYitianCard());
     addPackage(NewNostalgia());
     addPackage(NewJoy());
@@ -302,8 +299,8 @@ const CardPattern *Engine::getPattern(const QString &name) const{
 
 QList<const Skill *> Engine::getRelatedSkills(const QString &skill_name) const{
     QList<const Skill *> skills;
-    foreach(QString skill_name, related_skills.values(skill_name))
-        skills << getSkill(skill_name);
+    foreach(QString name, related_skills.values(skill_name))
+        skills << getSkill(name);
 
     return skills;
 }

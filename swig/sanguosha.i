@@ -36,14 +36,18 @@ class General : public QObject
 {
 public:
     explicit General(Package *package, const char *name, const char *kingdom, int max_hp = 4, bool male = true, bool hidden = false);
+    enum Gender {Male, Female, Neuter};
 
     // property getters/setters
     int getMaxHp() const;
     QString getKingdom() const;
     bool isMale() const;
     bool isFemale() const;
+	bool isNeuter() const;
     bool isLord() const;
     bool isHidden() const;
+	Gender getGender() const;
+    void setGender(Gender gender);
 
     void addSkill(Skill* skill);
 	void addSkill(const char *skill_name);
@@ -67,6 +71,7 @@ public:
 
     void setScreenName(const char *screen_name);
     QString screenName() const;
+	General::Gender getGender() const;
 
     // property setters/getters
     int getHp() const;
@@ -181,6 +186,7 @@ public:
 	void jilei(const char *type);
     bool isJilei(const Card *card) const;
 	QList<const Skill *> getVisibleSkillList() const;
+	QList<const Player *> getSiblings() const;
 };
 
 %extend Player{
@@ -618,8 +624,6 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const = 0;
 };
 
-
-
 class QThread: public QObject{
 };
 
@@ -644,7 +648,6 @@ public:
 
     void addPlayerSkills(ServerPlayer *player, bool invoke_game_start = false);
     void addTriggerSkill(const TriggerSkill *skill);
-	bool inSkillSet(const TriggerSkill *skill) const;
 
     void delay(unsigned long msecs = 1000);
     void end();

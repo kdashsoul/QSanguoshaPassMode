@@ -19,8 +19,18 @@ void Shit::onMove(const CardMoveStruct &move) const{
        && move.to == NULL
        && from->isAlive()){
 
-        if(getSuit() == Spade){
-            from->getRoom()->loseHp(from);
+        LogMessage log;
+        log.card_str = getEffectIdString();
+        log.from = from;
+
+        Room *room = from->getRoom();
+
+        if(getSuit() == Spade){            
+            log.type = "$ShitLostHp";
+            room->sendLog(log);
+
+            room->loseHp(from);
+
             return;
         }
 
@@ -35,7 +45,10 @@ void Shit::onMove(const CardMoveStruct &move) const{
             damage.nature = DamageStruct::Normal;
         }
 
-        from->getRoom()->damage(damage);
+        log.type = "$ShitDamage";
+        room->sendLog(log);
+
+        room->damage(damage);
     }
 }
 
@@ -152,7 +165,8 @@ void Earthquake::takeEffect(ServerPlayer *target) const{
     Room *room = target->getRoom();
     QList<ServerPlayer *> players = room->getAllPlayers();
     foreach(ServerPlayer *player, players){
-        if(target->distanceTo(player) <= 1){
+        if(target->distanceTo(player) <= 1 ||
+           (player->getDefensiveHorse() && target->distanceTo(player) <= 2)){
             if(player->getEquips().isEmpty()){
                 room->setEmotion(player, "good");
             }else{
@@ -184,7 +198,9 @@ void Volcano::takeEffect(ServerPlayer *target) const{
     QList<ServerPlayer *> players = room->getAllPlayers();
 
     foreach(ServerPlayer *player, players){
-        int point = 2 - target->distanceTo(player);
+        int point = player->getDefensiveHorse() && target != player ?
+                    3 - target->distanceTo(player) :
+                    2 - target->distanceTo(player);
         if(point >= 1){
             DamageStruct damage;
             damage.card = this;
@@ -323,13 +339,8 @@ bool GaleShell::targetFilter(const QList<const Player *> &targets, const Player 
     return targets.isEmpty() && Self->distanceTo(to_select) <= 1;
 }
 
-void GaleShell::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    ServerPlayer *target = targets.value(0, source);
-
-    if(target->getArmor())
-        room->throwCard(target->getArmor());
-
-    room->moveCardTo(this, target, Player::Equip, true);
+void GaleShell::onUse(Room *room, const CardUseStruct &card_use) const{
+    Card::onUse(room, card_use);
 }
 
 DisasterPackage::DisasterPackage()
@@ -387,12 +398,15 @@ public:
             if(players.isEmpty())
                 return false;
 
+            QVariant victim = QVariant::fromValue(damage.to);
+            room->setTag("YxSwordVictim", victim);
             ServerPlayer *target = room->askForPlayerChosen(player, players, objectName());
+            room->removeTag("YxSwordVictim");
             damage.from = target;
             data = QVariant::fromValue(damage);
             room->moveCardTo(player->getWeapon(), damage.from, Player::Hand);
         }
-        return false;
+        return damage.to->isDead();
     }
 };
 

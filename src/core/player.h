@@ -36,7 +36,9 @@ class Player : public QObject
     Q_PROPERTY(QString flags READ getFlags WRITE setFlags)
     Q_PROPERTY(bool chained READ isChained WRITE setChained)
     Q_PROPERTY(bool owner READ isOwner WRITE setOwner)
+    Q_PROPERTY(bool ready READ isReady WRITE setReady)
     Q_PROPERTY(int atk READ getAttackRange)
+    Q_PROPERTY(General::Gender gender READ getGender)
 
     Q_PROPERTY(bool kongcheng READ isKongcheng)
     Q_PROPERTY(bool nude READ isNude)
@@ -64,9 +66,13 @@ public:
     void setMaxHP(int max_hp);
     int getLostHp() const;
     bool isWounded() const;
+    General::Gender getGender() const;
 
     bool isOwner() const;
     void setOwner(bool owner);
+
+    bool isReady() const;
+    void setReady(bool ready);
 
     int getMaxCards() const;
 
@@ -193,6 +199,8 @@ public:
     bool isCaoCao() const;
     void copyFrom(Player* p);
 
+    QList<const Player *> getSiblings() const;
+
     QVariantMap tag;
 
 protected:
@@ -205,6 +213,7 @@ protected:
 private:
     QString screen_name;
     bool owner;
+    bool ready;
     const General *general, *general2;
     int hp, max_hp;
     QString kingdom;
@@ -233,6 +242,7 @@ signals:
     void kingdom_changed();
     void phase_changed();
     void owner_changed(bool owner);
+    void ready_changed(bool ready);
 };
 
 #endif // PLAYER_H

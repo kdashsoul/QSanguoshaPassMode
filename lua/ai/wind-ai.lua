@@ -1,28 +1,18 @@
-sgs.ai_skill_invoke.liegong = function(self, data) 
-	local effect = data:toSlashEffect()
-	return not self:isFriend(effect.to) 
-end
 
--- jushou
-sgs.ai_skill_invoke.jushou = function(self, data) 
-	local num = self.room:getAlivePlayers():length()
-	if num <= 4 or self.player:getHp() <= 2 or self:getJinkNumber() == 0 or (not self.player:faceUp()) then
-		return true
-	end
-	if self:findHasSkill(self.friends_noself,"fangzhu|pojun") then 
-		return true
-	end
-end
+-- liegong, same with tieji
+sgs.ai_skill_invoke.liegong = sgs.ai_skill_invoke.tieji
+
+-- jushou, allways invoke
+sgs.ai_skill_invoke.jushou = true
 
 --leiji
 sgs.ai_skill_use["@@leiji"]=function(self,prompt)
     self:updatePlayers()
 	self:sort(self.enemies,"hp")
 	for _,enemy in ipairs(self.enemies) do
-		if self:objectiveLevel(enemy)>3 and not enemy:hasSkill("hongyan") then
+		if not self:isEquip("SilverLion", enemy) and not enemy:hasSkill("hongyan") then
 			return "@LeijiCard=.->"..enemy:objectName() 
 		end
-		-- return "."
 	end
 	return "."
 end
@@ -30,8 +20,8 @@ end
 --shensu
 
 sgs.ai_skill_use["@@shensu1"]=function(self,prompt)
-    self:updatePlayers(true)
-	self:sort(self.enemies,"expect")
+        self:updatePlayers(true)
+	self:sort(self.enemies,"defense")
 	
 	local selfSub = self.player:getHp()-self.player:getHandcardNum()
 	local selfDef = getDefense(self.player)
@@ -119,7 +109,7 @@ sgs.ai_skill_use["@@shensu2"]=function(self,prompt)
         if enemy:hasSkill("kongcheng") and enemy:isKongcheng() then
         elseif self:slashProhibit(nil, enemy) then
         elseif eff then 
-			if enemy:getHp() == 1 and self:getJinkNumber(enemy) == 0 then best_target = enemy break end
+			if enemy:getHp() == 1 and self:getCardsNum("Jink", enemy) == 0 then best_target = enemy break end
 			if def < defense then
 				best_target = enemy
 				defense = def
@@ -135,58 +125,23 @@ sgs.ai_skill_use["@@shensu2"]=function(self,prompt)
 	return "."
 end
 
-function fillCardSet(cardSet,suit,suit_val,number,number_val)
-    if suit then
-        cardSet[suit]={}
-        for i=1,13 do
-            cardSet[suit][i]=suit_val
-        end
-    end
-    if number then
-        cardSet.club[number]=number_val
-        cardSet.spade[number]=number_val
-        cardSet.heart[number]=number_val
-        cardSet.diamond[number]=number_val
-    end
-end
-
-function goodMatch(cardSet,card)
-    local result=card:getSuitString()
-    local number=card:getNumber()
-    if cardSet[result][number] then return true
-    else return false
-    end
-end
-
 sgs.ai_skill_invoke["@guidao"]=function(self,prompt)
     local judge = self.player:getTag("Judge"):toJudge()
-    local jcard = judge.card
-	local all_cards = self.player:getCards("he")
-	local important = (judge.reason == "lightning" or judge.reason == "leiji" )
-	local cards = {}
-	for _, card in sgs.qlist(all_cards) do	
-		if card:isBlack() then
-			if (not (important and self:needRetrial(judge))) and (card:inherits("EightDiagram") or (card:getSuitString() == "spade" and self:getSuitNum("spade",true) == 1) and self:getJinkNumber() > 0) then
-				
-			else
+	
+	if self:needRetrial(judge) then
+		self:log("guidao!!!!!!!!")
+		local all_cards = self.player:getCards("he")
+		local cards = {}
+		for _, card in sgs.qlist(all_cards) do
+			if card:isBlack() then
 				table.insert(cards, card)
 			end
 		end
-	end
-
-	if self:needRetrial(judge) then
 		local card_id = self:getRetrialCardId(cards, judge)
 		if card_id ~= -1 then
 			return "@GuidaoCard=" .. card_id
 		end
 	end
-	
-	local card_id = self:getRetrialCardId(cards, judge,true)
-	if card_id ~= -1 then
-		return "@GuidaoCard=" .. card_id
-	end
-	
-	--if jcard:inherits("EightDiagram") or (jcard:inherits("Jink") and self:getJinkNumber() == 0) or self:isEquip("Vine") then
 	
 	return "."
 end
@@ -199,6 +154,7 @@ huangtianv_skill.getTurnUseCard=function(self)
     if self.player:hasUsed("HuangtianCard") then return nil end
     if self.player:isLord() then return nil end
     if self.player:getKingdom() ~= "qun" then return nil end
+	if not self.room:getLord():hasSkill("huangtian") then return nil end
 
     local cards = self.player:getCards("h")	
     cards=sgs.QList2Table(cards)
@@ -218,8 +174,6 @@ huangtianv_skill.getTurnUseCard=function(self)
 		return nil
 	end
 	
-	local suit = card:getSuitString()
-	local number = card:getNumberString()
 	local card_id = card:getEffectiveId()
 	local card_str = "@HuangtianCard="..card_id
 	local skillcard = sgs.Card_Parse(card_str)
@@ -229,11 +183,31 @@ huangtianv_skill.getTurnUseCard=function(self)
 end
 
 sgs.ai_skill_use_func["HuangtianCard"]=function(card,use,self)
-
-    if not self:isFriend(self.room:getLord()) then return nil end
+    local targets = {}
+	for _, friend in ipairs(self.friends_noself) do
+		if friend:hasLordSkill("Huangtian") then 
+			table.insert(targets, friend)
+		end
+	end
+	
+	if #targets == 0 then return end
     
 	use.card=card
+	self:sort(targets, "defense")
 	if use.to then
-     	use.to:append(self.room:getLord()) 
+		use.to:append(targets[1]) 
     end	
+end
+
+sgs.ai_skill_askforag.buqu = function(self, card_ids)
+-- find duplicated one or the first
+	for i, card_id in ipairs(card_ids) do
+		for j, card_id2 in sgs.list(card_ids) do
+			if i ~= j and card_id == card_id2 then
+				return card_id
+			end
+		end
+	end
+
+	return card_ids[1]
 end

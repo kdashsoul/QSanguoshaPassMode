@@ -6,7 +6,7 @@
 #include "settings.h"
 
 Player::Player(QObject *parent)
-    :QObject(parent), owner(false), general(NULL), general2(NULL),
+    :QObject(parent), owner(false), ready(false), general(NULL), general2(NULL),
     hp(-1), max_hp(-1), state("online"), seat(0), alive(true),
     phase(NotActive),
     weapon(NULL), armor(NULL), defensive_horse(NULL), offensive_horse(NULL),
@@ -30,6 +30,17 @@ void Player::setOwner(bool owner){
     if(this->owner != owner){
         this->owner = owner;
         emit owner_changed(owner);
+    }
+}
+
+bool Player::isReady() const{
+    return ready;
+}
+
+void Player::setReady(bool ready){
+    if(this->ready != ready){
+        this->ready = ready;
+        emit ready_changed(ready);
     }
 }
 
@@ -68,6 +79,13 @@ bool Player::isWounded() const{
         return true;
     else
         return hp < max_hp;
+}
+
+General::Gender Player::getGender() const{
+    if(general)
+        return general->getGender();
+    else
+        return General::Neuter;
 }
 
 int Player::getSeat() const{
@@ -285,7 +303,7 @@ bool Player::hasLordSkill(const QString &skill_name) const{
         return hasInnateSkill(skill_name);
 
     if(hasSkill("weidi")){
-        foreach(const Player *player, parent()->findChildren<const Player *>()){
+        foreach(const Player *player, getSiblings()){
             if(player->isLord())
                 return player->hasLordSkill(skill_name);
         }
@@ -409,7 +427,7 @@ bool Player::hasWeapon(const QString &weapon_name) const{
 }
 
 bool Player::hasArmorEffect(const QString &armor_name) const{
-    return armor && getMark("qinggang") == 0 && armor->objectName() == armor_name;
+    return armor && getMark("qinggang") == 0 && getMark("wuqian") == 0 && armor->objectName() == armor_name;
 }
 
 QList<const Card *> Player::getJudgingArea() const{
@@ -454,8 +472,7 @@ int Player::getMaxCards() const{
 
     int xueyi = 0;
     if(hasLordSkill("xueyi")){
-        QList<const Player *> players = parent()->findChildren<const Player *>();
-        players.removeOne(this);
+        QList<const Player *> players = getSiblings();
         foreach(const Player *player, players){
             if(player->isAlive() && player->getKingdom() == "qun")
                 xueyi += 2;
@@ -758,5 +775,14 @@ void Player::copyFrom(Player* p)
     b->jilei_set        = QSet<Card::CardType> (a->jilei_set);
 
     b->tag              = QVariantMap(a->tag);
+}
 
+QList<const Player *> Player::getSiblings() const{
+    QList<const Player *> siblings;
+    if(parent()){
+        siblings = parent()->findChildren<const Player *>();
+        siblings.removeOne(this);
+    }
+
+    return siblings;
 }

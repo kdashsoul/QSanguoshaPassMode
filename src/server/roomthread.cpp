@@ -59,6 +59,43 @@ bool PindianStruct::isSuccess() const{
     return from_card->getNumber() > to_card->getNumber();
 }
 
+JudgeStructPattern::JudgeStructPattern(){
+}
+
+bool JudgeStructPattern::match(const Player *player, const Card *card) const{
+    if(pattern.isEmpty())
+        return false;
+
+    if(isRegex){
+        QString class_name = card->metaObject()->className();
+        Card::Suit suit = card->getSuit();
+        if(player->hasSkill("hongyan") && suit == Card::Spade)
+            suit = Card::Heart;
+
+        QString number = card->getNumberString();
+        QString card_str = QString("%1:%2:%3").arg(class_name).arg(Card::Suit2String(suit)).arg(number);
+
+        return QRegExp(pattern).exactMatch(card_str);
+    }else{
+        const CardPattern *card_pattern = Sanguosha->getPattern(pattern);
+        return card_pattern && card_pattern->match(player, card);
+    }
+}
+
+JudgeStructPattern &JudgeStructPattern::operator =(const QRegExp &rx){
+    pattern = rx.pattern();
+    isRegex = true;
+
+    return *this;
+}
+
+JudgeStructPattern &JudgeStructPattern::operator =(const QString &str){
+    pattern = str;
+    isRegex = false;
+
+    return *this;
+}
+
 JudgeStruct::JudgeStruct()
     :who(NULL), card(NULL), good(true)
 {
@@ -69,18 +106,10 @@ bool JudgeStruct::isGood(const Card *card) const{
     if(card == NULL)
         card = this->card;
 
-    QString class_name = card->metaObject()->className();
-    Card::Suit suit = card->getSuit();
-    if(who->hasSkill("hongyan") && suit == Card::Spade)
-        suit = Card::Heart;
-
-    QString number = card->getNumberString();
-    QString card_str = QString("%1:%2:%3").arg(class_name).arg(Card::Suit2String(suit)).arg(number);
-
     if(good)
-        return pattern.exactMatch(card_str);
+        return pattern.match(who, card);
     else
-        return !pattern.exactMatch(card_str);
+        return !pattern.match(who, card);
 }
 
 bool JudgeStruct::isBad() const{
@@ -119,20 +148,11 @@ void RoomThread::addPlayerSkills(ServerPlayer *player, bool invoke_game_start){
     QVariant void_data;
 
     foreach(const TriggerSkill *skill, player->getTriggerSkills()){
-        if(skill->isLordSkill()){
-            if(!player->isLord() || room->mode == "06_3v3")
-                continue;
-        }
-
         addTriggerSkill(skill);
 
         if(invoke_game_start && skill->getTriggerEvents().contains(GameStart))
             skill->trigger(GameStart, player, void_data);
     }
-}
-
-bool RoomThread::inSkillSet(const TriggerSkill *skill) const{
-    return skillSet.contains(skill);
 }
 
 void RoomThread::constructTriggerTable(const GameRule *rule){
@@ -328,8 +348,9 @@ bool RoomThread::trigger(TriggerEvent event, ServerPlayer *target){
 }
 
 void RoomThread::addTriggerSkill(const TriggerSkill *skill){
-    if(inSkillSet(skill))
+    if(skillSet.contains(skill))
         return;
+
     skillSet << skill;
 
     QList<TriggerEvent> events = skill->getTriggerEvents();
@@ -338,6 +359,13 @@ void RoomThread::addTriggerSkill(const TriggerSkill *skill){
 
         table << skill;
         qStableSort(table.begin(), table.end(), CompareByPriority);
+    }
+
+    if(skill->isVisible()){
+        foreach(const Skill *skill, Sanguosha->getRelatedSkills(skill->objectName())){
+            const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
+            addTriggerSkill(trigger_skill);
+        }
     }
 }
 

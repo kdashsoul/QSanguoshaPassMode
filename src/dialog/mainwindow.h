@@ -76,6 +76,7 @@ private:
     void restoreFromConfig();
 
 private slots:
+    void on_actionSend_lowlevel_command_triggered();
     void on_actionReplay_file_convert_triggered();
     void on_actionAI_Melee_triggered();
     void on_actionPackaging_triggered();
@@ -98,6 +99,7 @@ private slots:
     void on_actionStart_Server_triggered();
     void on_actionExit_triggered();
 
+    void checkVersion(const QString &server_version);
     void startConnection();
     void networkError(const QString &error_msg);
     void enterRoom();

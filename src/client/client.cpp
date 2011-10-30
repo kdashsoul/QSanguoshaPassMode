@@ -21,11 +21,20 @@
 Client *ClientInstance = NULL;
 
 Client::Client(QObject *parent, const QString &filename)
-    :QObject(parent), refusable(true), status(NotActive), alive_count(1), swap_pile(0)
+    :QObject(parent), refusable(true),
+    status(NotActive), alive_count(1), swap_pile(0)
 {
     ClientInstance = this;
 
     callbacks["checkVersion"] = &Client::checkVersion;
+
+    callbacks["roomBegin"] = &Client::roomBegin;
+    callbacks["room"] = &Client::room;
+    callbacks["roomEnd"] = &Client::roomEnd;
+    callbacks["roomCreated"] = &Client::roomCreated;
+    callbacks["roomError"] = &Client::roomError;
+    callbacks["hallEntered"] = &Client::hallEntered;
+
     callbacks["setup"] = &Client::setup;
     callbacks["addPlayer"] = &Client::addPlayer;
     callbacks["removePlayer"] = &Client::removePlayer;
@@ -171,22 +180,7 @@ void Client::request(const QString &message){
 }
 
 void Client::checkVersion(const QString &server_version){
-    QString client_version = Sanguosha->getVersion();
-
-    if(server_version == client_version)
-        return;
-
-    static QString link = "http://github.com/Moligaloo/QSanguosha/downloads";
-    QString text = tr("Server version is %1, client version is %2 <br/>").arg(server_version).arg(client_version);
-    if(server_version > client_version)
-        text.append(tr("Your client version is older than the server's, please update it <br/>"));
-    else
-        text.append(tr("The server version is older than your client version, please ask the server to update<br/>"));
-
-    text.append(tr("Download link : <a href='%1'>%1</a> <br/>").arg(link));
-    QMessageBox::warning(NULL, tr("Warning"), text);
-
-    disconnectFromHost();
+    emit version_checked(server_version);
 }
 
 void Client::setup(const QString &setup_str){
@@ -194,8 +188,8 @@ void Client::setup(const QString &setup_str){
         return;
 
     if(ServerInfo.parse(setup_str)){
-        signup();
         emit server_connected();
+        request("toggleReady .");
     }else{
         QMessageBox::warning(NULL, tr("Warning"), tr("Setup string can not be parsed: %1").arg(setup_str));
     }
@@ -537,14 +531,6 @@ Client::Status Client::getStatus() const{
     return status;
 }
 
-void Client::updateFrequentFlags(int state){
-    QString flag = sender()->objectName();
-    if(state == Qt::Checked)
-        frequent_flags.insert(flag);
-    else
-        frequent_flags.remove(flag);
-}
-
 void Client::jilei(const QString &jilei_str){
     Self->jilei(jilei_str);
 }
@@ -584,6 +570,19 @@ QString Client::getPattern() const{
     return card_pattern;
 }
 
+QString Client::getSkillNameToInvoke() const{
+    return skill_to_invoke;
+}
+
+void Client::invokeSkill(bool invoke){
+    if(invoke)
+        request("invokeSkill yes");
+    else
+        request("invokeSkill no");
+
+    setStatus(NotActive);
+}
+
 void Client::setPromptList(const QStringList &texts){
     QString prompt = Sanguosha->translate(texts.at(0));
     if(texts.length() >= 2)
@@ -598,6 +597,12 @@ void Client::setPromptList(const QStringList &texts){
     }
 
     prompt_doc->setHtml(prompt);
+}
+
+void Client::commandFormatWarning(const QString &str, const QRegExp &rx, const char *command){
+    QString text = tr("The argument (%1) of command %2 does not conform the format %3")
+                   .arg(str).arg(command).arg(rx.pattern());
+    QMessageBox::warning(NULL, tr("Command format warning"), text);
 }
 
 void Client::askForCardOrUseCard(const QString &request_str){
@@ -616,6 +621,17 @@ void Client::askForCardOrUseCard(const QString &request_str){
     else
         refusable = true;
 
+    if(card_pattern.startsWith(QChar('@'))){
+        QString skill_name = card_pattern;
+        skill_name.remove(QChar('@'));
+        const Skill *skill = Sanguosha->getSkill(skill_name);
+        if(skill){
+            QString text = prompt_doc->toHtml();
+            text.append(tr("<br/><br/> <b>Notice</b>: %1<br/>").arg(skill->getDescription()));
+            prompt_doc->setHtml(text);
+        }
+    }
+
     setStatus(Responsing);
 }
 
@@ -629,45 +645,29 @@ void Client::askForUseCard(const QString &request_str){
     askForCardOrUseCard(request_str);
 }
 
-void Client::askForSkillInvoke(const QString &skill_name){
-    bool auto_invoke = frequent_flags.contains(skill_name);
-    if(auto_invoke){
-        invokeSkill(QDialog::Accepted);
-        return;
+void Client::askForSkillInvoke(const QString &invoke_str){
+    QString skill_name, data;
+    if(invoke_str.contains(QChar(':'))){
+        QStringList texts = invoke_str.split(":");
+        skill_name = texts.first();
+        data = texts.last();
+    }else
+        skill_name = invoke_str;
+    skill_to_invoke = skill_name;
+
+    QString text;
+    if(data.isNull())
+        text = tr("Do you want to invoke skill [%1] ?").arg(Sanguosha->translate(skill_name));
+    else
+        text = Sanguosha->translate(invoke_str);
+
+    const Skill *skill = Sanguosha->getSkill(skill_name);
+    if(skill){
+        text.append(tr("<br/><br/> <b>Notice</b>: %1<br/>").arg(skill->getDescription()));
     }
 
-
-    QDialog *dialog = new QDialog;
-    dialog->setWindowTitle(Sanguosha->translate(skill_name));
-
-    QString text = tr("Do you want to invoke skill [%1] ?").arg(dialog->windowTitle());
-
-    QLabel *label = new QLabel(text);
-
-    QCommandLinkButton *ok_button = new QCommandLinkButton(tr("OK"));
-    QString description = Sanguosha->translate(QString("%1:yes").arg(skill_name));
-    ok_button->setToolTip(description);
-
-    QCommandLinkButton *cancel_button = new QCommandLinkButton(tr("Cancel"));
-
-    QHBoxLayout *hlayout = new QHBoxLayout;
-    hlayout->addStretch();
-    hlayout->addWidget(ok_button);
-    hlayout->addWidget(cancel_button);
-
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(label);
-    layout->addLayout(hlayout);
-    dialog->setLayout(layout);
-
-    ask_dialog = dialog;
-
-    connect(ok_button, SIGNAL(clicked()), dialog, SLOT(accept()));
-    connect(cancel_button, SIGNAL(clicked()), dialog, SLOT(reject()));
-    connect(dialog, SIGNAL(finished(int)), this, SLOT(invokeSkill(int)));
-
-    Sanguosha->playAudio("pop-up");
-    setStatus(ExecDialog);
+    prompt_doc->setHtml(text);
+    setStatus(AskForSkillInvoke);
 }
 
 void Client::selectChoice(){
@@ -878,17 +878,6 @@ void Client::addHistory(const QString &add_str){
 
 int Client::alivePlayerCount() const{
     return alive_count;
-}
-
-void Client::invokeSkill(int result){
-    bool invoke = result == QDialog::Accepted;
-
-    if(invoke)
-        request("invokeSkill yes");
-    else
-        request("invokeSkill no");
-
-    setStatus(NotActive);
 }
 
 void Client::responseCard(const Card *card){
@@ -1280,8 +1269,12 @@ void Client::clearTurnTag(){
             break;
     }
 
-    case Player::NotActive:{
+    case Player::Play:{
             Self->clearHistory();
+            break;
+        }
+
+    case Player::NotActive:{
             Self->clearFlags();
             break;
         }

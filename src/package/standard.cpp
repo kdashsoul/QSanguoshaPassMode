@@ -119,11 +119,8 @@ QString AOE::getSubtype() const{
 }
 
 bool AOE::isAvailable(const Player *player) const{
-    QList<const Player *> players = player->parent()->findChildren<const Player *>();
+    QList<const Player *> players = player->getSiblings();
     foreach(const Player *p, players){
-        if(p == player)
-            continue;
-
         if(p->isDead())
             continue;
 
@@ -399,7 +396,7 @@ class PAPattern: public CardPattern{
 public:
     virtual bool match(const Player *player, const Card *card) const{
         return ! player->hasEquip(card) &&
-                (card->objectName() == "peach" || card->objectName() == "analeptic");
+                (card->inherits("Peach") || card->inherits("Analeptic"));
     }
 };
 

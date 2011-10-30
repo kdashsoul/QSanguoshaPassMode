@@ -53,12 +53,9 @@ public:
             return false;
 
         room->playSkillEffect(objectName());
+        QVariant tohelp = QVariant::fromValue((PlayerStar)caocao);
         foreach(ServerPlayer *liege, lieges){
-            QString result = room->askForChoice(liege, objectName(), "accept+ignore");
-            if(result == "ignore")
-                continue;
-
-            const Card *jink = room->askForCard(liege, "jink", "@hujia-jink:" + caocao->objectName());
+            const Card *jink = room->askForCard(liege, "jink", "@hujia-jink:" + caocao->objectName(), tohelp);
             if(jink){
                 room->provide(jink);
                 return true;
@@ -275,7 +272,7 @@ public:
         QString prompt = prompt_list.join(":");
 
         player->tag["Judge"] = data;
-        const Card *card = room->askForCard(player, "@guicai", prompt);
+        const Card *card = room->askForCard(player, "@guicai", prompt, data);
 
         if(card){
             // the only difference for Guicai & Guidao
@@ -362,7 +359,6 @@ public:
         if(event == PhaseChange && zhenji->getPhase() == Player::Start){
             Room *room = zhenji->getRoom();
             while(zhenji->askForSkillInvoke("luoshen")){
-                zhenji->setFlags("luoshen");
                 room->playSkillEffect(objectName());
 
                 JudgeStruct judge;
@@ -376,10 +372,9 @@ public:
                     break;
             }
 
-            zhenji->setFlags("-luoshen");
         }else if(event == FinishJudge){
-            if(zhenji->hasFlag("luoshen")){
-                JudgeStar judge = data.value<JudgeStar>();
+            JudgeStar judge = data.value<JudgeStar>();
+            if(judge->reason == objectName()){
                 if(judge->card->isBlack()){
                     zhenji->obtainCard(judge->card);
                     return true;
@@ -398,7 +393,7 @@ public:
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
-        return to_select->getCard()->isBlack() && !to_select->isEquipped();
+        return to_select->getFilteredCard()->isBlack() && !to_select->isEquipped();
     }
 
     virtual const Card *viewAs(CardItem *card_item) const{
@@ -502,8 +497,10 @@ public:
             return false;
 
         room->playSkillEffect(objectName());
+
+        QVariant tohelp = QVariant::fromValue((PlayerStar)liubei);
         foreach(ServerPlayer *liege, lieges){
-            const Card *slash = room->askForCard(liege, "slash", "@jijiang-slash:" + liubei->objectName());
+            const Card *slash = room->askForCard(liege, "slash", "@jijiang-slash:" + liubei->objectName(), tohelp);
             if(slash){
                 room->provide(slash);
                 return true;
@@ -646,26 +643,6 @@ public:
 
             int n = qMin(5, room->alivePlayerCount());
             room->doGuanxing(zhuge, room->getNCards(n, false), false);
-        }
-
-        return false;
-    }
-};
-
-class SuperGuanxing: public Guanxing{
-public:
-    SuperGuanxing():Guanxing(){
-        setObjectName("super_guanxing");
-    }
-
-    virtual bool onPhaseChange(ServerPlayer *zhuge) const{
-        if(zhuge->getPhase() == Player::Start &&
-           zhuge->askForSkillInvoke(objectName()))
-        {
-            Room *room = zhuge->getRoom();
-            room->playSkillEffect("guanxing");
-
-            room->doGuanxing(zhuge, room->getNCards(5, false), false);
         }
 
         return false;
@@ -1046,8 +1023,8 @@ public:
 
 class Chujia: public GameStartSkill{
 public:
-    Chujia():GameStartSkill("#chujia"){
-
+    Chujia():GameStartSkill("chujia"){
+        frequency = Limited;
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
@@ -1236,17 +1213,6 @@ public:
     }
 };
 
-class Zhiba: public Zhiheng{
-public:
-    Zhiba(){
-        setObjectName("zhiba");
-    }
-
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return player->usedTimes("ZhihengCard") < (player->getLostHp() + 1);
-    }
-};
-
 class Tuoqiao: public ZeroCardViewAsSkill{
 public:
     Tuoqiao():ZeroCardViewAsSkill("tuoqiao"){
@@ -1300,25 +1266,24 @@ void StandardPackage::addGenerals(){
     caocao->addSkill(new Jianxiong);
     caocao->addSkill(new Hujia);
 
-    zhangliao = new General(this, "zhangliao", "wei");
-    zhangliao->addSkill(new Tuxi);
-
-    guojia = new General(this, "guojia", "wei", 3);
-    guojia->addSkill(new Tiandu);
-    guojia->addSkill(new Yiji);
-
-    xiahoudun = new General(this, "xiahoudun", "wei");
-    xiahoudun->addSkill(new Ganglie);
-
     simayi = new General(this, "simayi", "wei", 3);
     simayi->addSkill(new Fankui);
     simayi->addSkill(new Guicai);
 
+    xiahoudun = new General(this, "xiahoudun", "wei");
+    xiahoudun->addSkill(new Ganglie);
+
+    zhangliao = new General(this, "zhangliao", "wei");
+    zhangliao->addSkill(new Tuxi);
+
     xuchu = new General(this, "xuchu", "wei");
     xuchu->addSkill(new Luoyi);
     xuchu->addSkill(new LuoyiBuff);
-
     related_skills.insertMulti("luoyi", "#luoyi");
+
+    guojia = new General(this, "guojia", "wei", 3);
+    guojia->addSkill(new Tiandu);
+    guojia->addSkill(new Yiji);
 
     zhenji = new General(this, "zhenji", "wei", 3, false);
     zhenji->addSkill(new Luoshen);
@@ -1335,19 +1300,18 @@ void StandardPackage::addGenerals(){
     zhangfei = new General(this, "zhangfei", "shu");
     zhangfei->addSkill(new Skill("paoxiao"));
 
+    zhugeliang = new General(this, "zhugeliang", "shu", 3);
+    zhugeliang->addSkill(new Guanxing);
+    zhugeliang->addSkill(new Kongcheng);
+    zhugeliang->addSkill(new KongchengEffect);
+    related_skills.insertMulti("kongcheng", "#kongcheng-effect");
+
     zhaoyun = new General(this, "zhaoyun", "shu");
     zhaoyun->addSkill(new Longdan);
 
     machao = new General(this, "machao", "shu");
     machao->addSkill(new Tieji);
     machao->addSkill(new Mashu);
-
-    zhugeliang = new General(this, "zhugeliang", "shu", 3);
-    zhugeliang->addSkill(new Guanxing);
-    zhugeliang->addSkill(new Kongcheng);
-    zhugeliang->addSkill(new KongchengEffect);
-
-    related_skills.insertMulti("kongcheng", "#kongcheng-effect");
 
     huangyueying = new General(this, "huangyueying", "shu", 3, false);
     huangyueying->addSkill(new Jizhi);
@@ -1358,29 +1322,28 @@ void StandardPackage::addGenerals(){
     sunquan->addSkill(new Zhiheng);
     sunquan->addSkill(new Jiuyuan);
 
-    zhouyu = new General(this, "zhouyu", "wu", 3);
-    zhouyu->addSkill(new Yingzi);
-    zhouyu->addSkill(new Fanjian);
+    ganning = new General(this, "ganning", "wu");
+    ganning->addSkill(new Qixi);
 
     lumeng = new General(this, "lumeng", "wu");
     lumeng->addSkill(new Keji);
     lumeng->addSkill(new KejiSkip);
-
     related_skills.insertMulti("keji", "#keji-skip");
-
-    luxun = new General(this, "luxun", "wu", 3);
-    luxun->addSkill(new Qianxun);
-    luxun->addSkill(new Lianying);
-
-    ganning = new General(this, "ganning", "wu");
-    ganning->addSkill(new Qixi);
 
     huanggai = new General(this, "huanggai", "wu");
     huanggai->addSkill(new Kurou);
 
+    zhouyu = new General(this, "zhouyu", "wu", 3);
+    zhouyu->addSkill(new Yingzi);
+    zhouyu->addSkill(new Fanjian);
+
     daqiao = new General(this, "daqiao", "wu", 3, false);
     daqiao->addSkill(new Guose);
     daqiao->addSkill(new Liuli);
+
+    luxun = new General(this, "luxun", "wu", 3);
+    luxun->addSkill(new Qianxun);
+    luxun->addSkill(new Lianying);
 
     sunshangxiang = new General(this, "sunshangxiang", "wu", 3, false);
     sunshangxiang->addSkill(new Chujia);
@@ -1389,27 +1352,17 @@ void StandardPackage::addGenerals(){
 
     General *lubu, *huatuo, *diaochan;
 
-    lubu = new General(this, "lubu", "qun");
-    lubu->addSkill(new Wushuang);
-
     huatuo = new General(this, "huatuo", "qun", 3);
     huatuo->addSkill(new Qingnang);
     huatuo->addSkill(new Jijiu);
+
+    lubu = new General(this, "lubu", "qun");
+    lubu->addSkill(new Wushuang);
 
     diaochan = new General(this, "diaochan", "qun", 3, false);
     diaochan->addSkill(new Lijian);
     diaochan->addSkill(new Biyue);
     diaochan->addSkill(new Tuoqiao);
-
-    // for test only
-    General *zhiba_sunquan = new General(this, "zhibasunquan$", "wu", 4, true, true);
-    zhiba_sunquan->addSkill(new Zhiba);
-    zhiba_sunquan->addSkill("jiuyuan");
-
-    General *wuxing_zhuge = new General(this, "wuxingzhuge", "shu", 3, true, true);
-    wuxing_zhuge->addSkill(new SuperGuanxing);
-    wuxing_zhuge->addSkill("kongcheng");
-    wuxing_zhuge->addSkill("#kongcheng-effect");
 
     // for skill cards
     addMetaObject<ZhihengCard>();
@@ -1426,3 +1379,53 @@ void StandardPackage::addGenerals(){
     addMetaObject<HuanzhuangCard>();
     addMetaObject<CheatCard>();
 }
+
+class Zhiba: public Zhiheng{
+public:
+    Zhiba(){
+        setObjectName("zhiba");
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return player->usedTimes("ZhihengCard") < (player->getLostHp() + 1);
+    }
+};
+
+class SuperGuanxing: public Guanxing{
+public:
+    SuperGuanxing():Guanxing(){
+        setObjectName("super_guanxing");
+    }
+
+    virtual bool onPhaseChange(ServerPlayer *zhuge) const{
+        if(zhuge->getPhase() == Player::Start &&
+           zhuge->askForSkillInvoke(objectName()))
+        {
+            Room *room = zhuge->getRoom();
+            room->playSkillEffect("guanxing");
+
+            room->doGuanxing(zhuge, room->getNCards(5, false), false);
+        }
+
+        return false;
+    }
+};
+
+TestPackage::TestPackage()
+    :Package("test")
+{
+    // for test only
+    General *zhiba_sunquan = new General(this, "zhibasunquan$", "wu", 4, true, true);
+    zhiba_sunquan->addSkill(new Zhiba);
+    zhiba_sunquan->addSkill("jiuyuan");
+
+    General *wuxing_zhuge = new General(this, "wuxingzhuge", "shu", 3, true, true);
+    wuxing_zhuge->addSkill(new SuperGuanxing);
+    wuxing_zhuge->addSkill("kongcheng");
+    wuxing_zhuge->addSkill("#kongcheng-effect");
+
+    new General(this, "sujiang", "god", 5, true, true);
+    new General(this, "sujiangf", "god", 5, false, true);
+}
+
+ADD_PACKAGE(Test)

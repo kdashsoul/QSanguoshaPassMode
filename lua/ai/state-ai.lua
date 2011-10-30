@@ -92,7 +92,7 @@ function SmartAI:getMoves()
 end
 
 function SmartAI:assignKeep(num,start)
-    if num <= 0 then return end
+    if num<=0 then return end
     if start then 
         self.keepValue={}
         self.kept={}

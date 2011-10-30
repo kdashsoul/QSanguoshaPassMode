@@ -26,6 +26,7 @@ public:
         Playing,
         Discarding,
         ExecDialog,
+        AskForSkillInvoke,
         AskForAG,
         AskForPlayerChoose,
         AskForYiji,
@@ -34,6 +35,13 @@ public:
     };
 
     explicit Client(QObject *parent, const QString &filename = QString());
+
+    void roomBegin(const QString &begin_str);
+    void room(const QString &room_str);
+    void roomEnd(const QString &);
+    void roomCreated(const QString &idstr);
+    void roomError(const QString &errorStr);
+    void hallEntered(const QString &);
 
     void disconnectFromHost();
     void request(const QString &message);
@@ -57,6 +65,8 @@ public:
     Replayer *getReplayer() const;
     QString getPlayerName(const QString &str);
     QString getPattern() const;
+    QString getSkillNameToInvoke() const;
+    void invokeSkill(bool invoke) ;
 
     QTextDocument *getLinesDoc() const;
     QTextDocument *getPromptDoc() const;
@@ -153,13 +163,12 @@ public:
     int discard_num;
     QList<const Card*> discarded_list;
     QDialog *ask_dialog;
-    QStringList players_to_choose;
+    QStringList players_to_choose;   
 
 public slots:
     void signup();
     void chooseItem(const QString &_name);
     void selectChoice();
-    void updateFrequentFlags(int state);
     void chooseCard(int card_id = -2);
     void choosePlayer(const Player *player);
     void trust();
@@ -173,7 +182,6 @@ public slots:
 private:
     ClientSocket *socket;
     Status status;
-    QSet<QString> frequent_flags;
     int alive_count;
     QHash<QString, Callback> callbacks;
     QList<const ClientPlayer*> players;
@@ -186,10 +194,12 @@ private:
     QString skill_title, skill_line;
     QString choose_command;
     QString card_pattern;
+    QString skill_to_invoke;
     int swap_pile;
 
     void updatePileNum();
     void setPromptList(const QStringList &text);
+    void commandFormatWarning(const QString &str, const QRegExp &rx, const char *command);
 
 private slots:
     void processCommand(const QString &cmd);
@@ -198,11 +208,11 @@ private slots:
     void chooseSuit();
     void chooseKingdom();
     void clearTurnTag();
-    void invokeSkill(int result);
     void selectOrder();
     void selectRole();
 
 signals:
+    void version_checked(const QString &server_version);
     void server_connected();
     void error_message(const QString &msg);
     void player_added(ClientPlayer *new_player);
