@@ -1255,8 +1255,15 @@ public:
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *huangzhong, QVariant &data) const{
-        if(huangzhong->getMark("@gongshen") < 10)
-            huangzhong->gainMark("@gongshen");
+        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        if(huangzhong->getMark("@gongshen") < 10){
+            int n = 1 ;
+            if(effect.slash->isRed())
+                n ++;
+            if(effect.slash->getNature() != DamageStruct::Normal)
+                n ++ ;
+            huangzhong->gainMark("@gongshen",n);
+        }
         return false;
     }
 };
@@ -1915,7 +1922,7 @@ public:
                     targets << target;
             }
             if(!targets.isEmpty() && room->askForSkillInvoke(caopi, objectName(), data)){
-                ServerPlayer *target = room->askForPlayerChosen(caopi,room->getOtherPlayers(caopi),objectName());
+                ServerPlayer *target = room->askForPlayerChosen(caopi,targets,objectName());
                 if(target)
                     caopi->pindian(target, "fanzhi_pass");
             }
@@ -2341,7 +2348,7 @@ void JieyinPassCard::onEffect(const CardEffectStruct &effect) const{
     room->recover(effect.to, recover, true);
 
     room->playSkillEffect("jieyin");
-    if(!effect.to->isKongcheng()){
+    if(!effect.to->isNude()){
         int card_id = room->askForCardChosen(effect.from, effect.to, "he", "jieyin_pass");
         const Card *card = Sanguosha->getCard(card_id);
         room->moveCardTo(card, effect.from, Player::Hand, false);
