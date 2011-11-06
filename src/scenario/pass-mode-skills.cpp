@@ -762,9 +762,9 @@ public:
 
             damage.damage ++;
             data = QVariant::fromValue(damage);
-            room->setPlayerFlag(guanyu, "-wenjiu");
+            if(reason->inherits("Slash"))
+                room->setPlayerFlag(guanyu, "-wenjiu");
         }
-
         return false;
     }
 };
@@ -3316,6 +3316,7 @@ void PassModeScenario::addGeneralAndSkills(){
     liubei_p->addSkill("jijiang_pass");
     liubei_p->addSkill("#jijiang_cost");
     liubei_p->addSkill("zhaolie_pass");
+    liubei_p->addSkill("qiangong");
 
     General *guanyu_p = new General(this,"guanyu_p","hero",4, true, true);
     guanyu_p->addSkill("wusheng");
@@ -3492,7 +3493,7 @@ public:
 class NothrowPattern: public CardPattern{
 public:
     virtual bool match(const Player *player, const Card *card) const{
-        return true;
+        return true ;
     }
     virtual bool willThrow() const{
         return false;

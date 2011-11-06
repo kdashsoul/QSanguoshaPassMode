@@ -291,7 +291,7 @@ public:
     bool sellRewardItem(Room *room, QString &item_name) const;
 
     bool askForLearnSkill(ServerPlayer *lord) const;
-    bool askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &min_exp) const;
+    void getLearnSkillInfo(ServerPlayer *lord, QString &skills, int &min_exp) const;
 
     bool askForLoadData(Room *room) const;
     bool askForSaveData(Room *room, int told_stage) const;
@@ -301,11 +301,11 @@ public:
 
     SaveDataStruct::WrongVersion checkDataVersion(SaveDataStruct *savedata) const;
     bool sendWrongVersionLog(Room *room, SaveDataStruct *savedata) const;
+
 private:
     QList<QString> enemy_list;
     QMap<QString, int> exp_map;
     QMap<QString, int> skill_map;
-    QMap<QString, QPair<QString, int> > skill_map_hidden;
 
     QMap<QString, QString> hidden_reward;
     QMap<QString, int> shop_items;

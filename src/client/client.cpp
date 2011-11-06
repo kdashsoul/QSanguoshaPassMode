@@ -94,6 +94,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["askForUseCard"] = &Client::askForUseCard;
     callbacks["askForSkillInvoke"] = &Client::askForSkillInvoke;
     callbacks["askForChoice"] = &Client::askForChoice;
+    callbacks["askForSkillChoice"] = &Client::askForSkillChoice;
     callbacks["askForNullification"] = &Client::askForNullification;
     callbacks["askForCardShow"] = &Client::askForCardShow;
     callbacks["askForPindian"] = &Client::askForPindian;
@@ -718,6 +719,51 @@ void Client::askForChoice(const QString &ask_str){
     setStatus(ExecDialog);
 }
 
+void Client::askForSkillChoice(const QString &skills_str){
+    QRegExp rx("(.+)");
+
+    if(!rx.exactMatch(skills_str))
+        return;
+
+    QStringList words = rx.capturedTexts();
+    QStringList skill_infos = words.at(1).split("+");
+
+    QDialog *dialog = new QDialog;
+    dialog->setWindowTitle(tr("Study skill:"));
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(new QLabel(tr("Please choose:")));
+
+    foreach(QString skill_info, skill_infos){
+        QCommandLinkButton *button = new QCommandLinkButton;
+        QStringList skill_info_array = skill_info.split(":") ;
+        QString skill_name = skill_info_array.at(0) ;
+        QString skill_value = skill_info_array.at(1) ;
+
+        const Skill *skill = Sanguosha->getSkill(skill_name) ;
+
+        button->setObjectName(skill->objectName());
+        button->setText(QString("%1 : %2 %3").arg(skill->getText()).arg(skill_value).arg(Sanguosha->translate("exp")));
+        button->setToolTip(skill->getDescription());
+//        button->setFont(Config.AppFont);
+
+        connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
+        connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
+
+        layout->addWidget(button);
+    }
+
+    dialog->setObjectName(".");
+    connect(dialog, SIGNAL(rejected()), this, SLOT(selectChoice()));
+
+    dialog->setLayout(layout);
+
+    ask_dialog = dialog;
+    Sanguosha->playAudio("pop-up");
+    setStatus(ExecDialog);
+}
+
+
 void Client::playSkillEffect(const QString &play_str){
     QRegExp rx("(#?\\w+):([-\\w]+)");
     if(!rx.exactMatch(play_str))
@@ -1069,6 +1115,8 @@ void Client::warn(const QString &reason){
         msg = tr("Your password is wrong");
     else if(reason == "INVALID_FORMAT")
         msg = tr("Invalid signup string");
+    else if(reason == "LEVEL_LIMITATION")
+        msg = tr("Your level is not enough");
     else
         msg = tr("Unknown warning: %1").arg(reason);
 

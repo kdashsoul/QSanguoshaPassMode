@@ -465,6 +465,23 @@ QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, cons
     return answer;
 }
 
+QString Room::askForSkillChoice(ServerPlayer *player, const QString &choices){
+    AI *ai = player->getAI();
+    QString answer;
+    if(ai)
+        answer= "." ;
+    else{
+        player->invoke("askForSkillChoice", choices);
+        getResult("selectChoiceCommand", player);
+
+        if(result.isEmpty())
+            result = "." ;
+
+        answer=result;
+    }
+    return answer;
+}
+
 void Room::obtainCard(ServerPlayer *target, const Card *card){
     if(card == NULL)
         return;

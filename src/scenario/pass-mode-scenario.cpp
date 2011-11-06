@@ -70,8 +70,6 @@ PassMode::PassMode(QObject *parent)
     skill_map.insert("qiangong",50);
     skill_map.insert("xiongzi", 80);
 
-    skill_map_hidden.insert("wansha", QPair<QString, int>("duanyan", 110));
-
     hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
     hidden_reward["niepan"]  = "tipo_qiangjian";
 
@@ -301,31 +299,24 @@ void PassMode::setTimesDifficult(Room *room) const{
 bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
     Room *room = lord->getRoom();
     QString choice;
-    while(choice != "cancel"){
-        QString skill_names;
+    while(choice != "."){
+        QString skill_info;
         int min_exp = 999;
-        bool hidden_learn = askForLearnHiddenSkill(lord, skill_names, min_exp);
+        getLearnSkillInfo(lord, skill_info, min_exp);
 
-        choice = room->askForChoice(lord, "study", skill_names);
-        if(choice == "shop"){
-            getIntoShop(room);
-            continue;
-        }
-        QString skill_name = choice.split("_").at(0);
-        QPair<QString, int> skill_raise = skill_map_hidden.value(skill_name);
+        choice = room->askForSkillChoice(lord, skill_info);
+//        if(choice == "shop"){
+//            getIntoShop(room);
+//            continue;
+//        }
+        QString skill_name = choice ;
         int exp = lord->getMark("@exp");
-        int need_exp = hidden_learn ? skill_raise.second : skill_map.value(skill_name);
+        int need_exp = skill_map.value(skill_name);
         if(exp >= need_exp){
             exp -= need_exp;
             room->setPlayerMark(lord, "@exp", exp);
             room->acquireSkill(lord, skill_name);
             proceedSpecialReward(room, ".SKILL", QVariant::fromValue(skill_name));
-
-            if(skill_raise.first != NULL){
-                room->detachSkillFromPlayer(lord, skill_raise.first);
-                if(skill_raise.first == "tipo")
-                    room->setPlayerProperty(lord, "maxhp", lord->getMaxHP() - 1);
-            }
 
             if(skill_name == "tipo"){
                 room->setPlayerProperty(lord, "maxhp", lord->getMaxHP() + 1);
@@ -342,47 +333,23 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
     return true;
 }
 
-bool PassMode::askForLearnHiddenSkill(ServerPlayer *lord, QString &skills, int &min_exp) const{
-    bool has_learnt = false;
-    foreach(QString key, skill_map_hidden.keys()){
-        if(lord->hasSkill(key)){
-            has_learnt = true;
-            break;
-        }
-    }
-    if(!has_learnt){
-        has_learnt = true;
-        foreach(QString key, skill_map.keys()){
-            if(!lord->hasSkill(key)){
-                has_learnt = false;
-                break;
-            }
-        }
+void PassMode::getLearnSkillInfo(ServerPlayer *lord, QString &skills, int &min_exp) const{
+
+    foreach (QString key, skill_map.keys()) {
+        int value = skill_map.value(key) ;
+        if(!lord->hasSkill(key))
+            skills.append(key).append(":").append(QString::number(value)).append("+");
+
+        if(value < min_exp)
+            min_exp = value;
     }
 
-    if(!has_learnt){
-        foreach (QString key, skill_map.keys()) {
-            if(!lord->hasSkill(key))
-                skills.append(key).append("_s+");
+    if(skills.length() > 0)
+        skills.chop(1);
 
-            if(skill_map.value(key) < min_exp)
-                min_exp = skill_map.value(key);
-        }
-    }
-    else{
-        foreach (QString key, skill_map_hidden.keys()) {
-            if(!lord->hasSkill(key))
-                skills.append(key).append("_s+");
+//    if(lord->getRoom()->getTag("Times").toInt() > 1)
+//        skills.append("shop+");
 
-            if(skill_map_hidden.value(key).second < min_exp)
-                min_exp = skill_map_hidden.value(key).second;
-        }
-    }
-    if(lord->getRoom()->getTag("Times").toInt() > 1)
-        skills.append("shop+");
-    skills.append("cancel");
-
-    return has_learnt;
 }
 
 bool PassMode::goToNextStage(ServerPlayer *player, int stage) const{
@@ -771,8 +738,7 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata
         skills.removeOne("useitem");
         foreach(QString skill, skills){
                 skill = skill.split("_").at(0);
-                if(!skill_map.keys().contains(skill)
-                    && !skill_map_hidden.keys().contains(skill))
+                if(!skill_map.keys().contains(skill))
                     return SaveDataStruct::DifferentSkills;
         }
     }

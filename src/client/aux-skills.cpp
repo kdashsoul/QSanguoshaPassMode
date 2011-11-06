@@ -63,8 +63,8 @@ bool ResponseSkill::matchPattern(const Player *player, const Card *card) const{
 }
 
 bool ResponseSkill::viewFilter(const CardItem *to_select) const{
-    if(to_select->isEquipped())
-        return false;
+//    if(to_select->isEquipped())
+//        return false;
 
     const Card *card = to_select->getFilteredCard();
     return matchPattern(Self, card);

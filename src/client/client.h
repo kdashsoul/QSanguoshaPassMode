@@ -130,6 +130,7 @@ public:
     void askForCardShow(const QString &requestor);
     void askForSkillInvoke(const QString &skill_name);
     void askForChoice(const QString &ask_str);
+    void askForSkillChoice(const QString &skills_str);
     void askForDiscard(const QString &discard_str);
     void askForExchange(const QString &exchange_str);
     void askForSuit(const QString &);
