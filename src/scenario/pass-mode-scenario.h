@@ -5,11 +5,11 @@
 #include "scenario.h"
 #include "maneuvering.h"
 
-class DuanyanCard:public SkillCard{
+class DuanyanPassCard:public SkillCard{
     Q_OBJECT
 
 public:
-    Q_INVOKABLE DuanyanCard();
+    Q_INVOKABLE DuanyanPassCard();
     virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     virtual void onEffect(const CardEffectStruct &effect) const;
 };
@@ -235,9 +235,7 @@ struct SaveDataStruct{
     enum WrongVersion{
         DifferentSkills,
         UnknownLordName,
-        ExceptMaxHp,
-
-        VersionConfirmed,
+        VersionConfirmed
     };
 
     int size;

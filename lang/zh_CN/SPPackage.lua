@@ -43,11 +43,11 @@ return {
 	["$yongsi4"] = "我才是皇帝！",
 	["~yuanshu"] = "可恶，就差一步了……",
 	
-	["~gongsunzan"] = "如今阵败吾已无颜苟活于世",
+	["~gongsunzan"] = "如今阵败，吾已无颜苟活于世……",
         
 	["sp_sunshangxiang"] = "SP孙尚香",
 	["chujia"] = "出嫁",
-	[":chujia"] = "<b>限定技<b>, 游戏开始时，你可以选择变身为SP孙尚香，势力为蜀",
+	[":chujia"] = "限定技，游戏开始时，你可以选择变身为SP孙尚香，势力为蜀。",
 
 	["sp_pangde"] = "SP庞德",
 	["sp_diaochan"] = "SP貂蝉",

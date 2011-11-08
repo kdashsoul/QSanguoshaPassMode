@@ -177,6 +177,17 @@ public:
     virtual void onGameStart(ServerPlayer *player) const = 0;
 };
 
+
+class PassiveSkill:public GameStartSkill{
+    Q_OBJECT
+
+public:
+    PassiveSkill(const QString &name);
+    virtual void onGameStart(ServerPlayer *player) const;
+    virtual void onAcquire(ServerPlayer *player) const = 0;
+    virtual void onDetach(ServerPlayer *player) const = 0;
+};
+
 class ProhibitSkill: public Skill{
     Q_OBJECT
 

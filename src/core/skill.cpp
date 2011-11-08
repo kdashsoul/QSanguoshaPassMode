@@ -209,6 +209,13 @@ bool TriggerSkill::triggerable(const ServerPlayer *target) const{
     return target->isAlive() && target->hasSkill(objectName());
 }
 
+PassiveSkill::PassiveSkill(const QString &name)
+    :GameStartSkill(name){
+}
+void PassiveSkill::onGameStart(ServerPlayer *player) const{
+    onAcquire(player);
+}
+
 ScenarioRule::ScenarioRule(Scenario *scenario)
     :TriggerSkill(scenario->objectName())
 {

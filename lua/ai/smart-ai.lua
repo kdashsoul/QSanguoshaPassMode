@@ -697,6 +697,7 @@ function SmartAI:askForSkillInvoke(skill_name, data)
 	if type(invoke) == "boolean" then
 		return invoke
 	elseif type(invoke) == "function" then
+		self:updatePlayers()
 		return invoke(self, data)
 	else
 		local skill = sgs.Sanguosha:getSkill(skill_name)
@@ -796,6 +797,7 @@ sgs.ai_skill_use = {}
 function SmartAI:askForUseCard(pattern, prompt)
 	local use_func = sgs.ai_skill_use[pattern]
 	if use_func then
+		self:updatePlayers()
 		return use_func(self, prompt) or "."
 	else
 		return "."
@@ -804,9 +806,8 @@ end
 
 -- yicai,badao,yitian-slash,moon-spear-slash
 sgs.ai_skill_use["slash"] = function(self, prompt)
-	if prompt ~= "@yicai" and prompt ~= "@badao" and
-		prompt ~= "yitian-slash" and prompt ~= "@moon-spear-slash" then return "." end
-    local slash = self:getCard("Slash")
+	if prompt ~= "@askforslash" and prompt ~= "@moon-spear-slash" then return "." end
+	local slash = self:getCard("Slash")
 	if not slash then return "." end
 	for _, enemy in ipairs(self.enemies) do
 		if self.player:canSlash(enemy, true) and not self:slashProhibit(slash, enemy) and self:slashIsEffective(slash, enemy) then
@@ -871,6 +872,7 @@ end
 local function prohibitUseDirectly(card, player)
 	if player:hasSkill("jiejiu") then return card:inherits("Analeptic") 
 	elseif player:hasSkill("wushen") then return card:getSuit() == sgs.Card_Heart
+	elseif player:hasSkill("ganran") then return card:getTypeId() == sgs.Card_Equip
 	end
 end
 

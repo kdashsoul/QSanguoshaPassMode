@@ -2184,7 +2184,8 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
         Sanguosha->playAudio(damage_effect);
 
         if(photo){
-            photo->setEmotion("damage");
+            if(nature != DamageStruct::Normal)
+                photo->setEmotion("damage");
             photo->tremble();
         }
 
@@ -2192,6 +2193,8 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
             doAnimation("fire", QStringList() << who);
         else if(nature == DamageStruct::Thunder)
             doAnimation("lightning", QStringList() << who);
+        else if(nature == DamageStruct::Normal)
+            doAnimation("damage", QStringList() << who);
 
     }else if(delta > 0){
         QString type = "#Recover";
@@ -3205,6 +3208,9 @@ void RoomScene::doAnimation(const QString &name, const QStringList &args){
         map["fire"] = &RoomScene::doAppearingAnimation;
         map["lightning"] = &RoomScene::doAppearingAnimation;
         map["typhoon"] = &RoomScene::doAppearingAnimation;
+
+        map["damage"] = &RoomScene::doAppearingAnimation;
+        map["jink"] = &RoomScene::doAppearingAnimation;
 
         map["lightbox"] = &RoomScene::doLightboxAnimation;
         map["huashen"] = &RoomScene::doHuashen;

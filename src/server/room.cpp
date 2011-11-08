@@ -366,7 +366,7 @@ void Room::slashResult(const SlashEffectStruct &effect, const Card *jink){
     if(jink == NULL)
         thread->trigger(SlashHit, effect.from, data);
     else{
-        setEmotion(effect.to, "jink");
+        broadcastInvoke("animate", QString("jink:%1").arg(effect.to->objectName()));
         thread->trigger(SlashMissed, effect.from, data);
     }
 }
@@ -381,10 +381,15 @@ void Room::detachSkillFromPlayer(ServerPlayer *player, const QString &skill_name
         return;
 
     player->loseSkill(skill_name);
+
     broadcastInvoke("detachSkill",
                     QString("%1:%2").arg(player->objectName()).arg(skill_name));
 
     const Skill *skill = Sanguosha->getSkill(skill_name);
+    if(skill->inherits("PassiveSkill")){
+        const PassiveSkill *passive_skill = qobject_cast<const PassiveSkill *>(skill);
+        passive_skill->onDetach(player);
+    }
     if(skill && skill->isVisible()){
         foreach(const Skill *skill, Sanguosha->getRelatedSkills(skill_name))
             detachSkillFromPlayer(player, skill->objectName());
@@ -1008,7 +1013,6 @@ void Room::transfigure(ServerPlayer *player, const QString &new_general, bool fu
 
     setPlayerProperty(player, "general", new_general);
     broadcastProperty(player,"general");
-    thread->addPlayerSkills(player, invoke_start);
 
     player->setMaxHP(player->getGeneralMaxHP());
     broadcastProperty(player, "maxhp");
@@ -1016,6 +1020,8 @@ void Room::transfigure(ServerPlayer *player, const QString &new_general, bool fu
     if(full_state)
         player->setHp(player->getMaxHP());
     broadcastProperty(player, "hp");
+
+    thread->addPlayerSkills(player, invoke_start);
 
     resetAI(player);
 }
@@ -2315,6 +2321,10 @@ void Room::acquireSkill(ServerPlayer *player, const Skill *skill, bool open){
     if(skill->inherits("TriggerSkill")){
         const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
         thread->addTriggerSkill(trigger_skill);
+    }
+    if(skill->inherits("PassiveSkill")){
+        const PassiveSkill *passive_skill = qobject_cast<const PassiveSkill *>(skill);
+        passive_skill->onAcquire(player);
     }
 
     if(skill->isVisible()){

@@ -248,7 +248,7 @@
     <string>Minimize to system tray</string>
    </property>
    <property name="shortcut">
-    <string>Alt+S</string>
+    <string>Alt+X</string>
    </property>
   </action>
   <action name="actionRole_assign_table">
@@ -291,6 +291,9 @@
    <property name="text">
     <string>Damage maker</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+A</string>
+   </property>
   </action>
   <action name="actionExpand_dashboard">
    <property name="checkable">
@@ -307,15 +310,24 @@
    <property name="text">
     <string>Get card ...</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+G</string>
+   </property>
   </action>
   <action name="actionDeath_note">
    <property name="text">
     <string>Death note ...</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+D</string>
+   </property>
   </action>
   <action name="actionRevive_wand">
    <property name="text">
     <string>Revive wand ...</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+F</string>
    </property>
   </action>
   <action name="actionCard_editor">

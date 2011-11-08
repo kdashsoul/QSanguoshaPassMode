@@ -13,7 +13,6 @@ SaveDataStruct::SaveDataStruct()
     read_success(false)
 {
     error_type[DifferentSkills]     = "different_skills";
-    error_type[ExceptMaxHp]         = "except_maxhp";
     error_type[UnknownLordName]     = "unknown_lord";
 }
 
@@ -36,7 +35,7 @@ bool SaveDataStruct::checkDataFormat() const{
     return format_right;
 }
 
-QString PassMode::version = "ver1.6";
+QString PassMode::version = "ver1.621";
 
 PassMode::PassMode(QObject *parent)
     :GameRule(parent)
@@ -60,18 +59,17 @@ PassMode::PassMode(QObject *parent)
 
     skill_map.insert("mashu", 15);
     skill_map.insert("kezhi", 20);
-    skill_map.insert("nuhou", 20);
-    skill_map.insert("duanyan", 25);
-    skill_map.insert("fenjin", 30);
+    skill_map.insert("nuhou_pass", 20);
+    skill_map.insert("duanyan_pass", 25);
+    skill_map.insert("fenjin_pass", 30);
     skill_map.insert("niepan", 30);
     skill_map.insert("quanheng", 40);
     skill_map.insert("xiuluo", 40);
-    skill_map.insert("tipo" ,40);
+    skill_map.insert("tipo_pass" ,40);
     skill_map.insert("qiangong",50);
-    skill_map.insert("xiongzi", 80);
+    skill_map.insert("xiongzi_pass", 80);
 
-    hidden_reward["xiongzi"] = "._rewardyingzi|feiying_qingnangshu";
-    hidden_reward["niepan"]  = "tipo_qiangjian";
+    hidden_reward["xiongzi_pass"] = "._rewardyingzi|feiying_qingnangshu";
 
     shop_items["huifushu"]      = 15;
     shop_items["qingnangshu"]   = 55;
@@ -113,7 +111,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 if(! room->getAlivePlayers().empty())
                     room->gameOver("rebel");
             }else{
-                if(lord->hasSkill("fenjin")){
+                if(lord->hasSkill("fenjin_pass")){
                     lord->drawCards(1);
                 }
 
@@ -165,14 +163,12 @@ void PassMode::stageStartDraw(Room *room, ServerPlayer *player) const{
     int n = 0;
     int hero_draw = 6 ;
     int enemy_draw = room->getTag("Stage").toInt() > 10 ? 4 : 3 ;
-    if(player != NULL){
+    if(player){
         n = player->isLord() ? hero_draw : enemy_draw;
-        player->drawCards(player->hasSkill("fenjin") ? ++n : n);
-    }
-    else{
+        player->drawCards(player->hasSkill("fenjin_pass") ? ++n : n);
+    }else{
         foreach(ServerPlayer *p, room->getPlayers()){
-            n = p->isLord() ? hero_draw : enemy_draw;
-            p->drawCards(p->hasSkill("fenjin") ? ++n : n);
+            stageStartDraw(room,p);
         }
     }
 }
@@ -318,10 +314,7 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
             room->acquireSkill(lord, skill_name);
             proceedSpecialReward(room, ".SKILL", QVariant::fromValue(skill_name));
 
-            if(skill_name == "tipo"){
-                room->setPlayerProperty(lord, "maxhp", lord->getMaxHP() + 1);
-                room->setPlayerProperty(lord, "hp", lord->getMaxHP());
-            }else if(skill_name == "niepan"){
+            if(skill_name == "niepan"){
                 lord->gainMark("@nirvana");
             }
         }
@@ -582,8 +575,6 @@ bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
         return false;
 
     QString item_use = savedata->skills.contains("useitem") ? "useitem" : NULL;
-    if(savedata->skills.contains("tipo"))
-        savedata->lord_maxhp --;
 
     savedata->skills = item_use;
     savedata->nirvana = 0;
@@ -742,11 +733,6 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata
                     return SaveDataStruct::DifferentSkills;
         }
     }
-
-    int maxhp = lord_general->getMaxHp()+1;
-    maxhp = savedata->skills.contains("tipo") ? maxhp+1 : maxhp;
-    if(savedata->lord_maxhp != maxhp)
-        return SaveDataStruct::ExceptMaxHp;
 
     return SaveDataStruct::VersionConfirmed;
 }

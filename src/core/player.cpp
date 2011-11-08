@@ -706,7 +706,7 @@ bool Player::canSlashWithoutCrossbow() const{
     int n = 1;
     if(hasFlag("tianyi_success"))
         n++ ;
-    if(hasSkill("nuhou"))
+    if(hasSkill("nuhou_pass"))
         n++ ;
     return slash_count < n;
 }
