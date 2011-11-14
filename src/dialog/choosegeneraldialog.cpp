@@ -13,6 +13,7 @@
 #include <QRadioButton>
 #include <QCheckBox>
 #include <QTabWidget>
+#include <QScrollArea>
 
 OptionButton::OptionButton(QString icon_path, const QString &caption, QWidget *parent)
     :QToolButton(parent)
@@ -56,10 +57,7 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
     QList<OptionButton *> buttons;
     QString category("card");
     QSize icon_size(200*0.8, 290*0.8);
-    if(generals.length() > 20){
-        category = "small";
-        icon_size = QSize(122, 50);
-    }else if(generals.length() > 10){
+    if(generals.length() > 10){
         category = "big";
         icon_size = QSize(94, 96);
     }
@@ -127,8 +125,6 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
     bool free_choose = ServerInfo.FreeChoose;
     if(ServerInfo.GameMode == "08boss"){
         free_choose = Self->getRole() == "lord" || Self->getRole() == "renegade";
-    }else if(ServerInfo.GameMode == "pass_mode"){
-        free_choose = false;
     }
 
     if(free_choose){
@@ -321,4 +317,85 @@ void FreeChooseDialog::uncheckExtraButton(QAbstractButton *click_button){
             break;
         }
     }
+}
+
+
+//  ------------------------------------------
+PassChooseDialog::PassChooseDialog(QWidget *parent,const QString &flag)
+    :QDialog(parent)
+{
+    max_buttons = 0 ;
+    setWindowTitle(tr("Pass choose generals"));
+    QTabWidget *tab_widget = new QTabWidget;
+
+    const Package *stdpack = Sanguosha->findChild<const Package *>("pass");
+    QList<const General *> all_generals = stdpack->findChildren<const General *>();
+    QMap<QString, QList<const General*> > map;
+    foreach(const General *general, all_generals){
+        if(! general->isHidden()){
+            map[general->getKingdom()] << general;
+        }
+    }
+
+    QStringList kingdoms = Sanguosha->getKingdoms();
+    QSignalMapper *mapper = new QSignalMapper(this);
+    mapper->setMapping(this, all_generals.first()->objectName());
+    connect(this, SIGNAL(rejected()), mapper, SLOT(map()));
+
+    connect(mapper, SIGNAL(mapped(QString)), ClientInstance, SLOT(chooseItem(QString)));
+    foreach(QString kingdom, kingdoms){
+        QList<const General *> generals = map[kingdom];
+        if(!generals.isEmpty()){
+            QWidget *tab = createTab(generals,mapper);
+            tab_widget->addTab(tab,
+                               QIcon(QString("image/kingdom/icon/%1.png").arg(kingdom)),
+                               Sanguosha->translate(kingdom));
+        }
+    }
+
+    QVBoxLayout *layout = new QVBoxLayout;
+    layout->addWidget(tab_widget);
+    setLayout(layout);
+
+}
+
+QWidget *PassChooseDialog::createTab(const QList<const General *> &generals,QSignalMapper *mapper){
+    QWidget *tab = new QWidget;
+
+    QGridLayout *layout = new QGridLayout;
+    layout->setOriginCorner(Qt::TopLeftCorner);
+    QList<OptionButton *> buttons;
+    const int columns = 8;
+    for(int i=0; i<generals.length(); i++){
+        const General *general = generals.at(i);
+        QString icon_path = general->getPixmapPath("big");
+        QString caption = Sanguosha->translate(general->objectName());
+        OptionButton *button = new OptionButton(icon_path, caption);
+        button->setFont(Config.TinyFont);
+        button->setToolTip(general->getSkillDescription());
+        button->setIconSize(QSize(94,96));
+        buttons << button;
+
+        mapper->setMapping(button, general->objectName());
+        connect(button, SIGNAL(double_clicked()), mapper, SLOT(map()));
+        connect(button, SIGNAL(double_clicked()), this, SLOT(accept()));
+
+        int row = i / columns;
+        int column = i % columns;
+        layout->addWidget(button, row, column);
+
+        if(general->getKingdom() == "god")
+            button->setDisabled(true);
+    }
+    max_buttons = qMax(max_buttons,buttons.length());
+    if(buttons.length() < columns){
+        layout->setColumnStretch(buttons.length(),columns);
+    }
+    int row_count = (buttons.length() + columns - 1) / columns;
+    int max_row_count = (max_buttons + columns - 1)  / columns;
+    if(row_count < max_row_count){
+        layout->setRowStretch(row_count,max_row_count);
+    }
+    tab->setLayout(layout);
+    return tab;
 }

@@ -3,7 +3,7 @@ module("extensions.cloud", package.seeall)
 extension = sgs.Package("cloud") 
 
 -- zhangchunhua 
-local shangshi=sgs.CreateTriggerSkill{
+shangshi=sgs.CreateTriggerSkill{
 
 	name="shangshi",
 	events={sgs.Damaged,sgs.CardLost,sgs.HpLost},
@@ -31,7 +31,7 @@ local shangshi=sgs.CreateTriggerSkill{
 	end,
 }
 
-local jueqing=sgs.CreateTriggerSkill{
+jueqing=sgs.CreateTriggerSkill{
 	name="jueqing",
 	events={sgs.Predamage},
 	frequency=sgs.Skill_Compulsory,
@@ -50,7 +50,7 @@ local jueqing=sgs.CreateTriggerSkill{
 }
 
 --yuejin
-local xiaoyong=sgs.CreateTriggerSkill{
+xiaoyong=sgs.CreateTriggerSkill{
 	name="xiaoyong",
 	events={sgs.Damage},
 	on_trigger=function(self,event,player,data)

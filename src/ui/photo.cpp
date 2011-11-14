@@ -18,6 +18,8 @@
 #include <QPropertyAnimation>
 #include <QPushButton>
 #include <QMenu>
+#include <QGraphicsItemAnimation>
+#include <QTimeLine>
 
 Photo::Photo()
     :Pixmap("image/system/photo-back.png"),
@@ -179,7 +181,6 @@ void Photo::tremble(){
 void Photo::showSkillName(const QString &skill_name){
     skill_name_item->setText(Sanguosha->translate(skill_name));
     skill_name_item->show();
-
     QTimer::singleShot(1500, this, SLOT(hideSkillName()));
 }
 

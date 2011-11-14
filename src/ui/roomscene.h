@@ -135,6 +135,7 @@ public:
     void changeTextEditBackground();
     void adjustItems();
     void showIndicator(const QString &from, const QString &to);
+    void updateStateItem(char* roles);
 
     static void FillPlayerNames(QComboBox *combobox, bool add_none);
 
@@ -144,6 +145,7 @@ public slots:
     void drawCards(const QList<const Card *> &cards);
     void drawNCards(ClientPlayer *player, int n);
     void chooseGeneral(const QStringList &generals);
+    void chooseGeneralPass(const QString &packages);
     void arrangeSeats(const QList<const ClientPlayer*> &seats);
     void toggleDiscards();
     void enableTargets(const Card *card);
@@ -191,6 +193,7 @@ private:
     int timer_id;
     int tick;
 
+    QGraphicsItem *state_item;
     QList<QGraphicsPixmapItem *> role_items;
 
     CardContainer *card_container;
@@ -288,6 +291,7 @@ private slots:
     void showOwnerButtons(bool owner);
     void showJudgeResult(const QString &who, const QString &result);
     void showPlayerCards();
+    void update_state_item(const QString& qstr);
 
     void clearPile();
     void removeLightBox();

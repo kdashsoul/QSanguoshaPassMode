@@ -46,6 +46,14 @@ void Settings::init(){
 
     CountDownSeconds = value("CountDownSeconds", 3).toInt();
     GameMode = value("GameMode", "02p").toString();
+    if(!contains("BanPackages")){
+        QStringList banlist;
+        banlist << "nostalgia" << "yitian" << "wisdom" << "test"
+                << "disaster" << "god" << "YJCM" << "yitian_cards"
+                << "sp" << "sp_cards"
+                << "joy" << "joy_equip";
+        setValue("BanPackages", banlist);
+    }
     BanPackages = value("BanPackages").toStringList();
     ContestMode = value("ContestMode", false).toBool();
     FreeChoose = value("FreeChoose", false).toBool();
@@ -88,7 +96,7 @@ void Settings::init(){
     EnableBgMusic = value("EnableBgMusic", true).toBool();
     Volume = value("Volume", 1.0f).toFloat();
 
-    BackgroundBrush = value("BackgroundBrush", "backdrop/mid-autumn.jpg").toString();
+    BackgroundBrush = value("BackgroundBrush", "backdrop/chibi.jpg").toString();
 
     if(!contains("1v1/Banlist")){
         QStringList banlist;

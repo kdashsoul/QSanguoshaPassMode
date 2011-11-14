@@ -13,7 +13,7 @@ class QSize;
 class General : public QObject
 {
     Q_OBJECT
-    Q_ENUMS(Gender);
+    Q_ENUMS(Gender)
     Q_PROPERTY(QString kingdom READ getKingdom CONSTANT)
     Q_PROPERTY(int maxhp READ getMaxHp CONSTANT)
     Q_PROPERTY(bool male READ isMale STORED false CONSTANT)
@@ -48,6 +48,9 @@ public:
     QString getPixmapPath(const QString &category) const;
     QString getPackage() const;
     QString getSkillDescription() const;
+    QString getBasicName() const;
+
+    const General *getPassGeneral() const;
 
     static QSize BigIconSize;
     static QSize SmallIconSize;

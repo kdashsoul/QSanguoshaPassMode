@@ -28,11 +28,13 @@ private:
     void resetButtons();
     void addLines(const Skill *skill);
     void addCopyAction(QCommandLinkButton *button);
-
+    void changeGeneral(QString general_name,bool init = true);
 private slots:
     void playEffect();
     void copyLines();
     void on_tableWidget_itemSelectionChanged();
+    void on_passRadio_clicked(bool checked);
+    void on_orginalRadio_clicked(bool checked);
 };
 
 #endif // GENERALOVERVIEW_H

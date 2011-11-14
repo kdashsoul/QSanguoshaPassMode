@@ -39,7 +39,6 @@ SOURCES += src/main.cpp \
         src/dialog/halldialog.cpp \
 	src/package/firepackage.cpp \
 	src/package/god.cpp \
-	src/package/joypackage.cpp \
 	src/package/maneuvering.cpp \
 	src/package/mountainpackage.cpp \
 	src/package/nostalgia.cpp \
@@ -50,21 +49,11 @@ SOURCES += src/main.cpp \
 	src/package/standard.cpp \
 	src/package/thicket.cpp \
 	src/package/wind.cpp \
-	src/package/wisdompackage.cpp \
-	src/package/yitianpackage.cpp \
 	src/package/yjcm-package.cpp \
-	src/scenario/boss-mode-scenario.cpp \
 	src/scenario/challengemode.cpp \
-	src/scenario/couple-scenario.cpp \
-	src/scenario/fancheng-scenario.cpp \
-	src/scenario/guandu-scenario.cpp \
-	src/scenario/hongyan-scenario.cpp \
-	src/scenario/legend-mode-scenario.cpp \
 	src/scenario/scenario.cpp \
 	src/scenario/scenerule.cpp \
-	src/scenario/zombie-mode-scenario.cpp \
         src/scenario/pass-mode-scenario.cpp \
-	src/scenario/pass-mode-skills.cpp \
 	src/server/ai.cpp \
 	src/server/contestdb.cpp \
 	src/server/gamerule.cpp \
@@ -89,7 +78,10 @@ SOURCES += src/main.cpp \
 	src/util/detector.cpp \
 	src/util/nativesocket.cpp \
 	src/util/recorder.cpp \
-	swig/sanguosha_wrap.cxx
+	swig/sanguosha_wrap.cxx \
+    src/pass/pass-general.cpp \
+    src/pass/pass-package.cpp
+
 
 HEADERS += src/client/aux-skills.h \
 	src/client/client.h \
@@ -119,7 +111,6 @@ HEADERS += src/client/aux-skills.h \
 	src/dialog/scenario-overview.h \
 	src/package/firepackage.h \
 	src/package/god.h \
-	src/package/joypackage.h \
 	src/package/maneuvering.h \
 	src/package/mountainpackage.h \
 	src/package/nostalgia.h \
@@ -130,19 +121,10 @@ HEADERS += src/client/aux-skills.h \
 	src/package/standard.h \
 	src/package/thicket.h \
 	src/package/wind.h \
-	src/package/wisdompackage.h \
-	src/package/yitianpackage.h \
 	src/package/yjcm-package.h \
-	src/scenario/boss-mode-scenario.h \
 	src/scenario/challengemode.h \
-	src/scenario/couple-scenario.h \
-	src/scenario/fancheng-scenario.h \
-	src/scenario/guandu-scenario.h \
-	src/scenario/hongyan-scenario.h \
-	src/scenario/legend-mode-scenario.h \
 	src/scenario/scenario.h \
 	src/scenario/scenerule.h \
-	src/scenario/zombie-mode-scenario.h \
         src/scenario/pass-mode-scenario.h \
 	src/server/ai.h \
 	src/server/contestdb.h \
@@ -169,7 +151,9 @@ HEADERS += src/client/aux-skills.h \
 	src/util/detector.h \
 	src/util/nativesocket.h \
 	src/util/recorder.h \
-	src/util/socket.h
+	src/util/socket.h \
+    src/pass/pass-package.h \
+    src/pass/pass-general.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \
@@ -217,3 +201,20 @@ CONFIG(joystick){
 }
 
 TRANSLATIONS += sanguosha.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

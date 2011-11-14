@@ -82,13 +82,15 @@ void CardItem::goBack(bool kieru){
 
     QPropertyAnimation *goback = new QPropertyAnimation(this, "pos");
     goback->setEndValue(home_pos);
-    goback->setEasingCurve(QEasingCurve::OutCubic);
+    goback->setEasingCurve(QEasingCurve::OutQuart);
     goback->setDuration(500);
 
     if(kieru){
         QParallelAnimationGroup *group = new QParallelAnimationGroup;
 
         QPropertyAnimation *disappear = new QPropertyAnimation(this, "opacity");
+        disappear->setStartValue(0.0);
+        disappear->setKeyValueAt(0.2, 1.0);
         disappear->setKeyValueAt(0.8, 1.0);
         disappear->setEndValue(0.0);
 
@@ -226,15 +228,15 @@ void CardItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, 
     Pixmap::paint(painter, option, widget);
 
     if(card){
-        static QFont card_number_font("Verdana", 13, QFont::Bold);
-        painter->drawPixmap(8, 8, 12, 12, suit_pixmap);
+        static QFont card_number_font("helvetica", 14, QFont::Bold);
+        painter->drawPixmap(8, 8, 14, 14, suit_pixmap);
 
         painter->setFont(card_number_font);
         if(card->isRed())
             painter->setPen(Qt::red);
         else
             painter->setPen(Qt::black);
-        painter->drawText(8, 34, card->getNumberString());
+        painter->drawText(8, 40, card->getNumberString());
     }
 }
 

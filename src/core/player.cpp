@@ -145,8 +145,6 @@ int Player::getAttackRange() const{
         range = hp;
     else
         range = 1;
-    if(hasSkill("gongshen_pass"))
-        range += getMark("@gongshen");
     return range ;
 }
 
@@ -706,7 +704,7 @@ bool Player::canSlashWithoutCrossbow() const{
     int n = 1;
     if(hasFlag("tianyi_success"))
         n++ ;
-    if(hasSkill("nuhou_pass"))
+    if(hasSkill("nuhou_p"))
         n++ ;
     return slash_count < n;
 }

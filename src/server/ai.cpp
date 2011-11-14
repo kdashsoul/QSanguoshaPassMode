@@ -219,7 +219,7 @@ bool TrustAI::askForSkillInvoke(const QString &skill_name, const QVariant &data)
     return false;
 }
 
-QString TrustAI::askForChoice(const QString &skill_name, const QString &choice){
+QString TrustAI::askForChoice(const QString &skill_name, const QString &choice, const QVariant &data){
     const Skill *skill = Sanguosha->getSkill(skill_name);
     if(skill)
         return skill->getDefaultChoice(self);
@@ -450,25 +450,6 @@ bool LuaAI::getTable(lua_State *L, QList<int> &table){
     lua_pop(L, 1);
 
     return true;
-}
-
-QString LuaAI::askForChoice(const QString &skill_name, const QString &choices){
-
-    lua_State *L = room->getLuaState();
-
-    pushCallback(L, __func__);
-    lua_pushstring(L, skill_name.toAscii());
-    lua_pushstring(L, choices.toAscii());
-
-    int error = lua_pcall(L, 3, 1, 0);
-    const char *result = lua_tostring(L, -1);
-    lua_pop(L, 1);
-    if(error){
-        room->output(result);
-        return TrustAI::askForChoice(skill_name, choices);
-    }
-
-    return result;
 }
 
 int LuaAI::askForAG(const QList<int> &card_ids, bool refusable, const QString &reason){

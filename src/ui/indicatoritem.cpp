@@ -12,7 +12,7 @@ IndicatorItem::IndicatorItem(const QPointF &start, const QPointF &real_finish, P
 {
     setGraphicsEffect(new QGraphicsBlurEffect);
     color = Sanguosha->getKingdomColor(player->getKingdom());
-    width = player->isLord() ? 12 : 8;
+    width = player->isLord() ? 6 : 4;
 }
 
 void IndicatorItem::doAnimation(){

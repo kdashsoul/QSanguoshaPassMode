@@ -21,7 +21,7 @@ void Slash::setNature(DamageStruct::Nature nature){
 }
 
 bool Slash::IsAvailable(const Player *player){
-    if(player->hasFlag("tianyi_failed") || player->hasFlag("xianzhen_failed") || player->hasFlag("wenjiu"))
+    if(player->hasFlag("tianyi_failed") || player->hasFlag("xianzhen_failed") || player->hasFlag("wenjiu_p"))
         return false;
 
     return player->hasWeapon("crossbow") || player->canSlashWithoutCrossbow();
@@ -79,7 +79,7 @@ bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_
         slash_targets ++;
     }
 
-    if(Self->hasSkill("longwei_pass") && Self->getWeapon() != NULL){
+    if(Self->hasSkill("longwei_p") && Self->getWeapon() != NULL){
         slash_targets ++;
     }
 
@@ -568,7 +568,7 @@ void SavageAssault::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.to->getRoom();
     const Card *slash = room->askForCard(effect.to, "slash", "savage-assault-slash:" + effect.from->objectName());
     if(slash)
-        room->setEmotion(effect.to, "killer");
+        room->broadcastInvoke("animate", QString("slash:%1").arg(effect.to->objectName()));
     else{
         DamageStruct damage;
         damage.card = this;
@@ -591,7 +591,7 @@ void ArcheryAttack::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.to->getRoom();
     const Card *jink = room->askForCard(effect.to, "jink", "archery-attack-jink:" + effect.from->objectName());
     if(jink)
-        room->setEmotion(effect.to, "jink");
+        room->broadcastInvoke("animate", QString("jink:%1").arg(effect.to->objectName()));
     else{
         DamageStruct damage;
         damage.card = this;

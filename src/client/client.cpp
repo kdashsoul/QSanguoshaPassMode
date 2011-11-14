@@ -67,6 +67,8 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["jilei"] = &Client::jilei;
     callbacks["pile"] = &Client::pile;
 
+    callbacks["updateStateItem"] = &Client::updateStateItem;
+
     callbacks["playSkillEffect"] = &Client::playSkillEffect;
     callbacks["playCardEffect"] = &Client::playCardEffect;
     callbacks["playAudio"] = &Client::playAudio;
@@ -101,6 +103,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["askForYiji"] = &Client::askForYiji;
     callbacks["askForPlayerChosen"] = &Client::askForPlayerChosen;
     callbacks["askForGeneral"] = &Client::askForGeneral;
+    callbacks["askForGeneralPass"] = &Client::askForGeneralPass;
 
     callbacks["fillAG"] = &Client::fillAG;
     callbacks["askForAG"] = &Client::askForAG;
@@ -622,9 +625,9 @@ void Client::askForCardOrUseCard(const QString &request_str){
     else
         refusable = true;
 
-    if(card_pattern.startsWith(QChar('@'))){
-        QString skill_name = card_pattern;
-        skill_name.remove(QChar('@'));
+    QRegExp rx("^@@?(\\w+)(-card)?$");
+    if(rx.exactMatch(card_pattern)){
+        QString skill_name = rx.capturedTexts().at(1);
         const Skill *skill = Sanguosha->getSkill(skill_name);
         if(skill){
             QString text = prompt_doc->toHtml();
@@ -1460,6 +1463,11 @@ void Client::askForGeneral(const QString &generals){
     emit generals_got(generals.split("+"));
 }
 
+void Client::askForGeneralPass(const QString &flag){
+    choose_command = "chooseGeneralPass";
+    emit pass_generals_got(flag);
+}
+
 void Client::replyYiji(const Card *card, const Player *to){
     if(card)
         request(QString("replyYiji %1->%2").arg(card->subcardString()).arg(to->objectName()));
@@ -1817,4 +1825,9 @@ void Client::selectOrder(){
     request("selectOrder " + order);
 
     setStatus(NotActive);
+}
+
+void Client::updateStateItem(const QString &state_str)
+{
+    emit role_state_changed(state_str);
 }

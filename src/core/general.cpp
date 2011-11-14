@@ -61,8 +61,7 @@ QString General::getPixmapPath(const QString &category) const{
     QString suffix = "png";
     if(category == "card")
         suffix = "jpg";
-
-    return QString("image/generals/%1/%2.%3").arg(category).arg(objectName()).arg(suffix);
+    return QString("image/generals/%1/%2.%3").arg(category).arg(getBasicName()).arg(suffix);
 }
 
 void General::addSkill(Skill *skill){
@@ -145,8 +144,19 @@ QString General::getSkillDescription() const{
 }
 
 void General::lastWord() const{
-    QString filename = QString("audio/death/%1.ogg").arg(objectName());
+    QString filename = QString("audio/death/%1.ogg").arg(getBasicName());
     Sanguosha->playEffect(filename);
+}
+
+const General *General::getPassGeneral() const{
+    return Sanguosha->getGeneral(objectName()+"_p") ;
+}
+
+QString General::getBasicName() const{
+    QString name = objectName() ;
+    if(name.endsWith("_p"))
+        name.chop(2);
+    return name;
 }
 
 QSize General::BigIconSize(94, 96);

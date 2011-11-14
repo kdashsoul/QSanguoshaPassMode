@@ -97,7 +97,7 @@ qixi_skill.getTurnUseCard=function(self,inclusive)
 	end
 	
 	for _,card in ipairs(cards)  do
-		if card:isBlack()  and ((self:getUseValue(card)<sgs.ai_use_value["Dismantlement"]) or inclusive or self:getOverflow()>0) then
+		if card:isBlack()  and ((self:getUseValue(card)<sgs.ai_use_value["Dismantlement"]) and not(card:inherits("Slash") and self:getSlashNumber() == 1) or inclusive or self:getOverflow()>0) then
 		    local shouldUse=true
 		    
 		    if card:inherits("Armor") then

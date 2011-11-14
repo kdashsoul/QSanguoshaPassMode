@@ -113,6 +113,7 @@ public:
     void setFixedDistance(const QString &set_str);
     void pile(const QString &pile_str);
     void transfigure(const QString &transfigure_tr);
+    void updateStateItem(const QString &state_str);
 
     void moveCard(const QString &move_str);
     void moveNCards(const QString &move_str);
@@ -141,6 +142,7 @@ public:
     void askForCardChosen(const QString &ask_str);
     void askForPlayerChosen(const QString &ask_str);
     void askForGeneral(const QString &generals);
+    void askForGeneralPass(const QString &flag);
 
     // 3v3 & 1v1 methods
     void fillGenerals(const QString &generals);
@@ -219,6 +221,7 @@ signals:
     void player_added(ClientPlayer *new_player);
     void player_removed(const QString &player_name);
     void generals_got(const QStringList &generals);
+    void pass_generals_got(const QString packages);
     void seats_arranged(const QList<const ClientPlayer*> &seats);
     void hp_changed(const QString &who, int delta, DamageStruct::Nature nature);
     void status_changed(Client::Status new_status);
@@ -262,6 +265,8 @@ signals:
     void arrange_started();
     void general_recovered(int index, const QString &name);
     void general_revealed(bool self, const QString &general);
+
+    void role_state_changed(const QString & state_str);
 
     void assign_asked();
 };

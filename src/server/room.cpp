@@ -47,6 +47,7 @@ void Room::initCallbacks(){
     callbacks["chooseAGCommand"] = &Room::commonCommand;
     callbacks["choosePlayerCommand"] = &Room::commonCommand;
     callbacks["chooseGeneralCommand"] = &Room::commonCommand;
+    callbacks["chooseGeneralPassCommand"] = &Room::commonCommand;
     callbacks["selectChoiceCommand"] = &Room::commonCommand;
     callbacks["replyYijiCommand"] = &Room::commonCommand;
     callbacks["replyGuanxingCommand"] = &Room::commonCommand;
@@ -189,6 +190,33 @@ void Room::revivePlayer(ServerPlayer *player){
     broadcastInvoke("revivePlayer", player->objectName());
 }
 
+QString Room::getRoleStateString()
+{
+    int lords=0,rebels=0,loyals=0,renes=0;
+    foreach(ServerPlayer * player,getAlivePlayers())
+    {
+        switch(player->getRoleEnum())
+        {
+        case Player::Lord:
+            lords++;break;
+            case Player::Renegade:
+            renes++;break;
+            case Player::Rebel:
+            rebels++;break;
+            case Player::Loyalist:
+            loyals++;break;
+        default:
+            break;
+        }
+    }
+    QString op="";
+    for(int i=0;i<lords;i++)op+="Z";
+    for(int i=0;i<loyals;i++)op+="C";
+    for(int i=0;i<rebels;i++)op+="F";
+    for(int i=0;i<renes;i++)op+="N";
+    return op;
+}
+
 void Room::killPlayer(ServerPlayer *victim, DamageStruct *reason){
     ServerPlayer *killer = reason ? reason->from : NULL;
     if(Config.ContestMode && killer){
@@ -215,6 +243,8 @@ void Room::killPlayer(ServerPlayer *victim, DamageStruct *reason){
     log.to << victim;
     log.arg = victim->getRole();
     log.from = killer;
+
+    broadcastInvoke("updateStateItem", getRoleStateString());
 
     if(killer){
         if(killer == victim)
@@ -349,7 +379,7 @@ void Room::slashEffect(const SlashEffectStruct &effect){
 
     QVariant data = QVariant::fromValue(effect);
 
-    setEmotion(effect.from, "killer");
+    broadcastInvoke("animate", QString("slash:%1").arg(effect.from->objectName()));
     setEmotion(effect.to, "victim");
 
     bool broken = thread->trigger(SlashEffect, effect.from, data);
@@ -444,18 +474,18 @@ bool Room::askForSkillInvoke(ServerPlayer *player, const QString &skill_name, co
     return invoked;
 }
 
-QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices){
+QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices, const QVariant &data){
     AI *ai = player->getAI();
     QString answer;
     if(ai)
-        answer= ai->askForChoice(skill_name, choices);
+        answer= ai->askForChoice(skill_name, choices , data);
     else{
         QString ask_str = QString("%1:%2").arg(skill_name).arg(choices);
         player->invoke("askForChoice", ask_str);
         getResult("selectChoiceCommand", player);
 
         if(result.isEmpty())
-            return askForChoice(player, skill_name, choices);
+            return askForChoice(player, skill_name, choices , data);
 
         if(result == "."){
             const Skill *skill = Sanguosha->getSkill(skill_name);
@@ -580,8 +610,8 @@ bool Room::askForNullification(const TrickCard *trick, ServerPlayer *from, Serve
             thread->trigger(ChoiceMade, player, decisionData);
             setTag("NullifyingTimes",getTag("NullifyingTimes").toInt()+1);
 
-            if(player->hasSkill("shipo_pass")){
-                if(from && player != from && from->getHp() >= player->getHp() && askForSkillInvoke(player, "shipo_pass")){
+            if(player->hasSkill("shipo_p")){
+                if(from && player != from && from->getHp() >= player->getHp() && askForSkillInvoke(player, "shipo_p")){
                     DamageStruct damage;
                     damage.from = player;
                     damage.to = from;
@@ -1022,7 +1052,6 @@ void Room::transfigure(ServerPlayer *player, const QString &new_general, bool fu
     broadcastProperty(player, "hp");
 
     thread->addPlayerSkills(player, invoke_start);
-
     resetAI(player);
 }
 
@@ -2286,7 +2315,10 @@ QString CardMoveStruct::toString() const{
 }
 
 void Room::playSkillEffect(const QString &skill_name, int index){
-    broadcastInvoke("playSkillEffect", QString("%1:%2").arg(skill_name).arg(index));
+    QString name = skill_name  ;
+    if(name.endsWith("_p"))
+        name.chop(2);
+    broadcastInvoke("playSkillEffect", QString("%1:%2").arg(name).arg(index));
 }
 
 void Room::broadcastInvoke(const char *method, const QString &arg, ServerPlayer *except){
@@ -2762,6 +2794,21 @@ QString Room::askForGeneral(ServerPlayer *player, const QStringList &generals, Q
     if(player->getState() == "online"){
         player->invoke("askForGeneral", generals.join("+"));
         getResult("chooseGeneralCommand", player);
+
+        if(result.isEmpty() || result == ".")
+            return default_choice;
+        else
+            return result;
+    }
+
+    return default_choice;
+}
+
+QString Room::askForGeneralPass(ServerPlayer *player, const QString &flag){
+    QString default_choice = PassMode::default_hero ;
+    if(player->getState() == "online"){
+        player->invoke("askForGeneralPass",flag);
+        getResult("chooseGeneralPassCommand", player);
 
         if(result.isEmpty() || result == ".")
             return default_choice;

@@ -1,6 +1,6 @@
 -- jianxiong
 sgs.ai_skill_invoke.jianxiong = function(self, data)
-		return not sgs.Shit_HasShit(data:toCard())
+		return true
 end
 
 sgs.ai_skill_invoke.jijiang = function(self, data)
@@ -64,7 +64,7 @@ sgs.ai_skill_use["@@tuxi"] = function(self, prompt)
 	self:sort(self.enemies, "handcard")
 
 	local first_index, second_index
-	for i=1, #self.enemies-1 do
+	for i=1, #self.enemies do
 		if self:hasSkills(sgs.need_kongcheng, self.enemies[i]) and self.enemies[i]:getHandcardNum() == 1 then
 		elseif not self.enemies[i]:isKongcheng() then
 			if not first_index then

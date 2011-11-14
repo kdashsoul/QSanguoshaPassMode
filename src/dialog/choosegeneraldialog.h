@@ -9,6 +9,7 @@ class General;
 #include <QButtonGroup>
 
 #include <QToolButton>
+#include <QSignalMapper>
 
 class OptionButton : public QToolButton
 {
@@ -63,4 +64,15 @@ signals:
     void pair_chosen(const QString &first, const QString &second);
 };
 
+class PassChooseDialog: public QDialog{
+    Q_OBJECT
+
+public:
+    explicit PassChooseDialog(QWidget *parent,const QString &flag);
+
+private:
+    int max_buttons;
+    QWidget *createTab(const QList<const General *> &generals,QSignalMapper *mapper);
+
+};
 #endif // CHOOSEGENERALDIALOG_H

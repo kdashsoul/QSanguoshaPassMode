@@ -1,36 +1,13 @@
 -- translation for ThicketPackage
 
-return {
+local t = {
 	["thicket"] = "林包", 
-	["caopi"] = "曹丕", 
-	["xuhuang"] = "徐晃", 
-	["menghuo"] = "孟获", 
-	["zhurong"] = "祝融", 
-	["sunjian"] = "孙坚", 
-	["lusu"] = "鲁肃", 
-	["jiaxu"] = "贾诩", 
-	["dongzhuo"] = "董卓", 
-	["xingshang"] = "行殇", 
-	["fangzhu"] = "放逐", 
-	["songwei"] = "颂威", 
-	["duanliang"] = "断粮", 
-	["huoshou"] = "祸首", 
-	["zaiqi"] = "再起", 
-	["juxiang"] = "巨象", 
-	["lieren"] = "烈刃", 
-	["yinghun"] = "英魂", 
-	["haoshi"] = "好施", 
-	["dimeng"] = "缔盟", 
-	["wansha"] = "完杀", 
-	["weimu"] = "帷幕", 
+
+
 	["#WanshaOne"] = "%from 的锁定技【完杀】被触发，只能 %from 自救",
 	["#WanshaTwo"] = "%from 的锁定技【完杀】被触发，只有 %from 和 %to 自己才能救 %to",
 	["#HuoshouTransfer"] = "%from 的锁定技【祸首】被触发，将 %arg 对 %to 所造成的伤害视为 %from 造成",
-	["luanwu"] = "乱武", 
-	["jiuchi"] = "酒池", 
-	["roulin"] = "肉林", 
-	["benghuai"] = "崩坏", 
-	["baonue"] = "暴虐", 
+
 	[":xingshang"] = "你可以立即获得死亡角色的所有牌。", 
 	[":fangzhu"] = "每当你受到一次伤害后，可令一名其他角色摸X张牌（X为你已损失的体力值），然后该角色将其武将牌翻面。", 
 	[":songwei"] = "主公技，其他魏势力角色的判定牌结果为黑色且生效后，可以令你摸一张牌。 ", 
@@ -139,3 +116,44 @@ return {
 	["cv:dongzhuo"] = "官方",
 	["cv:xuhuang"] = "官方",
 }
+local n = {
+	["caopi"] = "曹丕", 
+	["xuhuang"] = "徐晃", 
+	["menghuo"] = "孟获", 
+	["zhurong"] = "祝融", 
+	["sunjian"] = "孙坚", 
+	["lusu"] = "鲁肃", 
+	["jiaxu"] = "贾诩", 
+	["dongzhuo"] = "董卓", 
+}
+local s = {
+	["xingshang"] = "行殇", 
+	["fangzhu"] = "放逐", 
+	["songwei"] = "颂威", 
+	["duanliang"] = "断粮", 
+	["huoshou"] = "祸首", 
+	["zaiqi"] = "再起", 
+	["juxiang"] = "巨象", 
+	["lieren"] = "烈刃", 
+	["yinghun"] = "英魂", 
+	["haoshi"] = "好施", 
+	["dimeng"] = "缔盟", 
+	["wansha"] = "完杀", 
+	["weimu"] = "帷幕", 
+	["luanwu"] = "乱武", 
+	["jiuchi"] = "酒池", 
+	["roulin"] = "肉林", 
+	["benghuai"] = "崩坏", 
+	["baonue"] = "暴虐", 
+}
+
+for k,v in pairs(n) do
+	t[k] = v
+	t[k.."_p"] = v
+end
+for k,v in pairs(s) do
+	t[k] = v
+	t[k.."_p"] = v.."·改"
+	t[k.."pass"] = v.."·改"
+end
+return t

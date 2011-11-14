@@ -63,26 +63,13 @@
     </property>
    </column>
   </widget>
-  <widget class="QLabel" name="skillLabel">
-   <property name="geometry">
-    <rect>
-     <x>450</x>
-     <y>310</y>
-     <width>30</width>
-     <height>12</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Skill</string>
-   </property>
-  </widget>
   <widget class="QTextEdit" name="skillTextEdit">
    <property name="geometry">
     <rect>
      <x>440</x>
-     <y>330</y>
-     <width>211</width>
-     <height>261</height>
+     <y>349</y>
+     <width>210</width>
+     <height>241</height>
     </rect>
    </property>
    <property name="readOnly">
@@ -90,10 +77,13 @@
    </property>
   </widget>
   <widget class="QLabel" name="generalPhoto">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="geometry">
     <rect>
-     <x>450</x>
-     <y>10</y>
+     <x>440</x>
+     <y>20</y>
      <width>200</width>
      <height>290</height>
     </rect>
@@ -175,6 +165,38 @@
       </property>
       <property name="readOnly">
        <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="horizontalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>440</x>
+     <y>320</y>
+     <width>211</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QRadioButton" name="orginalRadio">
+      <property name="text">
+       <string>orginal</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="passRadio">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>pass</string>
       </property>
      </widget>
     </item>

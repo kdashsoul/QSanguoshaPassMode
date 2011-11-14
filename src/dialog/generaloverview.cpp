@@ -24,13 +24,17 @@ GeneralOverview::GeneralOverview(QWidget *parent) :
 
 void GeneralOverview::fillGenerals(const QList<const General *> &generals){
     ui->tableWidget->clearContents();
-    ui->tableWidget->setRowCount(generals.length());
     ui->tableWidget->setIconSize(QSize(20,20));
     QIcon lord_icon("image/system/roles/lord.png");
-
+    QList<const General *> main_generals ;
+    foreach(const General *general, generals) {
+        if(general->objectName() == general->getBasicName())
+            main_generals << general ;
+    }
+    ui->tableWidget->setRowCount(main_generals.length());
     int i;
-    for(i=0; i<generals.length(); i++){
-        const General *general = generals[i];
+    for(i=0; i<main_generals.length(); i++){
+        const General *general = main_generals[i];
 
         QString name, kingdom, gender, max_hp, package;
 
@@ -50,7 +54,9 @@ void GeneralOverview::fillGenerals(const QList<const General *> &generals){
         }
 
         if(general->isHidden())
-            name_item->setBackgroundColor(Qt::gray);
+            name_item->setBackgroundColor(Qt::lightGray);
+        if(general->getPassGeneral())
+            name_item->setTextColor(Qt::darkGreen);
 
         QTableWidgetItem *kingdom_item = new QTableWidgetItem(kingdom);
         kingdom_item->setTextAlignment(Qt::AlignCenter);
@@ -152,6 +158,10 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
 {
     int row = ui->tableWidget->currentRow();
     QString general_name = ui->tableWidget->item(row, 0)->data(Qt::UserRole).toString();
+    changeGeneral(general_name);
+}
+
+void GeneralOverview::changeGeneral(QString general_name,bool init){
     const General *general = Sanguosha->getGeneral(general_name);
     ui->generalPhoto->setPixmap(QPixmap(general->getPixmapPath("card")));
     QList<const Skill *> skills = general->getVisibleSkillList();
@@ -163,7 +173,7 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
         addLines(skill);
     }
 
-    QString last_word = Sanguosha->translate("~" + general->objectName());
+    QString last_word = Sanguosha->translate("~" + general->getBasicName());
     if(!last_word.startsWith("~")){
         QCommandLinkButton *death_button = new QCommandLinkButton(tr("Death"), last_word);
         button_layout->addWidget(death_button);
@@ -201,6 +211,17 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
 
     button_layout->addStretch();
     ui->skillTextEdit->append(general->getSkillDescription());
+    ui->skillTextEdit->moveCursor(QTextCursor::Start);
+
+    if(init){
+        ui->orginalRadio->setChecked(true);
+        ui->orginalRadio->setObjectName(general_name);
+        const General *pass_general = general->getPassGeneral();
+        ui->passRadio->setEnabled(pass_general);
+        if(pass_general){
+            ui->passRadio->setObjectName(pass_general->objectName());
+        }
+    }
 }
 
 void GeneralOverview::playEffect()
@@ -212,3 +233,18 @@ void GeneralOverview::playEffect()
             Sanguosha->playEffect(source);
     }
 }
+
+void GeneralOverview::on_passRadio_clicked(bool checked)
+{
+    if(checked)
+        changeGeneral(sender()->objectName(),false);
+}
+
+
+void GeneralOverview::on_orginalRadio_clicked(bool checked)
+{
+    if(checked)
+        changeGeneral(sender()->objectName(),false);
+}
+
+

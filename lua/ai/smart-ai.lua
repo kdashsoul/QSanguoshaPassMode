@@ -674,6 +674,9 @@ function SmartAI:getMaxCard(player)
 	return max_card
 end
 
+sgs.ai_skill_discard = {
+
+}
 -- the table that stores whether the skill should be invoked
 -- used for SmartAI:askForSkillInvoke
 sgs.ai_skill_invoke = {
@@ -693,7 +696,7 @@ sgs.ai_skill_invoke = {
 }
 
 function SmartAI:askForSkillInvoke(skill_name, data)
-	local invoke = sgs.ai_skill_invoke[skill_name]
+	local invoke = sgs.ai_skill_invoke[skill_name] or sgs.ai_skill_invoke[skill_name:split("_p")[1]]
 	if type(invoke) == "boolean" then
 		return invoke
 	elseif type(invoke) == "function" then
@@ -807,17 +810,18 @@ end
 -- yicai,badao,yitian-slash,moon-spear-slash
 sgs.ai_skill_use["slash"] = function(self, prompt)
 	if prompt ~= "@askforslash" and prompt ~= "@moon-spear-slash" then return "." end
-	local slash = self:getCard("Slash")
-	if not slash then return "." end
+	local slash_id = self:getCardId("Slash")
+	if not slash_id then return "." end
 	for _, enemy in ipairs(self.enemies) do
-		if self.player:canSlash(enemy, true) and not self:slashProhibit(slash, enemy) and self:slashIsEffective(slash, enemy) then
-			return ("%d->%s"):format(slash:getId(), enemy:objectName())
+		if self:slashValid(enemy, sgs.Card_Parse(slash_id)) then
+			return slash_id.."->"..enemy:objectName()
 		end
 	end
 	return "."
 end
 
 function SmartAI:slashIsEffective(slash, to)
+	slash = slash or sgs.Sanguosha:cloneCard("slash", sgs.Card_NoSuit, 0)
 	if to:hasSkill("yizhong") and not to:getArmor() then
 		if slash:isBlack() then
 			return false
@@ -856,7 +860,7 @@ end
 
 function SmartAI:slashIsAvailable(player)
 	player = player or self.player
-	if player:hasFlag("tianyi_failed") or player:hasFlag("xianzhen_failed") then return false end
+	if player:hasFlag("tianyi_failed") or player:hasFlag("xianzhen_failed") or player:hasFlag("wenjiu_p") then return false end
 	
 	if player:hasWeapon("crossbow") or player:hasSkill("paoxiao") then
 		return true
@@ -913,6 +917,8 @@ local function getSkillViewCard(card, class_name, player, card_place)
 		if card_place ~= sgs.Player_Equip then
 			if player:hasSkill("longdan") and card:inherits("Jink") then
 				return ("slash:longdan[%s:%s]=%d"):format(suit, number, card_id)
+			elseif player:hasSkill("zhanshen_p") and (card:inherits("TrickCard") or card:inherits("EquipCard"))then
+				return ("slash:zhanshen_p[%s:%s]=%d"):format(suit, number, card_id)
 			end
 		end
 	elseif class_name == "Jink" then
@@ -1787,7 +1793,6 @@ function SmartAI:useEquipCard(card, use)
 		use.card = card		
 		end
 	elseif card:inherits("Armor") then
-		if card:inherits("GaleShell") then self:useGaleShell(card, use) return end
 	    if self.player:hasSkill("bazhen") and not self.player:getArmor() then return end
 		if self.player:hasSkill("yizhong") and not card:inherits("EightDiagram") and not self.player:getArmor() then return end
 	 	if not self.player:getArmor() or self.player:getArmor():objectName() == "gale-shell" then use.card = card
@@ -2227,7 +2232,11 @@ function SmartAI:sortByCardNeed(cards)
 	table.sort(cards, compare_func)
 end
 
-function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)    
+function SmartAI:askForDiscard(reason, discard_num, optional, include_equip)
+	local discard = sgs.ai_skill_discard[reason]
+	if type(discard) == "function" then
+		return discard(self)
+	end
     if reason == "ganglie" then
         if self.player:getHp() > self.player:getHandcardNum() then return {} end
 		
@@ -2370,12 +2379,12 @@ end
 -- used for SmartAI:askForChoice
 sgs.ai_skill_choice = {}
 
-function SmartAI:askForChoice(skill_name, choices)
+function SmartAI:askForChoice(skill_name, choices , data)
 	local choice = sgs.ai_skill_choice[skill_name]
 	if type(choice) == "string" then
 		return choice
 	elseif type(choice) == "function" then
-		return choice(self, choices)
+		return choice(self, choices , data)
 	else
 		local skill = sgs.Sanguosha:getSkill(skill_name)		
 		if skill then
@@ -2479,13 +2488,15 @@ function SmartAI:askForCardChosen(who, flags, reason)
 			end
 		end
 		
-		if flags:match("e") then		    
+		if flags:match("e") then
+			local enemy_equips = {}	
 			if who:getDefensiveHorse() then
 				for _,friend in ipairs(self.friends) do
 					if friend:distanceTo(who) == friend:getAttackRange()+1 then 
 					 	return who:getDefensiveHorse():getId()
 					end
 				end
+				table.insert(enemy_equips,who:getDefensiveHorse():getId())
 			end			
 			
 			if who:getArmor() then 
@@ -2505,6 +2516,7 @@ function SmartAI:askForCardChosen(who, flags, reason)
 				elseif (who:getArmor():objectName() == "silver_lion") and who:isWounded() then 
                 else return who:getArmor():getId() 
                 end
+                table.insert(enemy_equips,who:getArmor():getId())
 			end
 			
 			if who:getWeapon() then
@@ -2515,6 +2527,7 @@ function SmartAI:askForCardChosen(who, flags, reason)
 						end
 					end
 				end
+				table.insert(enemy_equips,who:getWeapon():getId())
 			end
 		
 			if who:getOffensiveHorse() then
@@ -2527,6 +2540,10 @@ function SmartAI:askForCardChosen(who, flags, reason)
 					    end
 				    end
 				end
+				table.insert(enemy_equips,who:getOffensiveHorse():getId())
+			end
+			if flags == "e" then
+				return enemy_equips[1]:getId()
 			end
 		end
 		if flags:match("h") then
@@ -2890,8 +2907,8 @@ end
 function SmartAI:fillSkillCards(cards)
     for _,skill in ipairs(sgs.ai_skills) do
         if self:hasSkill(skill) then       
-			for _, card in ipairs(cards) do
-				if prohibitUseDirectly(card, self.player) then table.remove(cards, card) end
+			for index, card in ipairs(cards) do
+				if prohibitUseDirectly(card, self.player) then table.remove(cards, index) end
 			end
 
             local skill_card = skill.getTurnUseCard(self)
@@ -3323,12 +3340,9 @@ dofile "lua/ai/fire-ai.lua"
 dofile "lua/ai/thicket-ai.lua"
 dofile "lua/ai/mountain-ai.lua"
 dofile "lua/ai/god-ai.lua"
-dofile "lua/ai/yitian-ai.lua"
 dofile "lua/ai/nostalgia-ai.lua"
 dofile "lua/ai/yjcm-ai.lua"
 dofile "lua/ai/sp-ai.lua"
-dofile "lua/ai/wisdom-ai.lua"
-dofile "lua/ai/joy-ai.lua"
 
 dofile "lua/ai/general_config.lua"
 dofile "lua/ai/intention-ai.lua"
@@ -3341,7 +3355,6 @@ dofile "lua/ai/thicket-skill-ai.lua"
 dofile "lua/ai/fire-skill-ai.lua"
 dofile "lua/ai/yjcm-skill-ai.lua"
 
-dofile "lua/ai/fancheng-ai.lua"
 dofile "lua/ai/hulaoguan-ai.lua"
 
 dofile "lua/ai/guanxing-ai.lua"

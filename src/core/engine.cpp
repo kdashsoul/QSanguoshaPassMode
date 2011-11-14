@@ -36,30 +36,15 @@ extern "C" {
     Package *NewThicket();
     Package *NewMountain();
     Package *NewGod();
-    Package *NewYitian();
     Package *NewSP();
     Package *NewYJCM();
-    Package *NewWisdom();
-	Package *NewTest();
-    Package *NewHero();
+    Package *NewPass();
 
     Package *NewStandardCard();
     Package *NewStandardExCard();
     Package *NewManeuvering();
-    Package *NewSPCard();
     Package *NewNostalgia();
-    Package *NewYitianCard();
-    Package *NewJoy();
-    Package *NewDisaster();
-    Package *NewJoyEquip();
 
-    Scenario *NewGuanduScenario();
-    Scenario *NewFanchengScenario();
-    Scenario *NewCoupleScenario();
-    Scenario *NewHongyanScenario();
-    Scenario *NewZombieScenario();
-    Scenario *NewLegendScenario();
-    Scenario *NewImpasseScenario();
     Scenario *NewPassModeScenario();
 }
 
@@ -79,28 +64,13 @@ Engine::Engine()
     addPackage(NewGod());
     addPackage(NewSP());
     addPackage(NewYJCM());
-    addPackage(NewYitian());
-    addPackage(NewWisdom());
-    addPackage(NewHero());
-	addPackage(NewTest());
+    addPackage(NewPass());
 
     addPackage(NewStandardCard());
     addPackage(NewStandardExCard());
     addPackage(NewManeuvering());
-    addPackage(NewSPCard());
-    addPackage(NewYitianCard());
     addPackage(NewNostalgia());
-    addPackage(NewJoy());
-    addPackage(NewDisaster());
-    addPackage(NewJoyEquip());
 
-    addScenario(NewGuanduScenario());
-    addScenario(NewFanchengScenario());
-    addScenario(NewCoupleScenario());
-    addScenario(NewHongyanScenario());
-    addScenario(NewZombieScenario());
-    addScenario(NewLegendScenario());
-    addScenario(NewImpasseScenario());
     addScenario(NewPassModeScenario());
 
     // available game modes
@@ -359,11 +329,11 @@ SkillCard *Engine::cloneSkillCard(const QString &name) const{
 }
 
 QString Engine::getVersion() const{
-    return "20110912";
+    return "20111113";
 }
 
 QString Engine::getVersionName() const{
-    return tr("MiddleAutumn");
+    return tr("Chibi");
 }
 
 QStringList Engine::getExtensions() const{

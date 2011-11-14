@@ -1,4 +1,4 @@
-#include "pass-mode-skills.cpp"
+#include "pass-mode-scenario.h"
 
 #include <QFile>
 #include <QFileDialog>
@@ -35,14 +35,15 @@ bool SaveDataStruct::checkDataFormat() const{
     return format_right;
 }
 
-QString PassMode::version = "ver1.621";
-
+const QString PassMode::default_hero = "caocao" ;
+const QString PassMode::version = "ver1.6.2.1";
+const QString PassMode::savePath = "savedata/pass_mode.sav";
 PassMode::PassMode(QObject *parent)
     :GameRule(parent)
 {
     setObjectName("pass_mode_rule");
 
-    enemy_list  << "shizu+gongshou+yaodao" << "jianwei+qibing+jianwei"
+    enemy_list  << "liubei+guanyu+zhangfei" << "jianwei_e+qibing_e+jianwei_e"
                 << "huwei+gongshou+jianwei" << "jianwei+kuangdaoke+shizu"
                 << "huwei+caocao_p+jianwei" << "kuangdaoke+luxun_p+shizu"
                 << "qibing+machao_p+qibing" << "jianwei+zhaoyun_p+kuangdaoke"
@@ -71,12 +72,6 @@ PassMode::PassMode(QObject *parent)
 
     hidden_reward["xiongzi_pass"] = "._rewardyingzi|feiying_qingnangshu";
 
-    shop_items["huifushu"]      = 15;
-    shop_items["qingnangshu"]   = 55;
-    shop_items["dunjiatianshu"] = 70;
-    shop_items["qiangjian"]     = 25;
-    shop_items["rewardyingzi"]  = 40;
-    shop_items["rewardqibing"]  = 30;
 }
 
 static int Restart = 1;
@@ -98,8 +93,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             if(room->getTag("Stage").isNull() && askForLoadData(room)){
                 setNextStageInfo(room, room->getTag("Stage").toInt()-1, true);
                 stageStartDraw(room);
-            }
-            else
+            }else
                 initGameStart(player);
 
             room->setTag("FirstRound", true);
@@ -183,8 +177,7 @@ bool PassMode::askForLoadData(Room *room) const{
     if(choice == "notread")
         return false;
     if(choice == "deletesave"){
-        QString filename = "savedata/pass_mode.sav";
-        QFile::remove(filename);
+        QFile::remove(savePath);
         return false;
     }
 
@@ -246,16 +239,7 @@ void PassMode::initGameStart(ServerPlayer *player) const{
             room->setTag("Stage", 1);
             room->setTag("Times", 1);
 
-            const Package *passpack = Sanguosha->findChild<const Package *>("pass_mode");
-            QList<const General *> generals = passpack->findChildren<const General *>();
-
-            QStringList names;
-            foreach(const General *general, generals){
-                if(general->getKingdom() == "hero")
-                    names << general->objectName();
-            }
-
-            QString name = room->askForGeneral(p, names);
+            QString name = room->askForGeneralPass(p,"");
 
             room->transfigure(p, name, true, true);
             room->setPlayerProperty(p, "maxhp", p->getMaxHP() + 1);
@@ -266,8 +250,11 @@ void PassMode::initGameStart(ServerPlayer *player) const{
         }else{
             QStringList enemys = enemy_list.at(0).split("+");
             QString general_name = enemys.at(p->getSeat()-2) ;
-            room->transfigure(p, general_name, true, true);
             const General *general = Sanguosha->getGeneral(general_name);
+            const General *pass_general = general->getPassGeneral();
+            if(pass_general)
+                general = pass_general ;
+            room->transfigure(p, general->objectName(), true, true);
             if(p->getKingdom() != general->getKingdom())
                 room->setPlayerProperty(p, "kingdom", general->getKingdom());
         }
@@ -301,10 +288,7 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
         getLearnSkillInfo(lord, skill_info, min_exp);
 
         choice = room->askForSkillChoice(lord, skill_info);
-//        if(choice == "shop"){
-//            getIntoShop(room);
-//            continue;
-//        }
+
         QString skill_name = choice ;
         int exp = lord->getMark("@exp");
         int need_exp = skill_map.value(skill_name);
@@ -312,7 +296,6 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
             exp -= need_exp;
             room->setPlayerMark(lord, "@exp", exp);
             room->acquireSkill(lord, skill_name);
-            proceedSpecialReward(room, ".SKILL", QVariant::fromValue(skill_name));
 
             if(skill_name == "niepan"){
                 lord->gainMark("@nirvana");
@@ -430,10 +413,13 @@ bool PassMode::askForSaveData(SaveDataStruct *save) const{
     data.append(QString("\n"));
     data.append(save->reward_list.toUtf8().toBase64());
     data.append(QString("\n"));
-    data.append(this->version.toUtf8().toBase64());
+    data.append(version.toUtf8().toBase64());
 
-    QString filename = "savedata/pass_mode.sav";
-    QFile file(filename);
+    QStringList paths = savePath.split("/");
+    if(!QDir(paths[0]).exists()){
+        QDir().mkdir(paths[0]) ;
+    }
+    QFile file(savePath);
     if(file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
         return file.write(data) != -1;
     else
@@ -477,8 +463,11 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     QStringList enemys = enemy_list.at(stage).split("+");
     foreach(ServerPlayer *player, room->getPlayers()){
         if(!player->isLord()){
-            room->transfigure(player, enemys.at(i), true, true);
             const General *general = Sanguosha->getGeneral(enemys.at(i));
+            const General *pass_general = general->getPassGeneral();
+            if(pass_general)
+                general = pass_general ;
+            room->transfigure(player, general->objectName(), true, true);
             if(player->getKingdom() != general->getKingdom())
                 room->setPlayerProperty(player, "kingdom", general->getKingdom());
             if(!player->faceUp())
@@ -500,7 +489,7 @@ SaveDataStruct *PassMode::askForReadData() const{
     SaveDataStruct *save = new SaveDataStruct;
 
     int line_num = 1;
-    QFile file("savedata/pass_mode.sav");
+    QFile file(savePath);
     if(file.open(QIODevice::ReadOnly)){
         QTextStream stream(&file);
         while(!stream.atEnd()){
@@ -574,139 +563,9 @@ bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
     if(savedata->times != 2 || savedata->stage != 0)
         return false;
 
-    QString item_use = savedata->skills.contains("useitem") ? "useitem" : NULL;
-
-    savedata->skills = item_use;
     savedata->nirvana = 0;
     savedata->exp = 50;
     return true;
-}
-
-void PassMode::proceedSpecialReward(Room *room, QString pattern, QVariant data) const{
-    if(!pattern.startsWith("."))
-        return;
-
-    if(pattern.contains("SKILL")){
-        QString skill = data.toString();
-        if(hidden_reward[skill] == NULL)
-            return;
-
-        SaveDataStar save = catchSaveInfo(room);
-        QStringList reward_rx       = hidden_reward[skill].split("|");
-        QStringList reward_match_list, need_skill_list;
-        foreach(QString reward_match, reward_rx){
-            need_skill_list << reward_match.split("_").first();
-            reward_match_list << reward_match;
-        }
-
-        QStringList lord_skills = save->skills.split("+");
-        lord_skills.removeOne("useitem");
-        foreach(QString or_skill, need_skill_list){
-            if(or_skill.contains("+")){
-                QStringList and_skills = or_skill.split("+");
-                foreach(QString and_skill, and_skills){
-                    if(!lord_skills.contains(and_skill))
-                        continue;
-                }
-            }
-            else if(or_skill != "." && !lord_skills.contains(or_skill)){
-                continue;
-            }
-            else if(or_skill == "." && (lord_skills.length() != 1 || lord_skills.first() != skill))
-                continue;
-
-            foreach(QString reward_match, reward_match_list){
-                if(!reward_match.startsWith(or_skill))
-                    continue;
-
-                QString reward = reward_match.split("_").last();
-                LogMessage log;
-                log.type = "#RewardGet";
-                log.from = room->getLord();
-                log.arg = reward;
-                room->sendLog(log);
-
-                getRewardItem(room, reward);
-                break;
-            }
-        }
-    }
-}
-
-void PassMode::buyItem(Room *room) const{
-    ServerPlayer *lord = room->getLord();
-    QStringList items;
-    foreach(QString item, shop_items.keys())
-        items << item;
-
-    items << "cancel";
-    QList<int> item_exp = shop_items.values();
-    qSort(item_exp);
-
-    while(item_exp.first() <= lord->getMark("@exp")){
-        QString item_name = room->askForChoice(lord, "buy", items.join("+"));
-        if(item_name == "cancel")
-            return;
-        if(lord->getMark("@exp") < shop_items.value(item_name))
-            continue;
-        if(getRewardItem(room, item_name)){
-           item_exp.removeOne(shop_items.value(item_name));
-           room->setPlayerMark(lord, "@exp", lord->getMark("@exp")-shop_items.value(item_name));
-       }
-    }
-}
-
-void PassMode::sellItem(Room *room) const{
-    QStringList owned_items = room->getTag("Reward").toStringList();
-    if(owned_items.isEmpty())
-        return;
-
-    ServerPlayer *lord = room->getLord();
-    owned_items << "cancel";
-    while(owned_items.length() != 1){
-        QString sold_item = room->askForChoice(room->getLord(), "sell", owned_items.join("+"));
-        if(sold_item == "cancel")
-            return;
-        if(sellRewardItem(room, sold_item)){
-            owned_items.removeOne(sold_item);
-            room->setPlayerMark(lord, "@exp", lord->getMark("@exp")+(int)(shop_items.value(sold_item)*0.8));
-        }
-        else
-            return;
-    }
-}
-
-bool PassMode::getRewardItem(Room *room, QString &item_name) const{
-    QStringList rewards;
-    if(!room->getTag("Reward").isNull())
-        rewards = room->getTag("Reward").toStringList();
-
-    rewards << item_name;
-    room->setTag("Reward", rewards);
-    room->acquireSkill(room->getLord(), "useitem");
-    return true;
-}
-
-bool PassMode::sellRewardItem(Room *room, QString &item_name) const{
-    QStringList reward = room->getTag("Reward").toStringList();
-    if(!reward.removeOne(item_name))
-        return false;
-
-    room->setTag("Reward", reward);
-    return true;
-}
-
-void PassMode::getIntoShop(Room *room) const{
-    ServerPlayer *lord = room->getLord();
-    while(true){
-        QString choice = room->askForChoice(lord, "shop", "buy+sell+cancel");
-        if(choice == "cancel")
-            return;
-        else if(choice == "buy")
-            buyItem(room);
-        else
-            sellItem(room);
-    }
 }
 
 SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata) const{
@@ -726,11 +585,9 @@ SaveDataStruct::WrongVersion PassMode::checkDataVersion(SaveDataStruct *savedata
         return SaveDataStruct::UnknownLordName;
     if(!savedata->skills.isEmpty()){
         QStringList skills = savedata->skills.split("+");
-        skills.removeOne("useitem");
         foreach(QString skill, skills){
-                skill = skill.split("_").at(0);
-                if(!skill_map.keys().contains(skill))
-                    return SaveDataStruct::DifferentSkills;
+            if(!skill_map.keys().contains(skill))
+                return SaveDataStruct::DifferentSkills;
         }
     }
 
@@ -789,12 +646,6 @@ PassModeRule::PassModeRule(Scenario *scenario)
 {
     events << GameOverJudge << DrawNCards << Predamaged << CardUsed;
 
-    item_lottery["qingnangshu"]    = 20;
-    item_lottery["dunjiatianshu"]  = 5;
-    item_lottery["qiangjian"]      = 35;
-    item_lottery["rewardyingzi"]   = 10;
-    item_lottery["rewardqibing"]   = 20;
-    item_lottery["huifushu"]       = 70;
 }
 
 bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
@@ -823,36 +674,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             break;
         }
     case CardUsed:{
-            CardUseStruct use = data.value<CardUseStruct>();
-            if(room->getTag("Times").toInt() == 1 ||
-               use.from != room->getLord() ||
-               use.to.contains(use.from) ||
-               use.to.isEmpty() ||
-               use.card->getSkillName() == "passmodeitem")
-                break;
 
-            QString item;
-            foreach(QString lottery, item_lottery.keys()){
-                int percent = qrand() % 1000;
-                if((percent + item_lottery[lottery]) >= 1000){
-                    item = lottery;
-                    break;
-                }
-            }
-            if(item != NULL){
-                QStringList rewards;
-                if(!room->getTag("Reward").isNull())
-                    rewards = room->getTag("Reward").toStringList();
-                else
-                    room->acquireSkill(room->getLord(), "useitem");
-                rewards << item;
-                room->setTag("Reward", rewards);
-
-                LogMessage log;
-                log.type = "#TreasureGain";
-                log.arg = item;
-                room->sendLog(log);
-            }
             break;
         }
     case GameOverJudge:{
@@ -874,7 +696,7 @@ PassModeScenario::PassModeScenario()
     lord = "shenzhaoyun";
     rebels << "simayi" << "caocao" << "xiahoudun";
 
-    addGeneralAndSkills();
+    //addGeneralAndSkills();
 }
 
 ADD_SCENARIO(PassMode)
