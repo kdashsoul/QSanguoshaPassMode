@@ -159,7 +159,7 @@ Client::Client(QObject *parent, const QString &filename)
 
     prompt_doc = new QTextDocument(this);
     prompt_doc->setTextWidth(350);
-    prompt_doc->setDefaultFont(QFont("SimHei"));
+    prompt_doc->setDefaultFont(Config.TinyFont);
 }
 
 void Client::signup(){
@@ -631,7 +631,7 @@ void Client::askForCardOrUseCard(const QString &request_str){
         const Skill *skill = Sanguosha->getSkill(skill_name);
         if(skill){
             QString text = prompt_doc->toHtml();
-            text.append(tr("<br/><br/> <b>Notice</b>: %1<br/>").arg(skill->getDescription()));
+            text.append(tr("<br/><br/> <font color=lawngreen><b>Notice</b>: %1</font><br/>").arg(skill->getDescription()));
             prompt_doc->setHtml(text);
         }
     }
@@ -661,13 +661,13 @@ void Client::askForSkillInvoke(const QString &invoke_str){
 
     QString text;
     if(data.isNull())
-        text = tr("Do you want to invoke skill [%1] ?").arg(Sanguosha->translate(skill_name));
+        text = tr("Do you want to invoke skill <font color=yellow>%1</font> ?").arg(Sanguosha->translate(skill_name));
     else
         text = Sanguosha->translate(invoke_str);
 
     const Skill *skill = Sanguosha->getSkill(skill_name);
     if(skill){
-        text.append(tr("<br/><br/> <b>Notice</b>: %1<br/>").arg(skill->getDescription()));
+        text.append(tr("<br/><br/> <font color=lawngreen><b>Notice</b>: %1</font><br/>").arg(skill->getDescription()));
     }
 
     prompt_doc->setHtml(text);

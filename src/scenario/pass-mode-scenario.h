@@ -31,12 +31,6 @@ public:
 struct SaveDataStruct{
     SaveDataStruct();
 
-    enum WrongVersion{
-        DifferentSkills,
-        UnknownLordName,
-        VersionConfirmed
-    };
-
     int size;
 
     int stage;
@@ -54,10 +48,7 @@ struct SaveDataStruct{
 
     bool canRead() const;
     bool checkDataFormat() const;
-    QString getWrongType(WrongVersion error) const;
 private:
-    QMap<WrongVersion, QString> error_type;
-
     static int default_size;
 };
 
@@ -87,9 +78,6 @@ public:
     bool askForSaveData(SaveDataStruct *save) const;
     SaveDataStruct *askForReadData() const;
     SaveDataStruct *catchSaveInfo(Room *room, int stage = -1) const;
-
-    SaveDataStruct::WrongVersion checkDataVersion(SaveDataStruct *savedata) const;
-    bool sendWrongVersionLog(Room *room, SaveDataStruct *savedata) const;
 
     static const QString default_hero;
 private:

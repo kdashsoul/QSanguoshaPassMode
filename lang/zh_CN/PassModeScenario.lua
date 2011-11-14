@@ -261,7 +261,6 @@ local pass_t = {
     ["#BuguaPass"]                  = "%from 使用了【卜卦】技能，将1张手牌与牌堆顶的牌交换",
     ["#GainExp"]                    = "%from 成功击败了 %to，获得了 %arg 点经验值 ，当前经验值为 %arg2",
     
-    ["#CantGainExp"]                = "由于 %from 并非属于这个世界，因此无法获得经验值",
     ["#NextStage"]                  = "%from 击败了所有敌人，来到了第【%arg】关",
     
     ["#LoadNextStage"]              = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",

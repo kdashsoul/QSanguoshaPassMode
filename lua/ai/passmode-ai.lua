@@ -429,7 +429,7 @@ end
 
 sgs.ai_skill_choice["jianxiong_p"] = function(self,choices, data)
 	local card = data:toCard()
-	if card:inherits("Slash") and not self.player:hasWeapon("crossbow") then
+	if card:inherits("Lightning") or (card:inherits("Slash") and not self.player:hasWeapon("crossbow")) then
 		return "draw"
 	end
 	return "gain"

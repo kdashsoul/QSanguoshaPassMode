@@ -218,3 +218,7 @@ TRANSLATIONS += sanguosha.ts
 
 
 
+
+
+
+
