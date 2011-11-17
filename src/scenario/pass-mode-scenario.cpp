@@ -37,7 +37,7 @@ PassMode::PassMode(QObject *parent)
 {
     setObjectName("pass_mode_rule");
 
-    enemy_list  << "shizu+gongshou+jianshi" << "jianshi+qibing+jianshi"
+    enemy_list  << "qibing+gongshou+jianshi" << "jianshi+qibing+jianshi"
                 << "huwei+gongshou+jianshi" << "jianshi+kuangdaoke+shizu"
                 << "huwei+caocao+jianshi" << "kuangdaoke+luxun+shizu"
                 << "qibing+machao+qibing" << "jianshi+zhaoyun+kuangdaoke"
@@ -192,7 +192,7 @@ bool PassMode::askForLoadData(Room *room) const{
     lord->gainMark("@exp", save->exp);
     QStringList skills = save->skills.split("+");
     foreach(QString skill, skills)
-            room->acquireSkill(lord, skill);
+            room->acquireSkill(lord, skill,true,false);
 
     if(save->reward_list != NULL)
         room->setTag("Reward", save->reward_list.split("+"));

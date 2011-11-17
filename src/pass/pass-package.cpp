@@ -553,19 +553,13 @@ public:
         frequency = Frequent ;
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        int n = 0;
-        if(player->getPhase() == Player::Draw){
-            if(player->isKongcheng() && player->askForSkillInvoke(objectName())){
-                n = player->getHp();
-            }
-        }else if(player->getPhase() == Player::Finish){
-            if(player->getHandcardNum() < player->getHp() && player->askForSkillInvoke(objectName())){
-                n = player->getMaxHP();
-            }
+        int n = 0 ;
+        if(player->getPhase() == Player::Finish){
+            n = player->getMaxHP() - player->getHandcardNum() ;
         }
-        if(n > 0){
+        if(n > 0 && room->askForSkillInvoke(player,objectName())){
             player->drawCards(n);
             LogMessage log;
             log.type = "#TriggerDrawSkill";
@@ -1240,9 +1234,9 @@ public:
         if(cards.isEmpty())
             return NULL;
 
-        RendePassCard *rende_pass_card = new RendePassCard;
-        rende_pass_card->addSubcards(cards);
-        return rende_pass_card;
+        RendePassCard *card = new RendePassCard;
+        card->addSubcards(cards);
+        return card;
     }
 };
 
@@ -1259,7 +1253,7 @@ public:
     }
 
     virtual bool onPhaseChange(ServerPlayer *target) const{
-        target->getRoom()->setPlayerMark(target, "rende_pass", 0);
+        target->getRoom()->setPlayerMark(target, "rende_p", 0);
         return false;
     }
 };
@@ -3088,6 +3082,67 @@ public:
     }
 };
 
+class BaonuePass: public TriggerSkill{
+public:
+    BaonuePass():TriggerSkill("baonue_p"){
+        events << Damage;
+        frequency = Frequent;
+    }
+
+    virtual bool trigger(TriggerEvent, ServerPlayer *dongzhuo, QVariant &data) const{
+        Room *room = dongzhuo->getRoom();
+        DamageStruct damage = data.value<DamageStruct>();
+        if(damage.damage >= 2 && room->askForSkillInvoke(dongzhuo, objectName())){
+            room->playSkillEffect(objectName());
+            int n = damage.damage ;
+            for(int i=0;i<n;i++){
+                int card_id = room->drawCard();
+                const Card *card = Sanguosha->getCard(card_id);
+                room->moveCardTo(card, NULL, Player::Special, true);
+                room->getThread()->delay();
+                if(card->isBlack()){
+                    room->obtainCard(dongzhuo, card_id);
+                }else{
+                    RecoverStruct recover;
+                    recover.who = dongzhuo;
+                    room->recover(dongzhuo, recover);
+                }
+            }
+        }
+        return false;
+    }
+};
+
+
+class WeimuPass:public TriggerSkill{
+public:
+    WeimuPass():TriggerSkill("weimu_p"){
+        events << CardEffected ;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *jiaxu, QVariant &data) const{
+        CardEffectStruct effect = data.value<CardEffectStruct>();
+        Room *room = jiaxu->getRoom();
+        if(effect.card->inherits("TrickCard") && effect.card->isBlack() && jiaxu->askForSkillInvoke(objectName())){
+            QString suit_str = effect.card->getSuitString();
+            QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
+            QString prompt = QString("@@weimu_p:::%1").arg(suit_str);
+            if(room->askForCard(jiaxu, pattern, prompt)){
+                room->playSkillEffect(objectName());
+                LogMessage log;
+                log.type = "#WeimuPass";
+                log.from = jiaxu;
+                log.arg = effect.card->objectName();
+                room->sendLog(log);
+                jiaxu->drawCards(1);
+                return true;
+            }
+        }
+        return false ;
+    }
+};
+
+
 
 class WushenPass: public TriggerSkill{
 public:
@@ -3413,25 +3468,25 @@ PassPackage::PassPackage()
     lubu_p->addSkill(new ZhanshenPass);
     lubu_p->addSkill(new NuozhanPass);
 
-    PassGeneral *huatuo_p = new PassGeneral(this, Sanguosha->getGeneral("huatuo"));
-    huatuo_p->addSkill(new QingnangPass);
-    huatuo_p->addSkill(new QingnangPassBuff);
-    huatuo_p->addSkill("jijiu");
-    huatuo_p->addSkill(new YangshenPass);
-    huatuo_p->addSkill(new MafeiPass);
-    huatuo_p->addSkill(new MafeiPassBuff);
+    PassGeneral *huatuo = new PassGeneral(this, Sanguosha->getGeneral("huatuo"));
+    huatuo->addSkill(new QingnangPass);
+    huatuo->addSkill(new QingnangPassBuff);
+    huatuo->addSkill("jijiu");
+    huatuo->addSkill(new YangshenPass);
+    huatuo->addSkill(new MafeiPass);
+    huatuo->addSkill(new MafeiPassBuff);
     related_skills.insertMulti("qingnang_p", "#qingnang_p");
     related_skills.insertMulti("mafei_p", "#mafei_p");
 
-    PassGeneral *diaochan_p = new PassGeneral(this, Sanguosha->getGeneral("diaochan"));
-    diaochan_p->addSkill(new LijianPass);
-    diaochan_p->addSkill("biyue");
+    PassGeneral *diaochan = new PassGeneral(this, Sanguosha->getGeneral("diaochan"));
+    diaochan->addSkill(new LijianPass);
+    diaochan->addSkill("biyue");
 
-    PassGeneral *yuji_p = new PassGeneral(this, Sanguosha->getGeneral("yuji"));
-    yuji_p->addSkill(new GuhuoPass);
-    yuji_p->addSkill(new GuhuoPassMark);
-    yuji_p->addSkill(new BuguaPass);
-    yuji_p->addSkill(new HuanshuPass);
+    PassGeneral *yuji = new PassGeneral(this, Sanguosha->getGeneral("yuji"));
+    yuji->addSkill(new GuhuoPass);
+    yuji->addSkill(new GuhuoPassMark);
+    yuji->addSkill(new BuguaPass);
+    yuji->addSkill(new HuanshuPass);
     related_skills.insertMulti("guhuo_p", "#guhuo_p_mark");
 
     PassGeneral *zhangjiao = new PassGeneral(this, Sanguosha->getGeneral("zhangjiao"));
@@ -3444,6 +3499,13 @@ PassPackage::PassPackage()
     dongzhuo->addSkill("jiuchi");
     dongzhuo->addSkill("roulin");
     dongzhuo->addSkill(new BenghuaiPass);
+    dongzhuo->addSkill(new BaonuePass);
+
+    General *jiaxu = new PassGeneral(this, Sanguosha->getGeneral("jiaxu"));
+    jiaxu->addSkill(new WeimuPass);
+    jiaxu->addSkill("wansha");
+    jiaxu->addSkill("luanwu");
+    jiaxu->addSkill("#@chaos");
 
     General *shizu = new General(this,"shizu_e","evil",3, true, true);
     shizu->addSkill(new ShiqiPass);

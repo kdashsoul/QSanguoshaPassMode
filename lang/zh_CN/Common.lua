@@ -86,6 +86,8 @@ return {
 	["#LoseHp"] = "%from 流失了 %arg 点体力",
 	["@askforslash"] = "你可以对你攻击范围内的一名角色使用一张【杀】",
 	
+	["#AcquireSkill"] = "%from 获得了技能 【%arg】", 
+	
 	["3v3:cw"] = "顺时针",
 	["3v3:ccw"] = "逆时针",
 	["cw"] = "顺时针",

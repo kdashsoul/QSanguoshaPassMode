@@ -2345,7 +2345,7 @@ void Room::getResult(const QString &reply_func, ServerPlayer *reply_player, bool
         thread->end();
 }
 
-void Room::acquireSkill(ServerPlayer *player, const Skill *skill, bool open){
+void Room::acquireSkill(ServerPlayer *player, const Skill *skill, bool open , bool trigger_skill){
     QString skill_name = skill->objectName();
     if(player->hasSkill(skill_name))
         return;
@@ -2356,7 +2356,7 @@ void Room::acquireSkill(ServerPlayer *player, const Skill *skill, bool open){
         const TriggerSkill *trigger_skill = qobject_cast<const TriggerSkill *>(skill);
         thread->addTriggerSkill(trigger_skill);
     }
-    if(skill->inherits("PassiveSkill")){
+    if(trigger_skill && skill->inherits("PassiveSkill")){
         const PassiveSkill *passive_skill = qobject_cast<const PassiveSkill *>(skill);
         passive_skill->onAcquire(player);
     }
@@ -2374,10 +2374,10 @@ void Room::acquireSkill(ServerPlayer *player, const Skill *skill, bool open){
     }
 }
 
-void Room::acquireSkill(ServerPlayer *player, const QString &skill_name, bool open){
+void Room::acquireSkill(ServerPlayer *player, const QString &skill_name, bool open , bool trigger_skill){
     const Skill *skill = Sanguosha->getSkill(skill_name);
     if(skill)
-        acquireSkill(player, skill, open);
+        acquireSkill(player, skill, open , trigger_skill);
 }
 
 void Room::setTag(const QString &key, const QVariant &value){

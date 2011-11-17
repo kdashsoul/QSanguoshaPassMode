@@ -440,6 +440,41 @@ sgs.ai_skill_invoke["wenjiu_p"] = function(self)
 	return true
 end
 
+
+local duanhe_p_skill={
+	name = "duanhe_p",
+	getTurnUseCard = function(self)
+		if self.player:isNude() or self.player:getHp() <= 1 then return end
+		
+		local card
+		local cards = self.player:getCards("he")
+		cards=sgs.QList2Table(cards)
+		self:sortByCardNeed(cards)
+		
+		for _, card in ipairs(cards) do
+			if card:inherits("Weapon") then
+				return sgs.Card_Parse("@DuanhePassCard="..card:getEffectiveId())
+			end
+		end
+	end
+}
+table.insert(sgs.ai_skills,duanhe_p_skill)
+
+sgs.ai_skill_use_func["DuanhePassCard"]=function(card,use,self)
+	local scard = sgs.Card_Parse(sgs.QList2Table(card:getSubcards())[1])
+	local range = sgs.weapon_range[scard:className()] or 0
+	self:sort(self.enemies, "hp")
+	for _, enemy in ipairs(self.enemies) do
+		if enemy:getHp() + enemy:getHandcardNum() >= range then
+			use.card = card
+			if use.to then use.to:append(enemy) end
+			return
+		end
+	end
+	
+end
+
+
 sgs.ai_skill_invoke["jueduan_p"] = function(self, data)
 	local target = data:toPlayer()
 	return not self:isFriend(target)

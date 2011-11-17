@@ -81,8 +81,8 @@ public:
     void showCard(ServerPlayer *player, int card_id, ServerPlayer *only_viewer = NULL);
     void showAllCards(ServerPlayer *player, ServerPlayer *to = NULL);
     void getResult(const QString &reply_func, ServerPlayer *reply_player, bool move_focus = true);
-    void acquireSkill(ServerPlayer *player, const Skill *skill, bool open = true);
-    void acquireSkill(ServerPlayer *player, const QString &skill_name, bool open = true);
+    void acquireSkill(ServerPlayer *player, const Skill *skill, bool open = true , bool trigger_skill = true);
+    void acquireSkill(ServerPlayer *player, const QString &skill_name, bool open = true , bool trigger_skill = true);
     void adjustSeats();
     void swapPile();
     int getCardFromPile(const QString &card_name);
