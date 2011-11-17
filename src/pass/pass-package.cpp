@@ -25,7 +25,7 @@ public:
 
 class DuanyanPass:public ZeroCardViewAsSkill{
 public:
-    DuanyanPass():ZeroCardViewAsSkill("duanyan_pass"){
+    DuanyanPass():ZeroCardViewAsSkill("duanyan_p"){
 
     }
 
@@ -51,7 +51,7 @@ void DuanyanPassCard::onEffect(const CardEffectStruct &effect) const{
     ServerPlayer *target = effect.to;
     Room *room = player->getRoom();
 
-    QString choice = room->askForChoice(player, "duanyan_pass", "slash+jink+peach_analeptic+other");
+    QString choice = room->askForChoice(player, "duanyan_p", "slash+jink+peach_analeptic+other");
 
     int card_id = target->getRandomHandCardId();
     const Card *card = Sanguosha->getCard(card_id);
@@ -97,7 +97,7 @@ void DuanyanPassCard::onEffect(const CardEffectStruct &effect) const{
 
 class XiongziPass:public TriggerSkill{
 public:
-    XiongziPass():TriggerSkill("xiongzi_pass"){
+    XiongziPass():TriggerSkill("xiongzi_p"){
         events << PhaseChange ;
         frequency = Frequent;
     }
@@ -118,9 +118,9 @@ public:
 };
 
 
-class Qiangong:public TriggerSkill{
+class QiangongPass:public TriggerSkill{
 public:
-    Qiangong():TriggerSkill("qiangong"){
+    QiangongPass():TriggerSkill("qiangong_p"){
         events << CardEffected ;
     }
 
@@ -130,13 +130,14 @@ public:
         if((effect.card->inherits("Dismantlement") || effect.card->inherits("Snatch")) && player->askForSkillInvoke(objectName())){
             LogMessage log;
             log.from = player;
+            log.arg = effect.card->objectName() ;
             if(effect.card->inherits("Dismantlement") && player->getEquips().empty()){
                 room->askForDiscard(player, objectName(), 1 , false , true) ;
                 log.type = "#QiangongPassThrow";
                 player->getRoom()->sendLog(log);
                 return true;
             }else{
-                const Card *card = room->askForCard(player,".NT!","@qiangong");
+                const Card *card = room->askForCard(player,".NT!","@qiangong_p-card");
                 if(!card){
                     if(player->isKongcheng()){
                         card = player->getEquips().at(0);
@@ -156,9 +157,9 @@ public:
 };
 
 
-class Quanheng:public ViewAsSkill{
+class QuanhengPass:public ViewAsSkill{
 public:
-    Quanheng():ViewAsSkill("quanheng"){
+    QuanhengPass():ViewAsSkill("quanheng_p"){
 
     }
 
@@ -173,24 +174,24 @@ public:
         if(cards.empty())
             return NULL;
 
-        QuanhengCard *quanheng_card = new QuanhengCard;
-        quanheng_card->addSubcards(cards);
+        QuanhengPassCard *card = new QuanhengPassCard;
+        card->addSubcards(cards);
 
-        return quanheng_card;
+        return card;
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("QuanhengCard") && player->isWounded() ;
+        return ! player->hasUsed("QuanhengPassCard") && player->isWounded() ;
     }
 };
 
 
-QuanhengCard::QuanhengCard(){
+QuanhengPassCard::QuanhengPassCard(){
     target_fixed = true;
     once = true;
 }
 
-void QuanhengCard::use(Room *room, ServerPlayer *player, const QList<ServerPlayer *> &) const{
+void QuanhengPassCard::use(Room *room, ServerPlayer *player, const QList<ServerPlayer *> &) const{
     room->throwCard(this);
     player->drawCards(this->getSubcards().length());
 }
@@ -3427,12 +3428,12 @@ PassPackage::PassPackage()
     shenlumeng_p->addSkill(new SheliePass);
     shenlumeng_p->addSkill("gongxin");
 
-\
-    skills << new Skill("nuhou_p") << new TipoPass << new Skill("kezhi_p") << new Skill("fenjin_p") << new Quanheng
-           << new DuanyanPass << new XiongziPass << new Qiangong ;
+
+    skills << new Skill("nuhou_p") << new TipoPass << new Skill("kezhi_p") << new Skill("fenjin_p") << new QuanhengPass
+           << new DuanyanPass << new XiongziPass << new QiangongPass ;
 
     addMetaObject<DuanyanPassCard>();
-    addMetaObject<QuanhengCard>();
+    addMetaObject<QuanhengPassCard>();
     addMetaObject<XunmaPassCard>();
     addMetaObject<DianjiPassCard>();
     addMetaObject<RendePassCard>();

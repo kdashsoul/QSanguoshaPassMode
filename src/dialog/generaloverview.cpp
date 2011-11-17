@@ -57,6 +57,8 @@ void GeneralOverview::fillGenerals(const QList<const General *> &generals){
             name_item->setBackgroundColor(Qt::lightGray);
         if(general->getPassGeneral())
             name_item->setTextColor(Qt::darkGreen);
+        else if(general->objectName().endsWith("_e"))
+            name_item->setTextColor(QColor(255,0,255));
 
         QTableWidgetItem *kingdom_item = new QTableWidgetItem(kingdom);
         kingdom_item->setTextAlignment(Qt::AlignCenter);

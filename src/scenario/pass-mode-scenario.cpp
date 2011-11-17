@@ -8,7 +8,7 @@
 
 SaveDataStruct::SaveDataStruct()
     :size(0), stage(0),
-    exp(0), nirvana(0), lord_maxhp(0),
+    exp(0), lord_maxhp(0),
     times(1),
     read_success(false)
 {
@@ -58,16 +58,16 @@ PassMode::PassMode(QObject *parent)
     skill_map.insert("mashu", 15);
     skill_map.insert("kezhi_p", 20);
     skill_map.insert("nuhou_p", 20);
-    skill_map.insert("duanyan_pass", 25);
+    skill_map.insert("duanyan_p", 25);
     skill_map.insert("fenjin_p", 30);
-    skill_map.insert("niepan", 30);
-    skill_map.insert("quanheng", 40);
+//    skill_map.insert("niepan", 30);
+    skill_map.insert("quanheng_p", 40);
     skill_map.insert("xiuluo", 40);
     skill_map.insert("tipo_p" ,40);
-    skill_map.insert("qiangong",50);
-    skill_map.insert("xiongzi_pass", 80);
+    skill_map.insert("qiangong_p",50);
+    skill_map.insert("xiongzi_p", 80);
 
-    hidden_reward["xiongzi_pass"] = "._rewardyingzi|feiying_qingnangshu";
+//    hidden_reward["xiongzi_p"] = "._rewardyingzi|feiying_qingnangshu";
 
 }
 
@@ -164,8 +164,8 @@ bool PassMode::askForLoadData(Room *room) const{
     if(!save->canRead() || !save->read_success)
         return false;
 
-    QString choice = room->askForChoice(lord, "savefile", "read+deletesave+notread");
-    if(choice == "notread")
+    QString choice = room->askForChoice(lord, "savefile", "read+deletesave+cancel");
+    if(choice == "cancel")
         return false;
     if(choice == "deletesave"){
         QFile::remove(savePath);
@@ -190,7 +190,6 @@ bool PassMode::askForLoadData(Room *room) const{
         room->setPlayerProperty(lord, "kingdom", general->getKingdom());
 
     lord->gainMark("@exp", save->exp);
-    room->setPlayerMark(lord, "@nirvana", save->nirvana);
     QStringList skills = save->skills.split("+");
     foreach(QString skill, skills)
             room->acquireSkill(lord, skill);
@@ -286,9 +285,6 @@ bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
             room->setPlayerMark(lord, "@exp", exp);
             room->acquireSkill(lord, skill_name);
 
-            if(skill_name == "niepan"){
-                lord->gainMark("@nirvana");
-            }
         }
 
         if(exp < min_exp)
@@ -361,7 +357,6 @@ SaveDataStruct *PassMode::catchSaveInfo(Room *room, int stage) const{
     save_cache->lord        = lord->getGeneralName();
     save_cache->lord_maxhp  = lord->getMaxHP();
     save_cache->exp         = lord->getMark("@exp");
-    save_cache->nirvana     = lord->getMark("@nirvana");
     save_cache->skills      = lord_skills.join("+");
     save_cache->times       = room->getTag("Times").toInt();
     save_cache->reward_list = room->getTag("Reward").toStringList().join("+");
@@ -383,7 +378,7 @@ bool PassMode::askForSaveData(SaveDataStruct *save) const{
         return false;
 		
     QString stage = QString::number(save->stage);
-    QString marks = QString::number(save->exp) + " " + QString::number(save->nirvana);
+    QString marks = QString::number(save->exp) ;
     QString lord = save->lord + " " + QString::number(save->lord_maxhp);
 
     QByteArray data;
@@ -432,11 +427,8 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
 
         room->setPlayerProperty(lord, "hp", lord->getMaxHP());
         int exp = lord->getMark("@exp");
-        int nirvana = lord->getMark("@nirvana");
         lord->throwAllMarks();
         lord->gainMark("@exp", exp);
-        if(nirvana > 0)
-            lord->gainMark("@nirvana");
 
         LogMessage log;
         log.type = "#NextStage";
@@ -509,7 +501,7 @@ SaveDataStruct *PassMode::askForReadData() const{
                     break;
                 }
             case 4:{
-                    QRegExp rx("(\\d+)\\s+(\\d+)");
+                    QRegExp rx("(\\d+)");
                     if(!rx.exactMatch(line)){
                         save->read_success = false;
                         return save;
@@ -517,9 +509,7 @@ SaveDataStruct *PassMode::askForReadData() const{
 
                     QStringList texts = rx.capturedTexts();
                     int exp = texts.at(1).toInt();
-                    int nirvana = texts.at(2).toInt();
                     save->exp = exp;
-                    save->nirvana = nirvana;
                     break;
                 }
             case 5:{
@@ -551,7 +541,6 @@ bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{
     if(savedata->times != 2 || savedata->stage != 0)
         return false;
 
-    savedata->nirvana = 0;
     savedata->exp = 50;
     return true;
 }

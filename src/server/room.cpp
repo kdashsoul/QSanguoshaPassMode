@@ -491,6 +491,8 @@ QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, cons
             const Skill *skill = Sanguosha->getSkill(skill_name);
             if(skill)
                 return skill->getDefaultChoice(player);
+            else if(choices.endsWith("+cancel"))
+                return "cancel" ;
         }
 
         answer=result;

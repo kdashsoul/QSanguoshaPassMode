@@ -35,7 +35,6 @@ struct SaveDataStruct{
 
     int stage;
     int exp;
-    int nirvana;
     int lord_maxhp;
 
     int times;
