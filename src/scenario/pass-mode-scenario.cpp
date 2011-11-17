@@ -37,7 +37,7 @@ PassMode::PassMode(QObject *parent)
 {
     setObjectName("pass_mode_rule");
 
-    enemy_list  << "qibing+gongshou+jianshi" << "jianshi+qibing+jianshi"
+    enemy_list  << "shizu+gongshou+jianshi" << "jianshi+qibing+jianshi"
                 << "huwei+gongshou+jianshi" << "jianshi+kuangdaoke+shizu"
                 << "huwei+caocao+jianshi" << "kuangdaoke+luxun+shizu"
                 << "qibing+machao+qibing" << "jianshi+zhaoyun+kuangdaoke"

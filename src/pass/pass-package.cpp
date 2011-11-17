@@ -824,9 +824,9 @@ public:
     }
 };
 
-class GuimouPass:public TriggerSkill{
+class TianduPass:public TriggerSkill{
 public:
-    GuimouPass():TriggerSkill("guimou_p"){
+    TianduPass():TriggerSkill("tiandu_p"){
         events << FinishJudge;
         frequency = Frequent;
     }
@@ -840,6 +840,7 @@ public:
         JudgeStar judge = data.value<JudgeStar>();
         foreach(ServerPlayer *p, room->getAllPlayers()){
             if(p->hasSkill(objectName()) && judge->card->isRed() && judge->card->getNumber() > p->getHp() + p->getHandcardNum() && p->askForSkillInvoke(objectName(), data)){
+                room->playSkillEffect(objectName());
                 p->drawCards(1);
                 LogMessage log;
                 log.type = "#TriggerDrawSkill";
@@ -3123,7 +3124,7 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *jiaxu, QVariant &data) const{
         CardEffectStruct effect = data.value<CardEffectStruct>();
         Room *room = jiaxu->getRoom();
-        if(effect.card->inherits("TrickCard") && effect.card->isBlack() && jiaxu->askForSkillInvoke(objectName())){
+        if(!jiaxu->isKongcheng() && effect.card->inherits("TrickCard") && effect.card->isBlack() && jiaxu->askForSkillInvoke(objectName())){
             QString suit_str = effect.card->getSuitString();
             QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
             QString prompt = QString("@@weimu_p:::%1").arg(suit_str);
@@ -3358,7 +3359,7 @@ PassPackage::PassPackage()
 
     PassGeneral *guojia = new PassGeneral(this,Sanguosha->getGeneral("guojia"));
     guojia->addSkill(new YijiPass);
-    guojia->addSkill(new GuimouPass);
+    guojia->addSkill(new TianduPass);
 
     PassGeneral *zhenji = new PassGeneral(this,Sanguosha->getGeneral("zhenji"));
     zhenji->addSkill("luoshen");
