@@ -108,6 +108,7 @@ void Dashboard::createRight(){
     handcard_num = new QGraphicsSimpleTextItem(handcard_pixmap);
     handcard_num->setFont(Config.TinyFont);
     handcard_num->setBrush(Qt::white);
+    handcard_num->setPos(5,0);
 
     handcard_pixmap->hide();
 

@@ -8,7 +8,7 @@
 
 class TipoPass:public PassiveSkill{
 public:
-    TipoPass():PassiveSkill("tipo_pass"){
+    TipoPass():PassiveSkill("tipo_p"){
     }
 
     virtual void onAcquire(ServerPlayer *player) const{
@@ -1376,7 +1376,8 @@ public:
             if(guanyu->getPhase() == Player::Start){
                 if(guanyu->askForSkillInvoke(objectName())){
                     room->setPlayerFlag(guanyu, "wenjiu_p");
-                    guanyu->setMark("@wenjiu_p",2);
+                    guanyu->setMark("@wenjiu_p",0);
+                    guanyu->gainMark("@wenjiu_p",2);
                     guanyu->drawCards(1);
                     guanyu->setFlags("wenjiu_p");
                 }
@@ -3177,28 +3178,6 @@ public:
     }
 };
 
-//void PassModeScenario::addGeneralAndSkills(){
-
-//    skills  << new ShiqiPass << new QianggongPass << new PojiaPass << new ZhanshangPass << new QishuPass << new Chenwen << new ZhongzhuangPass << new Yaoshu << new Jitian
-//                 << new LianzhanPass << new DouzhiPass
-//            << new RendePass << new JijiangPass << new JijiangCost << new ZhaoliePass << new WenjiuPass << new WenjiuBuff << new TuodaoPass << new BaonuPass
-//                 << new DuanhePass << new TiejiPass << new MashuPass << new GuanxingPass << new BeifaPass << new JizhiPass << new JumouPass << new ShipoPass
-//                 << new LongweiPass << new LonghouPass << new LiegongPass << new LiegongPassMark << new GongshenPass << new JianhunPass
-//            << new JianxiongPass << new XietianPass << new BadaoPass << new BadaoPassCost << new FankuiPass << new LangguPass << new GangliePass  << new JueduanPass
-//                << new YijiPass << new GuimouPass << new JinghongPass << new LuoyiPass << new GuantongPass  << new TuxiPass << new XingshangPass << new FangzhuPass
-//                << new FanzhiPass
-//            << new ZhihengPass << new FanjianPass << new QuwuPass << new KurouPass << new Zhaxiang << new KejiPass << new Baiyi << new DujiangPass
-//                << new LianyingPass << new JieyinPass << new JinguoPass << new TongjiPass << new JieluePass << new Yuyue << new Shuangxing
-//            << new ZhanshenPass << new NuozhanPass << new LijianPass << new QingnangPass << new QingnangBuff << new YangshenPass << new MafeiPass << new MafeiBuff
-//                << new GuhuoPass << new GuhuoPassMark << new BuguaPass << new HuanshuPass << new HuangtianPass << new LeijiPass << new DajiPass
-//            << new WushenPass << new WuhunPass << new QishenPass << new SheliePass
-//            << new Skill("nuhou_pass") << new TipoPass << new Skill("kezhi") << new Skill("fenjin_pass") << new Quanheng << new DuanyanPass << new XiongziPass
-//                << new Qiangong
-//            << new ItemUse;
-
-
-//    addMetaObject<PassModeItemCard>();
-//}
 
 class NothrowHandcardsPattern: public CardPattern{
 public:
@@ -3414,7 +3393,7 @@ PassPackage::PassPackage()
     shenlumeng_p->addSkill("gongxin");
 
 \
-    skills << new Skill("nuhou_pass") << new TipoPass << new Skill("kezhi") << new Skill("fenjin_pass") << new Quanheng
+    skills << new Skill("nuhou_p") << new TipoPass << new Skill("kezhi_p") << new Skill("fenjin_p") << new Quanheng
            << new DuanyanPass << new XiongziPass << new Qiangong ;
 
     addMetaObject<DuanyanPassCard>();

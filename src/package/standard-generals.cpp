@@ -751,7 +751,7 @@ public:
         case Dying: {
                 foreach(ServerPlayer *wu, room->getOtherPlayers(sunquan)){
                     if(wu->getKingdom() == "wu"){
-                        room->playSkillEffect("jiuyuan", 1);
+                        room->playSkillEffect("jiuyuan");
                         break;
                     }
                 }
@@ -763,8 +763,7 @@ public:
                 if(effect.card->inherits("Peach") && effect.from->getKingdom() == "wu"
                    && sunquan != effect.from && sunquan->hasFlag("dying"))
                 {
-                    int index = effect.from->getGeneral()->isMale() ? 2 : 3;
-                    room->playSkillEffect("jiuyuan", index);
+                    room->playSkillEffect("jiuyuan");
                     sunquan->setFlags("jiuyuan");
 
                     LogMessage log;
@@ -784,10 +783,7 @@ public:
             }
 
         case AskForPeachesDone:{
-                if(sunquan->getHp() > 0 && sunquan->hasFlag("jiuyuan"))
-                    room->playSkillEffect("jiuyuan", 4);
                 sunquan->setFlags("-jiuyuan");
-
                 break;
             }
 

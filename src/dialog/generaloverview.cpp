@@ -173,7 +173,7 @@ void GeneralOverview::changeGeneral(QString general_name,bool init){
         addLines(skill);
     }
 
-    QString last_word = Sanguosha->translate("~" + general->getBasicName());
+    QString last_word = Sanguosha->translate("~" + general->getBasicName().remove(QRegExp("^sp_")));
     if(!last_word.startsWith("~")){
         QCommandLinkButton *death_button = new QCommandLinkButton(tr("Death"), last_word);
         button_layout->addWidget(death_button);

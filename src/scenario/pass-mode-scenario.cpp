@@ -56,14 +56,14 @@ PassMode::PassMode(QObject *parent)
     exp_map.insert("god", 16);
 
     skill_map.insert("mashu", 15);
-    skill_map.insert("kezhi", 20);
-    skill_map.insert("nuhou_pass", 20);
+    skill_map.insert("kezhi_p", 20);
+    skill_map.insert("nuhou_p", 20);
     skill_map.insert("duanyan_pass", 25);
-    skill_map.insert("fenjin_pass", 30);
+    skill_map.insert("fenjin_p", 30);
     skill_map.insert("niepan", 30);
     skill_map.insert("quanheng", 40);
     skill_map.insert("xiuluo", 40);
-    skill_map.insert("tipo_pass" ,40);
+    skill_map.insert("tipo_p" ,40);
     skill_map.insert("qiangong",50);
     skill_map.insert("xiongzi_pass", 80);
 
@@ -102,7 +102,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 if(! room->getAlivePlayers().empty())
                     room->gameOver("rebel");
             }else{
-                if(lord->hasSkill("fenjin_pass")){
+                if(lord->hasSkill("fenjin_p")){
                     lord->drawCards(1);
                 }
 
@@ -150,7 +150,7 @@ void PassMode::stageStartDraw(Room *room, ServerPlayer *player) const{
     int enemy_draw = room->getTag("Stage").toInt() > 10 ? 4 : 3 ;
     if(player){
         n = player->isLord() ? hero_draw : enemy_draw;
-        player->drawCards(player->hasSkill("fenjin_pass") ? ++n : n);
+        player->drawCards(player->hasSkill("fenjin_p") ? ++n : n);
     }else{
         foreach(ServerPlayer *p, room->getPlayers()){
             stageStartDraw(room,p);
@@ -311,9 +311,6 @@ void PassMode::getLearnSkillInfo(ServerPlayer *lord, QString &skills, int &min_e
 
     if(skills.length() > 0)
         skills.chop(1);
-
-//    if(lord->getRoom()->getTag("Times").toInt() > 1)
-//        skills.append("shop+");
 
 }
 

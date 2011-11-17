@@ -474,11 +474,13 @@ public:
                     jink->setSkillName(objectName());
                     room->provide(jink);
                     room->setEmotion(player, "good");
-                    room->broadcastInvoke("playAudio", objectName());
+                    room->broadcastInvoke("playAudio", objectName() + "_good");
 
                     return true;
-                }else
+                }else{
                     room->setEmotion(player, "bad");
+                    room->broadcastInvoke("playAudio", objectName() + "_bad");
+                }
             }
         }
         return false;

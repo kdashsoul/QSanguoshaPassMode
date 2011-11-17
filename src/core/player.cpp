@@ -466,7 +466,7 @@ int Player::getMaxCards() const{
 
     int juejing = hasSkill("juejing") ? 2 : 0;
     int shenwei = hasSkill("shenwei") ? 2 : 0;
-    int kezhi = hasSkill("kezhi") ? 1 : 0;
+    int kezhi = hasSkill("kezhi_p") ? 1 : 0;
 
     int xueyi = 0;
     if(hasLordSkill("xueyi")){

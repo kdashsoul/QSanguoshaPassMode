@@ -144,7 +144,7 @@ QString General::getSkillDescription() const{
 }
 
 void General::lastWord() const{
-    QString filename = QString("audio/death/%1.ogg").arg(getBasicName());
+    QString filename = QString("audio/death/%1.ogg").arg(getBasicName().remove(QRegExp("^sp_")));
     Sanguosha->playEffect(filename);
 }
 
@@ -154,6 +154,8 @@ const General *General::getPassGeneral() const{
 
 QString General::getBasicName() const{
     QString name = objectName() ;
+//    if(name.startsWith("sp_"))
+//        name.remove(QRegExp("^sp_")) ;
     if(name.endsWith("_p"))
         name.chop(2);
     return name;

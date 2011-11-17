@@ -661,7 +661,7 @@ void Client::askForSkillInvoke(const QString &invoke_str){
 
     QString text;
     if(data.isNull())
-        text = tr("Do you want to invoke skill <font color=yellow>%1</font> ?").arg(Sanguosha->translate(skill_name));
+        text = tr("Do you want to invoke skill [%1] ?").arg(Sanguosha->translate(skill_name));
     else
         text = Sanguosha->translate(invoke_str);
 
@@ -705,6 +705,7 @@ void Client::askForChoice(const QString &ask_str){
 
         button->setObjectName(option);
         button->setText(translated);
+        button->setFont(Config.TinyFont);
 
         connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
         connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
@@ -748,7 +749,7 @@ void Client::askForSkillChoice(const QString &skills_str){
         button->setObjectName(skill->objectName());
         button->setText(QString("%1 : %2 %3").arg(skill->getText()).arg(skill_value).arg(Sanguosha->translate("exp")));
         button->setToolTip(skill->getDescription());
-//        button->setFont(Config.AppFont);
+        button->setFont(Config.TinyFont);
 
         connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
         connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));

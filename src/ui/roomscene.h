@@ -186,7 +186,6 @@ private:
     Window *prompt_box;
     QGraphicsItem *control_panel;
     QMap<QGraphicsItem *, const ClientPlayer *> item2player;
-    QDockWidget *skill_dock;
     QComboBox *sort_combobox;
 
     QProgressBar *progress_bar;
