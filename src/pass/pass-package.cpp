@@ -102,7 +102,6 @@ public:
         frequency = Frequent;
     }
 
-
     virtual int getPriority() const{
         return 3;
     }
@@ -3039,6 +3038,57 @@ public:
     }
 };
 
+class BenghuaiPass:public PassiveSkill{
+public:
+    BenghuaiPass():PassiveSkill("benghuai_p"){
+        frequency = Compulsory;
+        events << PhaseChange ;
+    }
+
+    virtual void onAcquire(ServerPlayer *player) const{
+        Room *room = player->getRoom() ;
+        player->setMark("_orginal_hp", player->getMaxHP());
+        room->setPlayerProperty(player, "maxhp", player->getMaxHP() / 2);
+    }
+
+    virtual void onDetach(ServerPlayer *player) const{
+        Room *room = player->getRoom() ;
+        int ohp = player->getMark("_orginal_hp") ;
+        if(ohp > 0){
+            // TODO temp code
+            if(player->isLord())
+                ohp ++ ;
+            room->setPlayerProperty(player, "maxhp", ohp);
+        }
+
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *dongzhuo, QVariant &data) const{
+        if(dongzhuo->getPhase() == Player::Finish){
+            Room *room = dongzhuo->getRoom();
+            bool trigger_this = true ;
+            QList<ServerPlayer *> players = room->getOtherPlayers(dongzhuo);
+            foreach(ServerPlayer *player, players){
+                if(dongzhuo->getHp() <= player->getHp()){
+                    trigger_this = false;
+                    break;
+                }
+            }
+            if(trigger_this){
+                room->playSkillEffect(objectName());
+                room->setEmotion(dongzhuo, "bad");
+
+                room->loseHp(dongzhuo);
+            }
+        }
+        if(event == GameStart){
+            PassiveSkill::trigger(event , dongzhuo , data) ;
+        }
+        return false;
+    }
+};
+
+
 class WushenPass: public TriggerSkill{
 public:
     WushenPass():TriggerSkill("wushen_p"){
@@ -3384,12 +3434,16 @@ PassPackage::PassPackage()
     yuji_p->addSkill(new HuanshuPass);
     related_skills.insertMulti("guhuo_p", "#guhuo_p_mark");
 
-    PassGeneral *zhangjiao_p = new PassGeneral(this, Sanguosha->getGeneral("zhangjiao"));
-    zhangjiao_p->addSkill("guidao");
-    zhangjiao_p->addSkill(new HuangtianPass);
-    zhangjiao_p->addSkill(new LeijiPass);
-    zhangjiao_p->addSkill(new DajiPass);
+    PassGeneral *zhangjiao = new PassGeneral(this, Sanguosha->getGeneral("zhangjiao"));
+    zhangjiao->addSkill("guidao");
+    zhangjiao->addSkill(new HuangtianPass);
+    zhangjiao->addSkill(new LeijiPass);
+    zhangjiao->addSkill(new DajiPass);
 
+    PassGeneral *dongzhuo = new PassGeneral(this, Sanguosha->getGeneral("dongzhuo"));
+    dongzhuo->addSkill("jiuchi");
+    dongzhuo->addSkill("roulin");
+    dongzhuo->addSkill(new BenghuaiPass);
 
     General *shizu = new General(this,"shizu_e","evil",3, true, true);
     shizu->addSkill(new ShiqiPass);

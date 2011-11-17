@@ -916,6 +916,10 @@ public:
         frequency = Frequent ;
     }
 
+    virtual int getPriority() const{
+        return -1;
+    }
+
     virtual bool trigger(TriggerEvent event, ServerPlayer *chunhua, QVariant &data) const{
         Room *room = chunhua->getRoom();
         if(chunhua->getLostHp() <= chunhua->getHandcardNum())
