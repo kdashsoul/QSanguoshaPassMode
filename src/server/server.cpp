@@ -768,6 +768,7 @@ bool ServerDialog::config(){
             ban_packages.insert(package_name);
         }
     }
+    Sanguosha->addBanPackage("pass");
 
     Config.BanPackages = ban_packages.toList();
     Config.setValue("BanPackages", Config.BanPackages);

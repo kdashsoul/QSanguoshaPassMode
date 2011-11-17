@@ -237,7 +237,7 @@ public:
         ServerPlayer *gongshou = effect.from;
         Room *room = gongshou->getRoom();
 
-        if(gongshou->getHp() <= 1 || gongshou->getAttackRange() > 3){
+        if(gongshou->getHp() <= 1 || gongshou->getAttackRange() > 4){
             if(gongshou->askForSkillInvoke(objectName(), QVariant::fromValue(effect))){
                 room->slashResult(effect, NULL);
                 return true;
@@ -254,11 +254,11 @@ public:
         frequency = Compulsory;
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *jianwei, QVariant &data) const{
-        Room *room = jianwei->getRoom();
+    virtual bool trigger(TriggerEvent event, ServerPlayer *jianshi, QVariant &data) const{
+        Room *room = jianshi->getRoom();
         LogMessage log;
         log.type = "#TriggerSkill";
-        log.from = jianwei;
+        log.from = jianshi;
         log.arg = objectName();
         SlashEffectStruct effect = data.value<SlashEffectStruct>();
         if(event == SlashEffect){
@@ -286,15 +286,15 @@ public:
         frequency = Frequent ;
     }
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *jianwei, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *jianshi, QVariant &data) const{
         CardEffectStruct effect = data.value<CardEffectStruct>();
 
         if(effect.card->inherits("AOE")){
-            Room *room = jianwei->getRoom();
-            jianwei->drawCards(1);
+            Room *room = jianshi->getRoom();
+            jianshi->drawCards(1);
             LogMessage log;
             log.type = "#TriggerDrawSkill";
-            log.from = jianwei;
+            log.from = jianshi;
             log.arg = objectName();
             log.arg2 = QString::number(1);
             room->sendLog(log);
@@ -325,6 +325,41 @@ public:
         return correct;
     }
 };
+
+
+
+class XunmaPass: public OneCardViewAsSkill{
+public:
+    XunmaPass():OneCardViewAsSkill("xunma_p"){
+
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        return to_select->getCard()->inherits("Horse") ;
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        XunmaPassCard *card = new XunmaPassCard;
+        card->addSubcard(card_item->getCard()->getId());
+        return card;
+    }
+};
+
+XunmaPassCard::XunmaPassCard(){
+    target_fixed = true ;
+}
+
+void XunmaPassCard::use(Room *room, ServerPlayer *qibing, const QList<ServerPlayer *> &) const{
+    room->throwCard(this);
+    qibing->drawCards(2);
+    if(qibing->isWounded()){
+        RecoverStruct recover;
+        recover.card = this;
+        recover.who = qibing;
+        room->recover(qibing,recover);
+    }
+}
+
 
 class ChenwenPass: public TriggerSkill{
 public:
@@ -382,14 +417,14 @@ public:
 };
 
 
-class YaoshuPass: public OneCardViewAsSkill{
+class DianjiPass: public OneCardViewAsSkill{
 public:
-    YaoshuPass():OneCardViewAsSkill("yaoshu_p"){
+    DianjiPass():OneCardViewAsSkill("dianji_p"){
 
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return !player->hasUsed("YaoshuPassCard");
+        return !player->hasUsed("DianjiPassCard");
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
@@ -397,26 +432,25 @@ public:
     }
 
     virtual const Card *viewAs(CardItem *card_item) const{
-        YaoshuPassCard *yaoshu_card = new YaoshuPassCard;
-        yaoshu_card->addSubcard(card_item->getCard()->getId());
-
-        return yaoshu_card;
+        DianjiPassCard *card = new DianjiPassCard;
+        card->addSubcard(card_item->getCard()->getId());
+        return card;
     }
 };
 
-YaoshuPassCard::YaoshuPassCard(){
+DianjiPassCard::DianjiPassCard(){
     once = true;
 }
 
-bool YaoshuPassCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
+bool DianjiPassCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
     return targets.isEmpty();
 }
 
-void YaoshuPassCard::onEffect(const CardEffectStruct &effect) const{
-    ServerPlayer *yaodao = effect.from;
+void DianjiPassCard::onEffect(const CardEffectStruct &effect) const{
+    ServerPlayer *leishi = effect.from;
     ServerPlayer *target = effect.to;
 
-    Room *room = yaodao->getRoom();
+    Room *room = leishi->getRoom();
     room->setEmotion(target, "bad");
 
     JudgeStruct judge;
@@ -431,20 +465,19 @@ void YaoshuPassCard::onEffect(const CardEffectStruct &effect) const{
         DamageStruct damage;
         damage.card = NULL;
         damage.damage = 1;
-        damage.from = yaodao;
+        damage.from = leishi;
         damage.to = target;
         damage.nature = DamageStruct::Thunder;
 
         room->damage(damage);
     }else
-        room->setEmotion(yaodao, "bad");
+        room->setEmotion(leishi, "bad");
 }
 
 
-
-class JitianPass: public TriggerSkill{
+class LeitiPass: public TriggerSkill{
 public:
-    JitianPass():TriggerSkill("jitian_p"){
+    LeitiPass():TriggerSkill("leiti_p"){
         events << Predamaged;
     }
 
@@ -3362,21 +3395,23 @@ PassPackage::PassPackage()
 
     General *gongshou = new General(this,"gongshou_e","evil",3, false, true);
     gongshou->addSkill(new QianggongPass);
+    gongshou->addSkill(new Skill("shenshe_p"));
 
-    General *jianwei = new General(this,"jianwei_e","evil",3, false, true);
-    jianwei->addSkill(new PojiaPass);
-    jianwei->addSkill(new ZhanshangPass);
+    General *jianshi = new General(this,"jianshi_e","evil",3, false, true);
+    jianshi->addSkill(new PojiaPass);
+    jianshi->addSkill(new ZhanshangPass);
 
     General *qibing = new General(this,"qibing_e","evil",3, true, true);
     qibing->addSkill(new QishuPass);
+    qibing->addSkill(new XunmaPass);
 
     General *huwei = new General(this,"huwei_e","evil",3, true, true);
     huwei->addSkill(new ChenwenPass);
     huwei->addSkill(new ZhongzhuangPass);
 
-    General *yaodao = new General(this,"yaodao_e","evil",3, true, true);
-    yaodao->addSkill(new YaoshuPass);
-    yaodao->addSkill(new JitianPass);
+    General *leishi = new General(this,"leishi_e","evil",3, true, true);
+    leishi->addSkill(new DianjiPass);
+    leishi->addSkill(new LeitiPass);
 
     General *kuangdaoke = new General(this,"kuangdaoke_e","evil",3, true, true);
     kuangdaoke->addSkill(new LianzhanPass);
@@ -3398,7 +3433,8 @@ PassPackage::PassPackage()
 
     addMetaObject<DuanyanPassCard>();
     addMetaObject<QuanhengCard>();
-    addMetaObject<YaoshuPassCard>();
+    addMetaObject<XunmaPassCard>();
+    addMetaObject<DianjiPassCard>();
     addMetaObject<RendePassCard>();
     addMetaObject<JijiangPassCard>();
     addMetaObject<LiegongPassCard>();

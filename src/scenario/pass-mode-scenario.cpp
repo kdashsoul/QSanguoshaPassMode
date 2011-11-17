@@ -37,16 +37,16 @@ PassMode::PassMode(QObject *parent)
 {
     setObjectName("pass_mode_rule");
 
-    enemy_list  << "shizu+gongshou+jianwei" << "jianwei+qibing+jianwei"
-                << "huwei+gongshou+jianwei" << "jianwei+kuangdaoke+shizu"
-                << "huwei+caocao_p+jianwei" << "kuangdaoke+luxun_p+shizu"
-                << "qibing+machao_p+qibing" << "jianwei+zhaoyun_p+kuangdaoke"
-                << "jianwei+zhouyu_p+jianwei" << "yaodao+guojia_p+yaodao"
-                << "huwei+zhangliao_p+kuangdaoke" << "shizu+shenlumeng_p+shizu"
-                << "huwei+sunshangxiang_p+lumeng_p" << "zhugeliang_p+huangyueying_p+kuangdaoke"
-                << "kuangdaoke+xuchu_p+xiahoudun_p" <<"luxun_p+simayi_p+yaodao"
-                << "guojia_p+caocao_p+zhenji_p" << "zhouyu_p+sunquan_p+huanggai_p"
-                << "zhaoyun_p+liubei_p+zhangfei_p" << "lubu_p+shenguanyu_p+diaochan_p";
+    enemy_list  << "shizu+gongshou+jianshi" << "jianshi+qibing+jianshi"
+                << "huwei+gongshou+jianshi" << "jianshi+kuangdaoke+shizu"
+                << "huwei+caocao+jianshi" << "kuangdaoke+luxun+shizu"
+                << "qibing+machao+qibing" << "jianshi+zhaoyun+kuangdaoke"
+                << "jianshi+zhouyu+jianshi" << "leishi+guojia+leishi"
+                << "huwei+zhangliao+kuangdaoke" << "shizu+shenlumeng+shizu"
+                << "huwei+sunshangxiang+lumeng" << "zhugeliang+huangyueying+kuangdaoke"
+                << "kuangdaoke+xuchu+xiahoudun" <<"luxun+simayi+leishi"
+                << "guojia+caocao+zhenji" << "zhouyu+sunquan+huanggai"
+                << "zhaoyun+liubei+zhangfei" << "lubu+shenguanyu+diaochan";
 
     exp_map.insert("evil", 4);
     exp_map.insert("wei", 8);

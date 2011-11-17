@@ -116,10 +116,10 @@ end
 
 --------------------------------BASE--FUNCTION--OVER--------------------------------------------------------------------
 
-local yaoshu_p_skill={
-	name = "yaoshu_p" ,
+local dianji_p_skill={
+	name = "dianji_p" ,
 	getTurnUseCard = function(self)
-		if self.player:hasUsed("YaoshuPassCard") or self.player:isKongcheng() or #self.enemies == 0 then return end
+		if self.player:hasUsed("DianjiPassCard") or self.player:isKongcheng() or #self.enemies == 0 then return end
 	    local cards = self.player:getCards("h")	
 	    cards=sgs.QList2Table(cards)
 
@@ -127,20 +127,43 @@ local yaoshu_p_skill={
 		
 		for _,card in ipairs(cards)  do
 			if card:getSuit() == sgs.Card_Spade and not card:inherits("Shit") then
-				return sgs.Card_Parse("@YaoshuPassCard="..card:getEffectiveId())
+				return sgs.Card_Parse("@DianjiPassCard="..card:getEffectiveId())
 			end
 		end
 	end
 }
-table.insert(sgs.ai_skills,yaoshu_skill)
+table.insert(sgs.ai_skills,dianji_skill)
 
-sgs.ai_skill_use_func["YaoshuPassCard"]=function(card,use,self)
+sgs.ai_skill_use_func["DianjiPassCard"]=function(card,use,self)
 	if #self.enemies == 0 then return end 
 	self:sort(self.enemies, "hp")
 	use.card = card
 	if use.to then use.to:append(self.enemies[1]) end
 	return
 end
+
+
+local xunma_p_skill={
+	name = "xunma_p" ,
+	getTurnUseCard = function(self)
+		if self.player:isKongcheng() then return end
+	    local cards = self.player:getCards("h")	
+	    cards=sgs.QList2Table(cards)
+
+		for _,card in ipairs(cards)  do
+			if card:inherits("Horse") then
+				return sgs.Card_Parse("@XunmaPassCard="..card:getEffectiveId())
+			end
+		end
+	end
+}
+table.insert(sgs.ai_skills,xunma_p_skill)
+
+sgs.ai_skill_use_func["XunmaPassCard"]=function(card,use,self)
+	use.card = card
+end
+
+sgs.ai_use_priority.XunmaPassCard = 8.7 
 
 local rende_p_skill={
 	name = "rende_p" ,

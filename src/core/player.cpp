@@ -145,6 +145,8 @@ int Player::getAttackRange() const{
         range = hp;
     else
         range = 1;
+    if(hasSkill("shenshe_p"))
+        range *= 2 ;
     return range ;
 }
 
