@@ -603,7 +603,6 @@ SaveDataStruct::WrongType PassMode::checkDataValid(SaveDataStruct *save) const{
         if(go_check)
             continue;
         else{
-            QMessageBox::warning(NULL, tr("Warning"), skill);
             foreach(const Skill *skill_object, lord_skill){
                 if(skill == skill_object->objectName()){
                     go_check = true;
