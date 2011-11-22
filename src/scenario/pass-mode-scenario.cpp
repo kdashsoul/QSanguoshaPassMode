@@ -172,6 +172,22 @@ bool PassMode::askForLoadData(Room *room) const{
         return false;
     }
 
+    QString exception;
+    SaveDataStruct::WrongType exception_type = checkDataValid(save);
+    if(exception_type == SaveDataStruct::Ex_Exp){
+        exception = "wrong_exp";
+    }
+    else if(exception_type == SaveDataStruct::Ex_HP){
+        exception = "wrong_hp";
+    }
+    else if(exception_type == SaveDataStruct::Ex_Skills){
+        exception = "wrong_skills";
+    }
+    if(exception != NULL){
+        room->askForChoice(lord, "savefile", exception);
+        return false;
+    }
+
     save->times = (save->stage >= enemy_list.length()) ? (save->times+1) : save->times;
     save->stage = (save->stage >= enemy_list.length()) ? 0 : save->stage;
     room->setTag("Stage", save->stage+1);
@@ -535,6 +551,70 @@ SaveDataStruct *PassMode::askForReadData() const{
     save->size = line_num-1;
 
     return save;
+}
+
+SaveDataStruct::WrongType PassMode::checkDataValid(SaveDataStruct *save) const{
+    QStringList skill_list = save->skills.split("+");
+    const General *lord_general = Sanguosha->getGeneral(save->lord);
+    QList<const Skill *> lord_skill = lord_general->findChildren<const Skill *>();
+    int check_hp = save->lord_maxhp-1;
+    if(skill_list.contains("tipo_p"))
+        check_hp--;
+
+    if(check_hp != lord_general->getMaxHp())
+        return SaveDataStruct::Ex_HP;
+
+    if(save->stage == 0 && save->exp > 0 && save->times == 1)
+        return SaveDataStruct::Ex_Exp;
+
+    int check_exp = 0;
+    for(int level = 0; level < save->stage; level++){
+        QString stage_enemy = enemy_list.at(level);
+        foreach(QString enemy, stage_enemy.split("+")){
+            const General *enemy_one = Sanguosha->getGeneral(enemy + "_e") ;
+            if(! enemy_one)
+                enemy_one = Sanguosha->getGeneral(enemy + "_p") ;
+            if(! enemy_one)
+                enemy_one = Sanguosha->getGeneral(enemy);
+            int each_exp = exp_map.value(enemy_one->getKingdom());
+            each_exp += each_exp/2;
+            check_exp += each_exp;
+        }
+    }
+    foreach(QString skill, skill_list){
+        int skill_exp = skill_map.value(skill);
+        check_exp -= skill_exp;
+    }
+    if(save->exp > check_exp)
+        return SaveDataStruct::Ex_Exp;
+
+    foreach(QString skill, skill_list){
+        if(skill == NULL)
+            continue;
+
+        bool go_check = false;
+        foreach(QString learn_skill, skill_map.keys()){
+            if(skill == learn_skill){
+                go_check = true;
+                break;
+            }
+        }
+
+        if(go_check)
+            continue;
+        else{
+            foreach(const Skill *skill_object, lord_skill){
+                if(skill == skill_object->objectName()){
+                    go_check = true;
+                    break;
+                }
+            }
+        }
+
+        if(!go_check)
+            return SaveDataStruct::Ex_Skills;
+    }
+    return SaveDataStruct::Struct_Right;
 }
 
 bool PassMode::resetPlayerSkills(SaveDataStruct *savedata) const{

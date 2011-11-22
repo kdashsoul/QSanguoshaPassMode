@@ -246,8 +246,9 @@ local pass_t = {
     ["cancel"]                      = "取消",
     ["save"]                        = "保存",
     ["notsave"]                     = "不保存",
-    ["different_skills"]            = "数据错误！\n技能不符\n（可能由于version不同造成）",
-    ["unknown_lord"]                = "数据错误！\n不允许的主公角色",
+    ["wrong_skills"]       	        = "数据错误！存在不合法的技能（可能由于version不同造成）",
+    ["wrond_exp"]                   = "数据错误！不合法的经验值",
+    ["wrong_hp"]                    = "数据错误！不合法的体力上限",
 
     
     ["#TriggerDrawSkill"]           = "%from 的【%arg】效果被触发，从牌堆摸了 %arg2 张牌",
@@ -283,7 +284,6 @@ local pass_t = {
     
     ["#LoadNextStage"]              = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",
     ["#ResetPlayer"]                = "<font color='red'><b>进入了2周目，所有技能重置，并获得初始的50点经验值</b></font>",
-    
 }
 
 for k, v in pairs(pass_t) do

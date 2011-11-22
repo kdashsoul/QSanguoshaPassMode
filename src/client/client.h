@@ -31,7 +31,7 @@ public:
         AskForPlayerChoose,
         AskForYiji,
         AskForGuanxing,
-        AskForGongxin,
+        AskForGongxin
     };
 
     explicit Client(QObject *parent, const QString &filename = QString());

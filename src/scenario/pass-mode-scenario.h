@@ -47,6 +47,13 @@ struct SaveDataStruct{
 
     bool canRead() const;
     bool checkDataFormat() const;
+
+    enum WrongType{
+        Struct_Right,
+        Ex_HP,
+        Ex_Skills,
+        Ex_Exp
+    };
 private:
     static int default_size;
 };
@@ -77,6 +84,7 @@ public:
     bool askForSaveData(SaveDataStruct *save) const;
     SaveDataStruct *askForReadData() const;
     SaveDataStruct *catchSaveInfo(Room *room, int stage = -1) const;
+    SaveDataStruct::WrongType checkDataValid(SaveDataStruct *savedata) const;
 
     static const QString default_hero;
 private:
@@ -92,6 +100,6 @@ private:
 };
 
 typedef SaveDataStruct *SaveDataStar;
-Q_DECLARE_METATYPE(SaveDataStruct);
-Q_DECLARE_METATYPE(SaveDataStar);
+Q_DECLARE_METATYPE(SaveDataStruct)
+Q_DECLARE_METATYPE(SaveDataStar)
 #endif // PASSMODESCENARIO_H

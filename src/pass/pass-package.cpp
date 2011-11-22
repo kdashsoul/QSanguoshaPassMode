@@ -3361,7 +3361,6 @@ public:
                             room->damage(damage);
                             log.type = "#WuhunPassThrowDamage";
                         }
-
                         room->sendLog(log);
                     }
                 }
