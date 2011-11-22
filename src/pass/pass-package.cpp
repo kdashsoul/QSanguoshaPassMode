@@ -2858,7 +2858,7 @@ public:
 
 class GuhuoPassMark: public TriggerSkill{
 public:
-    GuhuoPassMark():TriggerSkill("#guhuo_p_mark"){
+    GuhuoPassMark():TriggerSkill("#guhuo_p"){
         events << CardUsed << PhaseChange;
     }
 
@@ -3150,10 +3150,10 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *jiaxu, QVariant &data) const{
         CardEffectStruct effect = data.value<CardEffectStruct>();
         Room *room = jiaxu->getRoom();
-        if(!jiaxu->isKongcheng() && effect.card->inherits("TrickCard") && effect.card->isBlack() && jiaxu->askForSkillInvoke(objectName())){
-            QString color_str = effect.card->isRed() ? "red" : effect.card->isBlack() ? "black" : "" ;
-            QString pattern = QString(".C%1").arg(color_str.at(0).toUpper());
-            QString prompt = QString("@@weimu_p:::%1").arg(color_str);
+        if(effect.from != jiaxu && !jiaxu->isKongcheng() && effect.card->inherits("TrickCard") && jiaxu->askForSkillInvoke(objectName())){
+            QString suit_str = effect.card->getSuitString();
+            QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
+            QString prompt = QString("@@weimu_p:::%1").arg(suit_str);
             if(room->askForCard(jiaxu, pattern, prompt)){
                 room->playSkillEffect(objectName());
                 LogMessage log;
@@ -3187,6 +3187,10 @@ public:
             room->showCard(effect.to, card_id);
             room->getThread()->delay();
 
+            if((card->isRed() && (suit == Card::Heart || suit == Card::Diamond)) ||
+                    (card->isBlack() && (suit == Card::Spade || suit == Card::Club))){
+                jiaxu->gainMark("@dumou_p");
+            }
             if(card->getSuit() == suit){
                 DamageStruct damage;
                 damage.from = jiaxu;
@@ -3209,7 +3213,7 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return player->getMark("@dumou_p") >= 2;
+        return player->getMark("@dumou_p") >= 3;
     }
 };
 
@@ -3218,7 +3222,7 @@ LuanwuPassCard::LuanwuPassCard(){
 }
 
 void LuanwuPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
-    source->loseMark("@dumou_p",2);
+    source->loseMark("@dumou_p",3);
     room->broadcastInvoke("animate", "lightbox:$luanwu");
     room->playSkillEffect("luanwu");
 
@@ -3261,6 +3265,120 @@ void LuanwuPassCard::onEffect(const CardEffectStruct &effect) const{
     }else
         room->loseHp(effect.to);
 }
+
+class BaimaPass:public TriggerSkill{
+public:
+    BaimaPass():TriggerSkill("baima_p"){
+        events << PhaseChange;
+        frequency = Frequent;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *gongsun, QVariant &) const{
+        if(gongsun->getPhase() == Player::Play){
+            Room *room = gongsun->getRoom();
+            int n = 0 ;
+            if(gongsun->getDefensiveHorse() != NULL)
+                n ++ ;
+            if(gongsun->getOffensiveHorse() != NULL)
+                n ++ ;
+            if(n > 0 && room->askForSkillInvoke(gongsun, objectName())){
+                LogMessage log;
+                log.type = "#TriggerDrawSkill";
+                log.from = gongsun;
+                log.arg = objectName();
+                log.arg2 = QString::number(n);
+                room->sendLog(log);
+                gongsun->drawCards(n);
+            }
+        }
+        return false;
+    }
+};
+
+class YicongPass: public DistanceSkill{
+public:
+    YicongPass():DistanceSkill("yicong_p"){
+
+    }
+
+    virtual int getCorrect(const Player *from, const Player *to) const{
+        int correct = 0;
+        if(from->hasSkill(objectName()) && from->getHp() >= 3)
+            correct -= (from->getHp() - 2);
+        if(to->hasSkill(objectName()) && to->getHp() < 3)
+            correct +=  (3 - to->getHp()) ;
+
+        return correct;
+    }
+};
+
+class YicongPassEffect:public TriggerSkill{
+public:
+    YicongPassEffect():TriggerSkill("#yicong_p"){
+        events << HpRecover << HpLost << Damaged;
+    }
+
+    virtual int getPriority() const{
+        return -3;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *gongsun, QVariant &data) const{
+        Room *room = gongsun->getRoom();
+        if(event == HpRecover){
+            RecoverStruct recover = data.value<RecoverStruct>();
+            if(gongsun->getHp() >= 3 && gongsun->getHp() - recover.recover < 3){
+                room->playSkillEffect("yicong",1);
+            }
+        }else{
+            int lost = 0;
+             if(event == HpLost){
+                lost = data.value<int>();
+             }else if(event == Damaged){
+                DamageStruct damage = data.value<DamageStruct>();
+                lost = damage.damage;
+             }
+            if(gongsun->getHp() < 3 && gongsun->getHp() + lost >= 3)
+            room->playSkillEffect("yicong",2);
+        }
+        return false;
+    }
+};
+
+class ZhuiliePass: public TriggerSkill{
+public:
+    ZhuiliePass():TriggerSkill("zhuilie_p"){
+        events << SlashHit;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *gongsun, QVariant &data) const{
+        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        QStringList horses;
+        if(effect.to->getDefensiveHorse())
+            horses << "dhorse";
+        if(effect.to->getOffensiveHorse())
+            horses << "ohorse";
+
+        if(horses.isEmpty())
+            return false;
+
+        Room *room = gongsun->getRoom();
+        if(!gongsun->getWeapon() || gongsun == effect.to || !gongsun->askForSkillInvoke(objectName(), data))
+            return false;
+
+        QString horse_type;
+        if(horses.length() == 2)
+            horse_type = room->askForChoice(gongsun, objectName(), horses.join("+"));
+        else
+            horse_type = horses.first();
+
+        if(horse_type == "dhorse")
+            room->moveCardTo(effect.to->getDefensiveHorse(),gongsun,Player::Hand);
+        else if(horse_type == "ohorse")
+            room->moveCardTo(effect.to->getOffensiveHorse(),gongsun,Player::Hand);
+
+        return false;
+    }
+};
 
 class WushenPass: public TriggerSkill{
 public:
@@ -3617,7 +3735,7 @@ PassPackage::PassPackage()
     yuji->addSkill(new GuhuoPassMark);
     yuji->addSkill(new BuguaPass);
     yuji->addSkill(new HuanshuPass);
-    related_skills.insertMulti("guhuo_p", "#guhuo_p_mark");
+    related_skills.insertMulti("guhuo_p", "#guhuo_p");
 
     PassGeneral *zhangjiao = new PassGeneral(this, Sanguosha->getGeneral("zhangjiao"));
     zhangjiao->addSkill("guidao");
@@ -3636,6 +3754,13 @@ PassPackage::PassPackage()
     jiaxu->addSkill(new Skill("wansha_p"));
     jiaxu->addSkill(new LuanwuPass);
     jiaxu->addSkill(new DumouPass);
+
+    General *gongsunzan = new PassGeneral(this, Sanguosha->getGeneral("gongsunzan"));
+    gongsunzan->addSkill(new BaimaPass);
+    gongsunzan->addSkill(new ZhuiliePass);
+    gongsunzan->addSkill(new YicongPass);
+    gongsunzan->addSkill(new YicongPassEffect);
+    related_skills.insertMulti("yicong_p", "#yicong_p");
 
     General *shizu = new General(this,"shizu_e","evil",3, true, true);
     shizu->addSkill(new ShiqiPass);

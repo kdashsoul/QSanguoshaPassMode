@@ -715,10 +715,9 @@ PassModeScenario::PassModeScenario()
 {
     rule = new PassModeRule(this);
 
-    lord = "shenzhaoyun";
-    rebels << "simayi" << "caocao" << "xiahoudun";
+    lord = "lubu";
+    rebels << "guanyu" << "liubei" << "zhangfei";
 
-    //addGeneralAndSkills();
 }
 
 ADD_SCENARIO(PassMode)

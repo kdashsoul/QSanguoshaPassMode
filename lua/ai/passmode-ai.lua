@@ -521,6 +521,7 @@ end
 sgs.ai_skill_invoke["longwei_p"] = function(self, data)
 	player = player or self.player
 	if self.enemies and #self.enemies > 0 then
+		self:sort(self.enemies, "hp")
 		local target = self.enemies[1]
 		local can_longwei = target:getHp() > player:getHp() or target:getHandcardNum() > player:getHandcardNum() 
 		if can_longwei and self.player:canSlash(target) and not self:slashProhibit(slash ,target)  then
@@ -530,8 +531,9 @@ sgs.ai_skill_invoke["longwei_p"] = function(self, data)
 	return false
 end
 
-sgs.ai_skill_playerchosen["longwei_slash"] = function(self,targets)
+sgs.ai_skill_playerchosen["longwei_p-slash"] = function(self,targets)
 	local slash = sgs.Card_Parse(("slash[%s:%s]"):format(sgs.Card_NoSuit, 0))
+	self:sort(targets, "hp")
 	for _, target in ipairs(targets) do
 		if self:isEnemy(target) and self.player:canSlash(target) and not self:slashProhibit(slash ,target) then
 			return target
@@ -549,7 +551,7 @@ sgs.ai_skill_discard["tongji_p"] = function(self)
 end
 
 
-sgs.ai_skill_invoke["@@quwu_p"] = function(self, data)
+sgs.ai_skill_invoke["@quwu_p"] = function(self, data)
 	player = self.player
 	if player:getOffensiveHorse() then return player:getOffensiveHorse():getId() end
 	if player:getWeapon() then return player:getWeapon():getId() end
