@@ -46,7 +46,7 @@ PassMode::PassMode(QObject *parent)
                 << "huwei+sunshangxiang+lumeng" << "zhugeliang+huangyueying+kuangdaoke"
                 << "kuangdaoke+xuchu+xiahoudun" <<"luxun+simayi+leishi"
                 << "guojia+caocao+zhenji" << "zhouyu+sunquan+huanggai"
-                << "zhaoyun+liubei+zhangfei" << "lubu+shenguanyu+diaochan";
+                << "guanyu+liubei+zhangfei" << "lubu+shenguanyu+diaochan";
 
     exp_map.insert("evil", 4);
     exp_map.insert("wei", 8);

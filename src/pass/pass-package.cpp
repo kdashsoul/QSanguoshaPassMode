@@ -573,7 +573,6 @@ public:
 };
 
 
-
 class JianxiongPass:public MasochismSkill{
 public:
     JianxiongPass():MasochismSkill("jianxiong_p"){
@@ -2184,7 +2183,7 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         DamageStruct damage = data.value<DamageStruct>();
         Room *room = player->getRoom();
-        const Card *card = room->askForCard(player, "@@quwu_p", "@quwu_p");
+        const Card *card = room->askForCard(player, "@quwu_p", "@@quwu_p");
         if(card){
             room->throwCard(card->getEffectiveId());
             LogMessage log;
@@ -2467,7 +2466,7 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return !player->hasUsed("YuyueCard");
+        return !player->hasUsed("YuyuePassCard");
     }
 
     virtual bool viewFilter(const CardItem *to_select) const{
@@ -3033,6 +3032,33 @@ public:
     }
 };
 
+class JiuchiPass: public OneCardViewAsSkill{
+public:
+    JiuchiPass():OneCardViewAsSkill("jiuchi_p"){
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return Analeptic::IsAvailable(player);
+    }
+
+    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+        return  pattern.contains("analeptic");
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        return to_select->getFilteredCard()->getSuit() == Card::Spade;
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        const Card *card = card_item->getCard();
+        Analeptic *analeptic = new Analeptic(card->getSuit(), card->getNumber());
+        analeptic->setSkillName(objectName());
+        analeptic->addSubcard(card->getId());
+
+        return analeptic;
+    }
+};
+
 class BenghuaiPass:public PassiveSkill{
 public:
     BenghuaiPass():PassiveSkill("benghuai_p"){
@@ -3125,9 +3151,9 @@ public:
         CardEffectStruct effect = data.value<CardEffectStruct>();
         Room *room = jiaxu->getRoom();
         if(!jiaxu->isKongcheng() && effect.card->inherits("TrickCard") && effect.card->isBlack() && jiaxu->askForSkillInvoke(objectName())){
-            QString suit_str = effect.card->getSuitString();
-            QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
-            QString prompt = QString("@@weimu_p:::%1").arg(suit_str);
+            QString color_str = effect.card->isRed() ? "red" : effect.card->isBlack() ? "black" : "" ;
+            QString pattern = QString(".C%1").arg(color_str.at(0).toUpper());
+            QString prompt = QString("@@weimu_p:::%1").arg(color_str);
             if(room->askForCard(jiaxu, pattern, prompt)){
                 room->playSkillEffect(objectName());
                 LogMessage log;
@@ -3143,7 +3169,98 @@ public:
     }
 };
 
+class DumouPass:public TriggerSkill{
+public:
+    DumouPass():TriggerSkill("dumou_p"){
+        events << CardEffect;
+        frequency = Frequent;
+    }
 
+    virtual bool trigger(TriggerEvent , ServerPlayer *jiaxu, QVariant &data) const{
+        CardEffectStruct effect = data.value<CardEffectStruct>();
+        Room *room = jiaxu->getRoom();
+        if(effect.card->inherits("TrickCard") && !effect.multiple && effect.from != effect.to && !effect.to->isKongcheng() && jiaxu->askForSkillInvoke(objectName())){
+            Card::Suit suit = room->askForSuit(jiaxu);
+            int card_id = effect.to->getRandomHandCardId();
+            const Card *card = Sanguosha->getCard(card_id);
+
+            room->showCard(effect.to, card_id);
+            room->getThread()->delay();
+
+            if(card->getSuit() == suit){
+                DamageStruct damage;
+                damage.from = jiaxu;
+                damage.to = effect.to;
+                room->damage(damage);
+                jiaxu->gainMark("@dumou_p");
+            }
+        }
+        return false ;
+    }
+};
+
+class LuanwuPass: public ZeroCardViewAsSkill{
+public:
+    LuanwuPass():ZeroCardViewAsSkill("luanwu_p"){
+    }
+
+    virtual const Card *viewAs() const{
+        return new LuanwuPassCard;
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return player->getMark("@dumou_p") >= 2;
+    }
+};
+
+LuanwuPassCard::LuanwuPassCard(){
+    target_fixed = true;
+}
+
+void LuanwuPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
+    source->loseMark("@dumou_p",2);
+    room->broadcastInvoke("animate", "lightbox:$luanwu");
+    room->playSkillEffect("luanwu");
+
+    QList<ServerPlayer *> players = room->getOtherPlayers(source);
+    foreach(ServerPlayer *player, players){
+        if(player->isAlive())
+            room->cardEffect(this, source, player);
+    }
+}
+
+void LuanwuPassCard::onEffect(const CardEffectStruct &effect) const{
+    Room *room = effect.to->getRoom();
+
+    QList<ServerPlayer *> players = room->getOtherPlayers(effect.to);
+    QList<int> distance_list;
+    int nearest = 1000;
+    foreach(ServerPlayer *player, players){
+        int distance = effect.to->distanceTo(player);
+        distance_list << distance;
+
+        nearest = qMin(nearest, distance);
+    }
+
+    QList<ServerPlayer *> luanwu_targets;
+    int i;
+    for(i=0; i<distance_list.length(); i++){
+        if(distance_list.at(i) == nearest && effect.to->canSlash(players.at(i))){
+            luanwu_targets << players.at(i);
+        }
+    }
+
+    const Card *slash = NULL;
+    if(!luanwu_targets.isEmpty() && (slash = room->askForCard(effect.to, "slash", "@luanwu-slash"))){
+        ServerPlayer *to_slash;
+        if(luanwu_targets.length() == 1)
+            to_slash = luanwu_targets.first();
+        else
+            to_slash = room->askForPlayerChosen(effect.to, luanwu_targets, "luanwu");
+        room->cardEffect(slash, effect.to, to_slash);
+    }else
+        room->loseHp(effect.to);
+}
 
 class WushenPass: public TriggerSkill{
 public:
@@ -3318,6 +3435,19 @@ public:
     }
 };
 
+class ColorPattern: public CardPattern{
+public:
+    ColorPattern(const QString &color_name)
+        :color_name(color_name){
+    }
+
+    virtual bool match(const Player *player, const Card *card) const{
+        bool match_color = (card->isBlack() && color_name == "black") || (card->isRed() && color_name == "red");
+        return ! player->hasEquip(card) && match_color;
+    }
+private:
+    QString color_name;
+};
 
 class NothrowHandcardsPattern: public CardPattern{
 public:
@@ -3497,16 +3627,16 @@ PassPackage::PassPackage()
     zhangjiao->addSkill(new DajiPass);
 
     PassGeneral *dongzhuo = new PassGeneral(this, Sanguosha->getGeneral("dongzhuo"));
-    dongzhuo->addSkill("jiuchi");
+    dongzhuo->addSkill(new JiuchiPass);
     dongzhuo->addSkill("roulin");
     dongzhuo->addSkill(new BenghuaiPass);
     dongzhuo->addSkill(new BaonuePass);
 
     General *jiaxu = new PassGeneral(this, Sanguosha->getGeneral("jiaxu"));
     jiaxu->addSkill(new WeimuPass);
-    jiaxu->addSkill("wansha");
-    jiaxu->addSkill("luanwu");
-    jiaxu->addSkill("#@chaos");
+    jiaxu->addSkill(new Skill("wansha_p"));
+    jiaxu->addSkill(new LuanwuPass);
+    jiaxu->addSkill(new DumouPass);
 
     General *shizu = new General(this,"shizu_e","evil",3, true, true);
     shizu->addSkill(new ShiqiPass);
@@ -3571,7 +3701,10 @@ PassPackage::PassPackage()
     addMetaObject<YuyuePassCard>();
     addMetaObject<LijianPassCard>();
     addMetaObject<QingnangPassCard>();
+    addMetaObject<LuanwuPassCard>();
 
+    patterns[".CR"] = new ColorPattern("red");
+    patterns[".CB"] = new ColorPattern("black");
     patterns[".NTH!"] = new NothrowHandcardsPattern;
     patterns[".NT!"] = new NothrowPattern;
 }

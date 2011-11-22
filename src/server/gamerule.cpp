@@ -238,7 +238,13 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
             QList<ServerPlayer *> savers;
             ServerPlayer *current = room->getCurrent();
-            if(current->hasSkill("wansha") && current->isAlive()){
+            bool can_wansha = current->hasSkill("wansha") ;
+            if(current->hasSkill("wansha_p") && current->getMark("@dumou_p") > 0 && room->askForSkillInvoke(current,"wansha_p")){
+                can_wansha = true ;
+                current->loseMark("@dumou_p");
+            }
+
+            if(can_wansha && current->isAlive()){
                 room->playSkillEffect("wansha");
 
                 savers << current;

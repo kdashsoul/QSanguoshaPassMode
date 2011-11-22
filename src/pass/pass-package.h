@@ -183,6 +183,16 @@ public:
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };
 
+class LuanwuPassCard: public SkillCard{
+    Q_OBJECT
+
+public:
+    Q_INVOKABLE LuanwuPassCard();
+
+    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+    virtual void onEffect(const CardEffectStruct &effect) const;
+};
+
 class DianjiPassCard: public SkillCard{
     Q_OBJECT
 
