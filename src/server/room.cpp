@@ -613,7 +613,7 @@ bool Room::askForNullification(const TrickCard *trick, ServerPlayer *from, Serve
             setTag("NullifyingTimes",getTag("NullifyingTimes").toInt()+1);
 
             if(player->hasSkill("shipo_p")){
-                if(from && player != from && from->getHp() >= player->getHp() && askForSkillInvoke(player, "shipo_p")){
+                if(from && player != from && from->getHp() >= player->getHp() && askForSkillInvoke(player, "shipo_p" , QVariant::fromValue(from))){
                     DamageStruct damage;
                     damage.from = player;
                     damage.to = from;

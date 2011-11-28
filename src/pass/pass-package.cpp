@@ -484,7 +484,6 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         DamageStruct damage = data.value<DamageStruct>();
         if(damage.nature == DamageStruct::Thunder){
-            damage.damage = 0;
             data = QVariant::fromValue(damage);
             LogMessage log;
             log.type = "#TriggerDamageDownSkill";
@@ -493,6 +492,7 @@ public:
             log.arg2 = QString::number(damage.damage) ;
             player->getRoom()->sendLog(log);
             player->drawCards(damage.damage);
+            damage.damage = 0;
         }
         return false;
     }
@@ -1806,7 +1806,6 @@ public:
 class ShipoPass:public TriggerSkill{
 public:
     ShipoPass():TriggerSkill("shipo_p"){
-        frequency = Frequent;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *yueying, QVariant &data) const{
@@ -3277,9 +3276,7 @@ public:
         if(gongsun->getPhase() == Player::Play){
             Room *room = gongsun->getRoom();
             int n = 0 ;
-            if(gongsun->getDefensiveHorse() != NULL)
-                n ++ ;
-            if(gongsun->getOffensiveHorse() != NULL)
+            if(gongsun->getDefensiveHorse() != NULL || gongsun->getOffensiveHorse() != NULL)
                 n ++ ;
             if(n > 0 && room->askForSkillInvoke(gongsun, objectName())){
                 LogMessage log;

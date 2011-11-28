@@ -499,6 +499,7 @@ end
 
 sgs.ai_skill_invoke["jielue_p"] = sgs.ai_skill_invoke["jueduan_p"]
 sgs.ai_skill_invoke["wushen_p"] = sgs.ai_skill_invoke["jueduan_p"]
+sgs.ai_skill_invoke["shipo_p"] = sgs.ai_skill_invoke["jueduan_p"]
 sgs.ai_skill_invoke["tongji_p"] = function(self, data)
 	local target = data:toPlayer()
 	return not self:isFriend(target) and not self.player:isKongcheng()
@@ -531,7 +532,7 @@ sgs.ai_skill_invoke["longwei_p"] = function(self, data)
 	return false
 end
 
-sgs.ai_skill_playerchosen["longwei_p-slash"] = function(self,targets)
+sgs.ai_skill_playerchosen["longwei_p_slash"] = function(self,targets)
 	local slash = sgs.Card_Parse(("slash[%s:%s]"):format(sgs.Card_NoSuit, 0))
 	self:sort(targets, "hp")
 	for _, target in ipairs(targets) do

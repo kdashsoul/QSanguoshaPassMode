@@ -501,7 +501,15 @@ function SmartAI:sort(players, key)
 end
 
 function SmartAI:filterEvent(event, player, data)
-	if event == sgs.CardUsed then
+	if event==sgs.ChoiceMade then
+		local carduse=data:toCardUse()
+		if carduse and carduse:isValid() then
+			local filter = sgs.ai_event_filter[carduse.card:className()]
+			if type(filter) == "function" then
+				filter(card_use.from, sgs.QList2Table(carduse.to))
+			end
+		end
+	elseif event == sgs.CardUsed then
 		self:updatePlayers()
 	elseif event == sgs.CardEffect then
 		self:updatePlayers()
@@ -2536,7 +2544,7 @@ function SmartAI:askForCardChosen(who, flags, reason)
 			end
 			
 			if who:getWeapon() then
-			    if not (who:hasSkill("xiaoji") and (who:getHandcardNum() >= who:getHp())) then
+			    if not (who:hasSkill("xiaoji") and (who:getHandcardNum() >= who:getHp())) and not self:isEquip("YitianSword",who) then
 					for _,friend in ipairs(self.friends) do
 						if (who:distanceTo(friend) <= who:getAttackRange()) and (who:distanceTo(friend) > 1) then 
 							return who:getWeapon():getId()
