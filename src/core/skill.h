@@ -28,7 +28,7 @@ public:
     explicit Skill(const QString &name, Frequency frequent = NotFrequent);
     bool isLordSkill() const;
     QString getDescription() const;
-    QString getText() const;
+    QString getText(const bool full=true) const;
     bool isVisible() const;
 
     virtual QString getDefaultChoice(ServerPlayer *player) const;

@@ -13,10 +13,12 @@
 #include <QCommandLinkButton>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QTabWidget>
 #include <QLineEdit>
 #include <QLabel>
 #include <QTextDocument>
 #include <QTextCursor>
+#include <QScrollArea>
 
 Client *ClientInstance = NULL;
 
@@ -736,10 +738,19 @@ void Client::askForSkillChoice(const QString &skills_str){
     QDialog *dialog = new QDialog;
     dialog->setWindowTitle(tr("Study skill:"));
 
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(new QLabel(tr("Please choose:")));
+    QHBoxLayout *layout = new QHBoxLayout;
 
-    foreach(QString skill_info, skill_infos){
+    QTabWidget *tab_widget = new QTabWidget;
+
+    QWidget *tab = new QWidget;
+
+//    QScrollArea *scrollArea = new QScrollArea(tab);
+//    scrollArea->setWidgetResizable(true);
+
+    QVBoxLayout *vLayout = new QVBoxLayout ;
+    tab->setLayout(vLayout);
+
+    foreach(QString skill_info , skill_infos){
         QCommandLinkButton *button = new QCommandLinkButton;
         QStringList skill_info_array = skill_info.split(":") ;
         QString skill_name = skill_info_array.at(0) ;
@@ -748,19 +759,23 @@ void Client::askForSkillChoice(const QString &skills_str){
         const Skill *skill = Sanguosha->getSkill(skill_name) ;
 
         button->setObjectName(skill->objectName());
-        button->setText(QString("%1 : %2 %3").arg(skill->getText()).arg(skill_value).arg(Sanguosha->translate("exp")));
+        button->setText(QString("%1 : %2").arg(skill->getText(false)).arg(skill_value));
         button->setToolTip(skill->getDescription());
         button->setFont(Config.TinyFont);
 
         connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
         connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
 
-        layout->addWidget(button);
+        vLayout->addWidget(button);
     }
+//    tab_widget->addTab(tab,"skill_main") ;
+//    tab_widget->addTab(tab,"skill_feature") ;
+    tab_widget->addTab(tab,"skill_common") ;
+
+    layout->addWidget(tab_widget);
 
     dialog->setObjectName(".");
     connect(dialog, SIGNAL(rejected()), this, SLOT(selectChoice()));
-
     dialog->setLayout(layout);
 
     ask_dialog = dialog;
