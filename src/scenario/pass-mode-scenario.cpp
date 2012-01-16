@@ -69,6 +69,8 @@ PassMode::PassMode(QObject *parent)
 
 //    hidden_reward["xiongzi_p"] = "._rewardyingzi|feiying_qingnangshu";
 
+    spec_general["dongzhuo_p"] = QVariant::fromValue(4);
+
 }
 
 static int Restart = 1;
@@ -562,8 +564,10 @@ SaveDataStruct::WrongType PassMode::checkDataValid(SaveDataStruct *save) const{
     if(skill_list.contains("tipo_p"))
         check_hp--;
 
-//    if(check_hp != lord_general->getMaxHp())
-//        return SaveDataStruct::Ex_HP;
+    if(check_hp != lord_general->getMaxHp()){
+        if(spec_general[save->lord].toInt() != check_hp)
+            return SaveDataStruct::Ex_HP;
+    }
 
     if(save->stage == 0 && save->exp > 0 && save->times == 1)
         return SaveDataStruct::Ex_Exp;

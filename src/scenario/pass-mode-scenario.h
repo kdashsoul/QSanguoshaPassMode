@@ -92,6 +92,8 @@ private:
     QMap<QString, int> exp_map;
     QMap<QString, int> skill_map;
 
+    QMap<QString, QVariant> spec_general;
+
     QMap<QString, QString> hidden_reward;
 
     static const QString version;
