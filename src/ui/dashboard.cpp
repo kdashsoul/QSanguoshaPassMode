@@ -10,6 +10,7 @@
 #include <QGraphicsProxyWidget>
 #include <QGraphicsSceneMouseEvent>
 #include <QMenu>
+#include <QPixmapCache>
 
 Dashboard::Dashboard()
     :left_pixmap("image/system/dashboard-equip.png"), right_pixmap("image/system/dashboard-avatar.png"),
@@ -31,6 +32,9 @@ Dashboard::Dashboard()
     setMiddleWidth(middle_width);
 
     sort_type = 0;
+
+    animations = new EffectAnimation();
+
 }
 
 void Dashboard::createLeft(){
@@ -92,6 +96,7 @@ void Dashboard::createRight(){
     chain_icon = new Pixmap("image/system/chain.png");
     chain_icon->setParentItem(right);
     chain_icon->setPos(small_avatar->pos());
+    chain_icon->moveBy(-25 ,-45);
     chain_icon->hide();
     chain_icon->setZValue(1.0);
 
@@ -106,9 +111,11 @@ void Dashboard::createRight(){
     handcard_pixmap->setPos(25, 127);
 
     handcard_num = new QGraphicsSimpleTextItem(handcard_pixmap);
-    handcard_num->setFont(Config.TinyFont);
+    handcard_num->setPos(6,8);
+
+     QFont serifFont("Times", 10, QFont::Bold);
+    handcard_num->setFont(serifFont);
     handcard_num->setBrush(Qt::white);
-    handcard_num->setPos(5,0);
 
     handcard_pixmap->hide();
 
@@ -132,10 +139,10 @@ void Dashboard::setActionState(){
 void Dashboard::setFilter(const FilterSkill *filter){
     this->filter = filter;
 
-    if(filter == NULL){
+    //if(filter == NULL){
         foreach(CardItem *card_item, card_items)
-            card_item->filter(NULL);
-    }
+            card_item->filter(filter);
+    //}
 }
 
 const FilterSkill *Dashboard::getFilter() const{
@@ -161,15 +168,18 @@ void Dashboard::addCardItem(CardItem *card_item){
     card_item->setParentItem(this);
     card_item->setRotation(0.0);
     card_item->setFlags(ItemIsFocusable);
+    card_item->setZValue(0.1);
     card_items << card_item;
 
     connect(card_item, SIGNAL(clicked()), this, SLOT(onCardItemClicked()));
     connect(card_item, SIGNAL(thrown()), this, SLOT(onCardItemThrown()));
+    connect(card_item, SIGNAL(enter_hover()), this, SLOT(onCardItemHover()));
+    connect(card_item, SIGNAL(leave_hover()), this, SLOT(onCardItemLeaveHover()));
 
     sortCards(sort_type);
 
     handcard_num->setText(QString::number(Self->getHandcardNum()));
-    handcard_num->parentItem()->show();
+    //handcard_num->parentItem()->show();
 }
 
 void Dashboard::setPlayer(const ClientPlayer *player){
@@ -299,7 +309,7 @@ void Dashboard::unselectAll(){
 
     foreach(CardItem *card_item, card_items){
         card_item->unselect();
-        card_item->goBack();
+        //card_item->goBack();
     }
 }
 
@@ -311,10 +321,19 @@ void Dashboard::hideAvatar(){
 void Dashboard::installDelayedTrick(CardItem *card){
     judging_area << card;
     const DelayedTrick *trick = DelayedTrick::CastFrom(card->getCard());
-    delayed_tricks << QPixmap(trick->getIconPath());
+    QGraphicsPixmapItem *item = new QGraphicsPixmapItem(this);
+    item->setPixmap(QPixmap(trick->getIconPath()));
+    QString tooltip;
+    if(trick->isVirtualCard())
+        tooltip=Sanguosha->getCard((trick->getSubcards()).at(0))->getDescription();
+    else
+        tooltip=trick->getDescription();
+    item->setToolTip(tooltip);
+    item->setPos(3 + delayed_tricks.length() * 27, 5);
+    delayed_tricks << item;
 
     card->setHomePos(mapToScene(QPointF(34, 37)));
-    card->goBack(true);
+    card->goBack(true,false);
 
     update();
 }
@@ -376,10 +395,11 @@ QPushButton *Dashboard::createButton(const QString &name){
     QIcon icon(icon_pixmap);
     icon.addPixmap(icon_pixmap_disabled, QIcon::Disabled);
 
-    button->setIcon(icon);
-    button->setIconSize(icon_pixmap.size());
+    //button->setIcon(icon);
+    //button->setIconSize(icon_pixmap.size());
     button->setFixedSize(icon_pixmap.size());
     button->setObjectName(name);
+    button->setProperty("game_control",true);
 
     button->setAttribute(Qt::WA_TranslucentBackground);
 
@@ -394,15 +414,15 @@ QPushButton *Dashboard::addButton(const QString &name, int x, bool from_left){
 
 QProgressBar *Dashboard::addProgressBar(){
     QProgressBar *progress_bar = new QProgressBar;
-    progress_bar->setOrientation(Qt::Vertical);
     progress_bar->setMinimum(0);
     progress_bar->setMaximum(100);
-    progress_bar->setFixedSize(12, 124);
+    progress_bar->setFixedSize(300, 15);
+    progress_bar->setTextVisible(false);
 
     QGraphicsProxyWidget *widget = new QGraphicsProxyWidget(right);
     widget->setWidget(progress_bar);
-    widget->setParentItem(right);
-    widget->setPos(3, 39);
+    widget->setParentItem(middle);
+    widget->setPos(300, - 25);
 
     progress_bar->hide();
 
@@ -478,13 +498,6 @@ void Dashboard::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidg
     drawEquip(painter, defensive_horse, 2);
     drawEquip(painter, offensive_horse, 3);
 
-    // draw player's judging area
-    int i;
-    for(i=0; i<delayed_tricks.count(); i++){
-        QPoint pos(3 + i * 27, 5);
-        painter->drawPixmap(pos, delayed_tricks.at(i));
-    }
-
     drawHp(painter);
 
     chain_icon->setVisible(Self->isChained());
@@ -512,25 +525,49 @@ void Dashboard::drawEquip(QPainter *painter, const CardItem *equip, int order){
     if(!equip)
         return;
 
-    static const int width = 117;
-    static const int height = 25;
-    static const int start_x = 8;
+    static const int width = 145;
     static const int start_y = 40;
 
     int y = start_y + order * 32;
 
+    const EquipCard *card = qobject_cast<const EquipCard *>(equip->getCard());
+    painter->setPen(Qt::black);
+
+    // draw image or name
+    QString path = QString("image/equips/%1.png").arg(card->objectName());
+    QPixmap label;
+    if(!QPixmapCache::find(path, &label)){
+        label.load(path);
+        QPixmapCache::insert(path, label);
+    }
+
+    if(label.isNull())
+    {
+        painter->setPen(Qt::white);
+        QString text = QString("%1").arg(card->label());
+        painter->drawText(10, y + 20, text);
+    }else
+    {
+        QFont font("Algerian",12);
+        font.setBold(true);
+        painter->setFont(font);
+        painter->drawPixmap(8,y + 2,label.width(),label.height(),label);
+    }
+
     // draw the suit of equip
-    QRect suit_rect(10, y + 3, 15, 15);
+    QRect suit_rect(width - 19, y + 10, 13, 13);
     painter->drawPixmap(suit_rect, equip->getSuitPixmap());
 
-    // draw the name of equip
-    const EquipCard *card = qobject_cast<const EquipCard *>(equip->getCard());
-    QString text = QString("%1 %2").arg(card->getNumberString()).arg(card->label());
-    painter->drawText(28, y + 20, text);
+
+    // draw the number of equip
+
+    //painter->drawText(width - 4,y + 23,QString("%1").arg(card->getNumberString()));
+    painter->drawPixmap(width - 14,y + 3,equip->getNumberPixmap());
+
 
     painter->setPen(Qt::white);
     if(equip->isMarked()){
-        painter->drawRect(start_x, y , width, height);
+        painter->drawRect(8,y + 2,label.width(),label.height());
     }
 }
 
@@ -571,7 +608,7 @@ void Dashboard::adjustCards(){
 
         // reset Z value
         for(i=0; i<n; i++)
-            all_items.at(i)->setZValue(0.0001 * i);
+            all_items.at(i)->setZValue(2.0 + 0.0001 * i);
     }else{
         adjustCards(card_items, CardItem::NormalY);
 
@@ -601,7 +638,7 @@ void Dashboard::adjustCards(const QList<CardItem *> &list, int y){
     int i;
     for(i=0; i<n; i++){
         if(card_items.length() <= Config.MaxCards)
-            list[i]->setZValue(0.0001 * i);
+            list[i]->setZValue(2.0 + 0.0001 * i);
 
         QPointF home_pos(start_x + i * card_skip, y);
         list[i]->setHomePos(home_pos);
@@ -611,7 +648,7 @@ void Dashboard::adjustCards(const QList<CardItem *> &list, int y){
 
 void Dashboard::installEquip(CardItem *equip){
     equip->setHomePos(mapToScene(QPointF(34, 37)));
-    equip->goBack(true);
+    equip->goBack(true,false);
 
     int index = -1;
     const EquipCard *equip_card = qobject_cast<const EquipCard *>(equip->getCard());
@@ -664,7 +701,10 @@ CardItem *Dashboard::takeCardItem(int card_id, Player::Place place){
             card_item->hideFrame();
             int index = judging_area.indexOf(card_item);
             judging_area.removeAt(index);
-            delayed_tricks.removeAt(index);
+            delete delayed_tricks.takeAt(index);
+            for(int i=0; i<delayed_tricks.count(); i++){
+                delayed_tricks.at(i)->setPos(3 + i * 27, 5);
+            }
         }
     }
 
@@ -777,6 +817,7 @@ void Dashboard::startPending(const ViewAsSkill *skill){
     }
 
     updatePending();
+    adjustCards();
 }
 
 void Dashboard::stopPending(){
@@ -816,10 +857,11 @@ void Dashboard::onCardItemClicked(){
     }else{
         if(card_item->isPending()){
             unselectAll();
+            emit card_selected(NULL);
         }else{
             unselectAll();
             card_item->select();
-            card_item->goBack();
+            //card_item->goBack();
             selected = card_item;
 
             emit card_selected(selected->getFilteredCard());
@@ -857,6 +899,22 @@ void Dashboard::onCardItemThrown(){
     }
 }
 
+void Dashboard::onCardItemHover()
+{
+    QGraphicsItem *card_item = qobject_cast<QGraphicsItem *>(sender());
+    if(!card_item)return;
+
+    animations->emphasize(card_item);
+}
+
+void Dashboard::onCardItemLeaveHover()
+{
+    QGraphicsItem *card_item = qobject_cast<QGraphicsItem *>(sender());
+    if(!card_item)return;
+
+    animations->effectOut(card_item);
+}
+
 void Dashboard::onMarkChanged(){
     CardItem *card_item = qobject_cast<CardItem *>(sender());
 
@@ -879,4 +937,14 @@ const ViewAsSkill *Dashboard::currentSkill() const{
 
 const Card *Dashboard::pendingCard() const{
     return pending_card;
+}
+
+int Dashboard::getRightPosition()
+{
+    return left_pixmap.width() + middle->rect().width();
+}
+
+int Dashboard::getMidPosition()
+{
+    return left_pixmap.width();
 }

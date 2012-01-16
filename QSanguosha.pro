@@ -22,7 +22,6 @@ SOURCES += src/main.cpp \
 	src/core/player.cpp \
 	src/core/settings.cpp \
 	src/core/skill.cpp \
-	src/dialog/banpairdialog.cpp \
 	src/dialog/cardeditor.cpp \
 	src/dialog/cardoverview.cpp \
 	src/dialog/choosegeneraldialog.cpp \
@@ -37,6 +36,7 @@ SOURCES += src/main.cpp \
 	src/dialog/roleassigndialog.cpp \
 	src/dialog/scenario-overview.cpp \
         src/dialog/halldialog.cpp \
+        src/package/exppattern.cpp \
 	src/package/firepackage.cpp \
 	src/package/god.cpp \
 	src/package/maneuvering.cpp \
@@ -50,7 +50,7 @@ SOURCES += src/main.cpp \
 	src/package/thicket.cpp \
 	src/package/wind.cpp \
 	src/package/yjcm-package.cpp \
-	src/scenario/challengemode.cpp \
+        src/package/bgm-package.cpp \
 	src/scenario/scenario.cpp \
 	src/scenario/scenerule.cpp \
         src/scenario/pass-mode-scenario.cpp \
@@ -79,8 +79,13 @@ SOURCES += src/main.cpp \
 	src/util/nativesocket.cpp \
 	src/util/recorder.cpp \
 	swig/sanguosha_wrap.cxx \
-    src/pass/pass-general.cpp \
-    src/pass/pass-package.cpp
+        src/ui/pixmapanimation.cpp \
+        src/ui/sprite.cpp \	
+    	src/core/banpair.cpp \
+    	src/ui/chatwidget.cpp \
+    	src/scenario/miniscenarios.cpp \
+        src/pass/pass-general.cpp \
+        src/pass/pass-package.cpp
 
 
 HEADERS += src/client/aux-skills.h \
@@ -94,7 +99,6 @@ HEADERS += src/client/aux-skills.h \
 	src/core/player.h \
 	src/core/settings.h \
 	src/core/skill.h \
-	src/dialog/banpairdialog.h \
 	src/dialog/cardeditor.h \
 	src/dialog/cardoverview.h \
 	src/dialog/choosegeneraldialog.h \
@@ -109,6 +113,7 @@ HEADERS += src/client/aux-skills.h \
 	src/dialog/playercarddialog.h \
 	src/dialog/roleassigndialog.h \ 
 	src/dialog/scenario-overview.h \
+        src/package/exppattern.h \
 	src/package/firepackage.h \
 	src/package/god.h \
 	src/package/maneuvering.h \
@@ -122,7 +127,7 @@ HEADERS += src/client/aux-skills.h \
 	src/package/thicket.h \
 	src/package/wind.h \
 	src/package/yjcm-package.h \
-	src/scenario/challengemode.h \
+        src/package/bgm-package.h \
 	src/scenario/scenario.h \
 	src/scenario/scenerule.h \
         src/scenario/pass-mode-scenario.h \
@@ -152,8 +157,13 @@ HEADERS += src/client/aux-skills.h \
 	src/util/nativesocket.h \
 	src/util/recorder.h \
 	src/util/socket.h \
-    src/pass/pass-package.h \
-    src/pass/pass-general.h
+        src/ui/pixmapanimation.h \
+        src/ui/sprite.h \
+        src/core/banpair.h \
+        src/ui/chatwidget.h \
+	src/scenario/miniscenarios.h \
+        src/pass/pass-package.h \
+        src/pass/pass-general.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \

@@ -561,8 +561,8 @@ SaveDataStruct::WrongType PassMode::checkDataValid(SaveDataStruct *save) const{
     if(skill_list.contains("tipo_p"))
         check_hp--;
 
-    if(check_hp != lord_general->getMaxHp())
-        return SaveDataStruct::Ex_HP;
+//    if(check_hp != lord_general->getMaxHp())
+//        return SaveDataStruct::Ex_HP;
 
     if(save->stage == 0 && save->exp > 0 && save->times == 1)
         return SaveDataStruct::Ex_Exp;

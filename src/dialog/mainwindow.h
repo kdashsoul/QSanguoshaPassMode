@@ -8,6 +8,8 @@
 #include <QMainWindow>
 #include <QSettings>
 #include <QComboBox>
+#include <QCheckBox>
+#include <QSpinBox>
 
 namespace Ui {
     class MainWindow;
@@ -20,6 +22,7 @@ class Server;
 class QTextEdit;
 class QToolButton;
 class QGroupBox;
+class RoomItem;
 
 class BroadcastBox: public QDialog{
     Q_OBJECT
@@ -49,11 +52,23 @@ private slots:
     void onGameOver(const QString &winner);
 
 private:
+    // role types << "lord" << "loyalist" << "renegade" << "rebel";
+    int lordCount,lordWinCount,loyalistCount,loyalistWinCount,renegadeCount,renegadeWinCount,rebelCount,rebelWinCount;
     QGroupBox *createGeneralBox();
     QGroupBox *createResultBox();
+    void updateResultBox(QString role, int win);
 
     QToolButton *avatar_button;
+    QPushButton *start_button;
+    QCheckBox *loop_checkbox;
     QGraphicsScene *record_scene;
+    QGroupBox *general_box;
+    QGroupBox *result_box;
+    QTextEdit *server_log;
+    QSpinBox *spinbox;
+    Server *server;
+    int room_count;
+    QList<RoomItem*> room_items;
 };
 
 class MainWindow : public QMainWindow {
@@ -104,8 +119,10 @@ private slots:
     void networkError(const QString &error_msg);
     void enterRoom();
     void gotoScene(QGraphicsScene *scene);
+    void gotoStartScene();
     void startGameInAnotherInstance();
     void changeBackground();
+    void on_actionView_ban_list_triggered();
 };
 
 #endif // MAINWINDOW_H

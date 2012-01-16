@@ -46,7 +46,7 @@ QString Analeptic::getEffectPath(bool ) const{
 }
 
 bool Analeptic::IsAvailable(const Player *player){
-    return !player->hasUsed("Analeptic") && !player->hasUsed("WeidaiCard");
+    return !player->hasUsed("Analeptic");
 }
 
 bool Analeptic::isAvailable(const Player *player) const{
@@ -329,6 +329,7 @@ void IronChain::onEffect(const CardEffectStruct &effect) const{
     effect.to->setChained(chained);
 
     effect.to->getRoom()->broadcastProperty(effect.to, "chained");
+    effect.to->getRoom()->setEmotion(effect.to, "chain");
 }
 
 SupplyShortage::SupplyShortage(Card::Suit suit, int number)

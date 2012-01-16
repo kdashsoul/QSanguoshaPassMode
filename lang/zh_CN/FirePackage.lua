@@ -8,7 +8,7 @@ return {
 	["pangtong"] = "庞统", 
 	["taishici"] = "太史慈", 
 	["yuanshao"] = "袁绍", 
-	["shuangxiong"] = "颜良文丑", 
+	["shuangxiong"] = "双雄",
 	["pangde"] = "庞德", 
 	["quhu"] = "驱虎", 
 	["jieming"] = "节命", 

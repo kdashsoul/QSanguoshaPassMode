@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QListWidget>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QMap>
 
 class RoleAssignDialog: public QDialog{

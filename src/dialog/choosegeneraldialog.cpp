@@ -13,7 +13,6 @@
 #include <QRadioButton>
 #include <QCheckBox>
 #include <QTabWidget>
-#include <QScrollArea>
 
 OptionButton::OptionButton(QString icon_path, const QString &caption, QWidget *parent)
     :QToolButton(parent)
@@ -47,8 +46,16 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
 {
     setWindowTitle(tr("Choose general"));
 
+    QString lord_name;
+
     QList<const General *> generals;
     foreach(QString general_name, general_names){
+        if(general_name.contains("(lord)"))
+        {
+            general_name.chop(6);
+            lord_name = general_name;
+            continue;
+        }
         const General *general = Sanguosha->getGeneral(general_name);
         generals << general;
     }
@@ -66,7 +73,6 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
         QString icon_path = general->getPixmapPath(category);
         QString caption = Sanguosha->translate(general->objectName());
         OptionButton *button = new OptionButton(icon_path, caption);
-        button->setFont(Config.TinyFont);
         button->setToolTip(general->getSkillDescription());
         button->setIconSize(icon_size);
         buttons << button;
@@ -81,25 +87,80 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
         }
     }
 
+    if(ServerInfo.EnableHegemony && ServerInfo.Enable2ndGeneral
+            &&generals.length()>2)
+    {
+        int index = 0;
+        foreach(const General *general, generals)
+        {
+            int party = 0;
+            foreach(const General *other, generals)
+                if(other->getKingdom() == general->getKingdom())
+                    party ++;
+            if(party<2)
+                buttons.at(index)->setEnabled(false);
+            if(Self->getGeneral())
+                    if(Self->getGeneral()->getKingdom()
+                        != general->getKingdom()||
+                        Self->getGeneralName() ==
+                            general->objectName())
+                buttons.at(index)->setEnabled(false);
+            index ++;
+        }
+    }
+
     QLayout *layout = NULL;
-    const int columns = generals.length() > 10 ? 8 : 5;
+    const int columns = generals.length() > 10 ? 6 : 5;
     if(generals.length() <= columns){
         layout = new QHBoxLayout;
+
+        if(lord_name.size())
+        {
+            const General * lord = Sanguosha->getGeneral(lord_name);
+
+            QLabel *label = new QLabel;
+            //label->setCaption(tr("Lord's general"));
+            label->setPixmap(lord->getPixmapPath(category));
+            label->setToolTip(lord->getSkillDescription());
+            layout->addWidget(label);
+        }
+
         foreach(OptionButton *button, buttons)
             layout->addWidget(button);
     }else{
         QGridLayout *grid_layout = new QGridLayout;
         layout = grid_layout;
 
+        if(lord_name.size())
+        {
+            const General * lord = Sanguosha->getGeneral(lord_name);
+
+            QLabel *label = new QLabel;
+            //label->setCaption(tr("Lord's general"));
+            label->setPixmap(lord->getPixmapPath(category));
+            label->setToolTip(lord->getSkillDescription());
+            grid_layout->addWidget(label,0,0);
+        }
+
         int i;
         for(i=0; i<buttons.length(); i++){
             int row = i / columns;
             int column = i % columns;
-            grid_layout->addWidget(buttons.at(i), row, column);
+            grid_layout->addWidget(buttons.at(i), row, column+1);
         }
     }
 
-    mapper->setMapping(this, generals.first()->objectName());
+    QString default_name = generals.first()->objectName();
+    for(int i=0;i<buttons.size();i++)
+    {
+        if(buttons.at(i)->isEnabled())
+        {
+            default_name = generals.at(i)->objectName();
+            break;
+        }
+    }
+
+    mapper->setMapping(this, default_name);
     connect(this, SIGNAL(rejected()), mapper, SLOT(map()));
 
     connect(mapper, SIGNAL(mapped(QString)), ClientInstance, SLOT(chooseItem(QString)));
@@ -109,6 +170,9 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
 
     // role prompt
     QLabel *role_label = new QLabel(tr("Your role is %1").arg(Sanguosha->translate(Self->getRole())));
+    if(lord_name.size())role_label->setText(tr("The lord has chosen %1. %2")
+                                            .arg(Sanguosha->translate(lord_name))
+                                            .arg(role_label->text()));
     dialog_layout->addWidget(role_label);
 
     // progress bar & free choose button
@@ -119,13 +183,11 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
         progress_bar = new QProgressBar;
         progress_bar->setMinimum(0);
         progress_bar->setMaximum(100);
+        progress_bar->setTextVisible(false);
         last_layout->addWidget(progress_bar);
     }
 
     bool free_choose = ServerInfo.FreeChoose;
-    if(ServerInfo.GameMode == "08boss"){
-        free_choose = Self->getRole() == "lord" || Self->getRole() == "renegade";
-    }
 
     if(free_choose){
         QPushButton *free_choose_button = new QPushButton(tr("Free choose ..."));
@@ -246,6 +308,7 @@ void FreeChooseDialog::chooseGeneral(){
                 break;
             }
         }
+        if(second.isEmpty()) emit general_chosen(first);
     }else{
         QAbstractButton *button = group->checkedButton();
         if(button){
@@ -268,6 +331,8 @@ QWidget *FreeChooseDialog::createTab(const QList<const General *> &generals){
     for(int i=0; i<generals.length(); i++){
         const General *general = generals.at(i);
         QString general_name = general->objectName();
+        if(general->isTotallyHidden())
+            continue;
 
         QString text = QString("%1[%2]")
                        .arg(Sanguosha->translate(general_name))

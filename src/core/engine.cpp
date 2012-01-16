@@ -4,9 +4,8 @@
 #include "ai.h"
 #include "settings.h"
 #include "scenario.h"
-#include "challengemode.h"
 #include "lua.hpp"
-#include "banpairdialog.h"
+#include "banpair.h"
 
 #ifdef AUDIO_SUPPORT
 
@@ -21,6 +20,7 @@
 #endif
 
 #include <QFile>
+#include <QTextStream>
 #include <QStringList>
 #include <QMessageBox>
 #include <QDir>
@@ -38,6 +38,7 @@ extern "C" {
     Package *NewGod();
     Package *NewSP();
     Package *NewYJCM();
+    Package *NewBGM();
     Package *NewPass();
 
     Package *NewStandardCard();
@@ -46,6 +47,26 @@ extern "C" {
     Package *NewNostalgia();
 
     Scenario *NewPassModeScenario();
+    Scenario *NewMiniScene_01();
+    Scenario *NewMiniScene_02();
+    Scenario *NewMiniScene_03();
+    Scenario *NewMiniScene_04();
+    Scenario *NewMiniScene_05();
+    Scenario *NewMiniScene_06();
+    Scenario *NewMiniScene_07();
+    Scenario *NewMiniScene_08();
+    Scenario *NewMiniScene_09();
+    Scenario *NewMiniScene_10();
+    Scenario *NewMiniScene_11();
+    Scenario *NewMiniScene_12();
+    Scenario *NewMiniScene_13();
+    Scenario *NewMiniScene_14();
+    Scenario *NewMiniScene_15();
+    Scenario *NewMiniScene_16();
+    Scenario *NewMiniScene_17();
+    Scenario *NewMiniScene_18();
+    Scenario *NewMiniScene_19();
+    Scenario *NewMiniScene_20();
 }
 
 extern "C" {
@@ -64,6 +85,7 @@ Engine::Engine()
     addPackage(NewGod());
     addPackage(NewSP());
     addPackage(NewYJCM());
+    addPackage(NewBGM());
     addPackage(NewPass());
 
     addPackage(NewStandardCard());
@@ -72,6 +94,26 @@ Engine::Engine()
     addPackage(NewNostalgia());
 
     addScenario(NewPassModeScenario());
+    addScenario(NewMiniScene_01());
+    addScenario(NewMiniScene_02());
+    addScenario(NewMiniScene_03());
+    addScenario(NewMiniScene_04());
+    addScenario(NewMiniScene_05());
+    addScenario(NewMiniScene_06());
+    addScenario(NewMiniScene_07());
+    addScenario(NewMiniScene_08());
+    addScenario(NewMiniScene_09());
+    addScenario(NewMiniScene_10());
+    addScenario(NewMiniScene_11());
+    addScenario(NewMiniScene_12());
+    addScenario(NewMiniScene_13());
+    addScenario(NewMiniScene_14());
+    addScenario(NewMiniScene_15());
+    addScenario(NewMiniScene_16());
+    addScenario(NewMiniScene_17());
+    addScenario(NewMiniScene_18());
+    addScenario(NewMiniScene_19());
+    addScenario(NewMiniScene_20());
 
     // available game modes
     modes["02p"] = tr("2 players");
@@ -87,16 +129,9 @@ Engine::Engine()
     modes["07p"] = tr("7 players");
     modes["08p"] = tr("8 players");
     modes["08pd"] = tr("8 players (2 renegades)");
-    modes["08boss"] = tr("8 players (boss mode)");
     modes["08same"] = tr("8 players (same mode)");
     modes["09p"] = tr("9 players");
     modes["10p"] = tr("10 players");
-
-    //challenge_mode_set = NULL;
-    challenge_mode_set = new ChallengeModeSet(this);
-    //addPackage(challenge_mode_set);
-
-    translations.insert("bossmode", tr("Boss mode"));
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(deleteLater()));
 
@@ -146,17 +181,20 @@ Engine::~Engine(){
     if(SoundEngine) {
 #ifdef  Q_OS_WIN32
         SoundEngine->drop();
-        SoundEngine = NULL;
 #else
         delete SoundEngine;
 #endif
+        SoundEngine = NULL;
     }
 #endif
 
 }
 
 QStringList Engine::getScenarioNames() const{
-    return scenarios.keys();
+    QStringList names;
+    foreach(QString name, scenarios.keys())
+        if(!name.contains("_mini_"))names<<name;
+    return names;
 }
 
 void Engine::addScenario(Scenario *scenario){
@@ -167,14 +205,6 @@ void Engine::addScenario(Scenario *scenario){
 
 const Scenario *Engine::getScenario(const QString &name) const{
     return scenarios.value(name, NULL);
-}
-
-const ChallengeModeSet *Engine::getChallengeModeSet() const{
-    return challenge_mode_set;
-}
-
-const ChallengeMode *Engine::getChallengeMode(const QString &name) const{
-    return challenge_mode_set->getMode(name);
 }
 
 void Engine::addSkills(const QList<const Skill *> &all_skills){
@@ -253,18 +283,19 @@ QString Engine::translate(const QString &to_translate) const{
 }
 
 int Engine::getRoleIndex() const{
-    if(ServerInfo.GameMode == "08boss"){
-        return 2;
-    }else if(ServerInfo.GameMode.startsWith("@")){
-        return 3;
-    }else if(ServerInfo.GameMode == "06_3v3"){
+    if(ServerInfo.GameMode == "06_3v3"){
         return 4;
+    }else if(ServerInfo.EnableHegemony){
+        return 5;
     }else
         return 1;
 }
 
 const CardPattern *Engine::getPattern(const QString &name) const{
-    return patterns.value(name, NULL);
+    const CardPattern * ptn = patterns.value(name, NULL);
+    if(ptn)return ptn;
+
+    return new ExpPattern(name);
 }
 
 QList<const Skill *> Engine::getRelatedSkills(const QString &skill_name) const{
@@ -294,8 +325,16 @@ int Engine::getGeneralCount(bool include_banned) const{
         if(ban_package.contains(general->getPackage()))
             total--;
 
-        if(Config.Enable2ndGeneral && BanPair::isBanned(general->objectName()))
+        else if(ServerInfo.Enable2ndGeneral && BanPair::isBanned(general->objectName()))
             total--;
+
+        else if(ServerInfo.EnableBasara &&
+                Config.value("Banlist/Basara").toStringList().contains(general->objectName()))
+            total -- ;
+
+        else if(ServerInfo.EnableHegemony &&
+                Config.value("Banlist/Hegemony").toStringList().contains(general->objectName()))
+            total -- ;
     }
 
     return total;
@@ -345,9 +384,6 @@ QStringList Engine::getExtensions() const{
 
         extensions << package->objectName();
     }
-
-    extensions.removeOne("challenge_modes");
-
     return extensions;
 }
 
@@ -381,6 +417,10 @@ QString Engine::getSetupString() const{
         flags.append("S");
     if(Config.EnableScene)
         flags.append("C");
+    if(Config.EnableBasara)
+        flags.append("B");
+    if(Config.EnableHegemony)
+        flags.append("H");
     if(Config.EnableAI)
         flags.append("A");
     if(Config.DisableChat)
@@ -409,8 +449,6 @@ QMap<QString, QString> Engine::getAvailableModes() const{
 QString Engine::getModeName(const QString &mode) const{
     if(modes.contains(mode))
         return modes.value(mode);
-    else if(mode.startsWith("@"))
-        return tr("%1 [Challenge mode]").arg(translate(mode));
     else
         return tr("%1 [Scenario mode]").arg(translate(mode));
 
@@ -423,11 +461,20 @@ int Engine::getPlayerCount(const QString &mode) const{
         int index = rx.indexIn(mode);
         if(index != -1)
             return rx.capturedTexts().first().toInt();
-    }else if(mode.startsWith("@")){
+    }else if(mode == "custom"){
         // challenge mode
-        const ChallengeMode *cmode = challenge_mode_set->getMode(mode);
-        if(cmode)
-            return cmode->getGenerals().length() * 2;
+        QRegExp rx("(\\w+)\\s+(\\w+)\\s*(\\w+)?");
+        QFile file("etc/Custom.txt");
+        int i = 0;
+        if(file.open(QIODevice::ReadOnly)){
+            QTextStream stream(&file);
+            while(!stream.atEnd()){
+                if(rx.exactMatch(stream.readLine()))
+                    i ++;
+            }
+            file.close();
+        }
+        return i;
     }else{
         // scenario mode
         const Scenario *scenario = scenarios.value(mode, NULL);
@@ -446,6 +493,22 @@ void Engine::getRoles(const QString &mode, char *roles) const{
         return;
     }else if(mode == "04_1v3"){
         qstrcpy(roles, "ZFFF");
+        return;
+    }else if(Config.EnableHegemony){
+        static const char *table[] = {
+            "",
+            "",
+            "ZN", // 2
+            "ZNN", // 3
+            "ZNNN", // 4
+            "ZNNNN", // 5
+            "ZNNNNN", // 6
+            "ZNNNNNN", // 7
+            "ZNNNNNNN", // 8
+            "ZNNNNNNNN", // 9
+            "ZNNNNNNNNN" // 10
+        };
+        qstrcpy(roles, table[n]);
         return;
     }
 
@@ -487,6 +550,33 @@ void Engine::getRoles(const QString &mode, char *roles) const{
             qstrcpy(roles, "ZCCCNFFF");
         else if(n == 6)
             qstrcpy(roles, "ZCCNFF");
+    }else if(mode == "custom"){
+        QRegExp rx("(\\w+)\\s+(\\w+)\\s*(\\w+)?");
+        QFile file("etc/Custom.txt");
+        char *role = new char[getPlayerCount(mode)];
+        if(file.open(QIODevice::ReadOnly)){
+            int i = 0;
+            QTextStream stream(&file);
+            while(!stream.atEnd()){
+                QString line = stream.readLine();
+                if(!rx.exactMatch(line))
+                    continue;
+                QStringList texts = rx.capturedTexts();
+                QString rolest = texts.at(1);
+                if(rolest == "lord")
+                    strcat(role, "Z");
+                else if(rolest == "loyalist")
+                    strcat(role, "C");
+                else if(rolest == "rebel")
+                    strcat(role, "F");
+                else/* if(rolest == "renegade")*/
+                    strcat(role, "N");
+                i ++;
+            }
+            file.close();
+        }
+        qstrcpy(roles, role);
+        delete role;
     }else{
         const Scenario *scenario = getScenario(mode);
         if(scenario)
@@ -523,7 +613,10 @@ QStringList Engine::getLords() const{
     // add intrinsic lord
     foreach(QString lord, lord_list){
         const General *general = generals.value(lord);
-        if(!ban_package.contains(general->getPackage()))
+        if(ban_package.contains(general->getPackage()))
+            continue;
+        if(Config.Enable2ndGeneral && BanPair::isBanned(general->objectName()))
+            continue;
             lords << lord;
     }
 
@@ -531,7 +624,21 @@ QStringList Engine::getLords() const{
 }
 
 QStringList Engine::getRandomLords() const{
-    QStringList lords = getLords();
+    QStringList banlist_ban;
+    if(Config.EnableBasara)
+        banlist_ban = Config.value("Banlist/basara").toStringList();
+
+    if(Config.GameMode == "zombie_mode")
+        banlist_ban.append(Config.value("Banlist/zombie").toStringList());
+
+    QStringList lords;
+
+    foreach(QString alord,getLords())
+    {
+        if(banlist_ban.contains(alord))continue;
+
+        lords << alord;
+    }
 
     QStringList nonlord_list;
     foreach(QString nonlord, this->nonlord_list){
@@ -540,6 +647,9 @@ QStringList Engine::getRandomLords() const{
             continue;
 
         if(Config.Enable2ndGeneral && BanPair::isBanned(general->objectName()))
+            continue;
+
+        if(banlist_ban.contains(general->objectName()))
             continue;
 
         nonlord_list << nonlord;
@@ -570,13 +680,16 @@ QStringList Engine::getLimitedGeneralNames() const{
 
 QStringList Engine::getRandomGenerals(int count, const QSet<QString> &ban_set) const{
     QStringList all_generals = getLimitedGeneralNames();
+    QSet<QString> general_set = all_generals.toSet();
 
     Q_ASSERT(all_generals.count() >= count);
 
-    if(!ban_set.isEmpty()){
-        QSet<QString> general_set = all_generals.toSet();
+    if(Config.EnableBasara) general_set =
+            general_set.subtract(Config.value("Banlist/Basara", "").toStringList().toSet());
+    if(Config.EnableHegemony) general_set =
+            general_set.subtract(Config.value("Banlist/Hegemony", "").toStringList().toSet());
+
         all_generals = general_set.subtract(ban_set).toList();
-    }
 
     // shuffle them
     qShuffle(all_generals);
@@ -627,10 +740,10 @@ void Engine::playEffect(const QString &filename) const{
     if(filename.isNull())
         return;
 
-#ifdef  Q_OS_WIN32
     if(SoundEngine == NULL)
         return;
 
+#ifdef  Q_OS_WIN32
     if(SoundEngine->isCurrentlyPlaying(filename.toAscii()))
         return;
     SoundEngine->play2D(filename.toAscii());

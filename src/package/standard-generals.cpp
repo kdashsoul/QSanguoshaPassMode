@@ -244,6 +244,7 @@ public:
 
     virtual const Card *viewAs(CardItem *card_item) const{
         Card *card = new GuicaiCard;
+        card->setSuit(card_item->getFilteredCard()->getSuit());
         card->addSubcard(card_item->getFilteredCard());
 
         return card;
@@ -1001,11 +1002,11 @@ public:
                 if(room->askForUseCard(daqiao, "@@liuli", prompt)){
                     foreach(ServerPlayer *player, players){
                         if(player->hasFlag("liuli_target")){
+                            effect.to = player;
+                            room->cardEffect(effect);
+
                             room->setPlayerFlag(effect.from, "-slash_source");
                             room->setPlayerFlag(player, "-liuli_target");
-                            effect.to = player;
-
-                            room->cardEffect(effect);
                             return true;
                         }
                     }
@@ -1014,25 +1015,6 @@ public:
         }
 
         return false;
-    }
-};
-
-class Chujia: public GameStartSkill{
-public:
-    Chujia():GameStartSkill("chujia"){
-        frequency = Limited;
-    }
-
-    virtual bool triggerable(const ServerPlayer *target) const{
-        return GameStartSkill::triggerable(target) && target->getGeneralName() == "sunshangxiang";
-    }
-
-    virtual void onGameStart(ServerPlayer *player) const{
-        if(player->askForSkillInvoke(objectName())){
-            Room *room = player->getRoom();
-            room->transfigure(player, "sp_sunshangxiang", true, false);
-            room->setPlayerProperty(player, "kingdom", "shu");
-        }
     }
 };
 
@@ -1209,25 +1191,25 @@ public:
     }
 };
 
-class Tuoqiao: public ZeroCardViewAsSkill{
+class Tuoqiao: public GameStartSkill{
 public:
-    Tuoqiao():ZeroCardViewAsSkill("tuoqiao"){
-        huanzhuang_card = new HuanzhuangCard;
+    Tuoqiao():GameStartSkill("tuoqiao"){
+        frequency = Limited;
+        default_choice = "SP-Diaochan";
     }
 
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        if(player->hasUsed("HuanzhuangCard"))
-            return false;
-
-        return player->getGeneralName() == "diaochan";
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return GameStartSkill::triggerable(target) && target->getGeneralName() == "diaochan";
     }
 
-    virtual const Card *viewAs() const{
-        return huanzhuang_card;
+    virtual void onGameStart(ServerPlayer *player) const{
+        if(player->askForSkillInvoke(objectName())){
+            Room *room = player->getRoom();
+            QString choice = room->askForChoice(player, objectName(), "SP-Diaochan+BGM-Diaochan");
+            if(choice == "SP-Diaochan") choice = "sp_diaochan"; else choice = "bgm_diaochan";
+            room->transfigure(player, choice, true, false, "diaochan");
+        }
     }
-
-private:
-    HuanzhuangCard *huanzhuang_card;
 };
 
 class Qianxun: public ProhibitSkill{
@@ -1304,10 +1286,12 @@ void StandardPackage::addGenerals(){
 
     zhaoyun = new General(this, "zhaoyun", "shu");
     zhaoyun->addSkill(new Longdan);
+    zhaoyun->addSkill(new SPConvertSkill("huantong", "zhaoyun", "bgm_zhaoyun", true));
 
     machao = new General(this, "machao", "shu");
     machao->addSkill(new Tieji);
     machao->addSkill(new Mashu);
+    machao->addSkill(new SPConvertSkill("fanqun", "machao", "sp_machao"));
 
     huangyueying = new General(this, "huangyueying", "shu", 3, false);
     huangyueying->addSkill(new Jizhi);
@@ -1342,7 +1326,7 @@ void StandardPackage::addGenerals(){
     luxun->addSkill(new Lianying);
 
     sunshangxiang = new General(this, "sunshangxiang", "wu", 3, false);
-    sunshangxiang->addSkill(new Chujia);
+    sunshangxiang->addSkill(new SPConvertSkill("chujia", "sunshangxiang", "sp_sunshangxiang"));
     sunshangxiang->addSkill(new Jieyin);
     sunshangxiang->addSkill(new Xiaoji);
 
@@ -1372,6 +1356,5 @@ void StandardPackage::addGenerals(){
     addMetaObject<QingnangCard>();
     addMetaObject<LiuliCard>();
     addMetaObject<JijiangCard>();
-    addMetaObject<HuanzhuangCard>();
     addMetaObject<CheatCard>();
 }

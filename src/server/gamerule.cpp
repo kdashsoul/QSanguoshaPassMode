@@ -3,6 +3,7 @@
 #include "room.h"
 #include "standard.h"
 #include "engine.h"
+#include "settings.h"
 
 #include <QTime>
 
@@ -153,7 +154,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
     switch(event){
     case GameStart: {
-            if(player->getGeneral()->getKingdom() == "god"){
+        if(player->getGeneral()->getKingdom() == "god" && player->getGeneralName() != "anjiang"){
                 QString new_kingdom = room->askForKingdom(player);
                 room->setPlayerProperty(player, "kingdom", new_kingdom);
 
@@ -403,8 +404,15 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             damage.card = effect.slash;
 
             damage.damage = 1;
-            if(effect.drank)
+            if(effect.drank){
+                LogMessage log;
+                log.type = "#AnalepticBuff";
+                log.from = effect.from;
+                log.to << effect.to;
+                room->sendLog(log);
+
                 damage.damage ++;
+            }
 
             //if(effect.to->hasSkill("jueqing") || effect.to->getGeneralName() == "zhangchunhua")
             //    damage.damage ++;
@@ -572,7 +580,8 @@ void GameRule::rewardAndPunish(ServerPlayer *killer, ServerPlayer *victim) const
 
     if(killer->getRoom()->getMode() == "06_3v3"){
         killer->drawCards(3);
-    }else{
+    }
+    else{
         if(victim->getRole() == "rebel" && killer != victim){
             killer->drawCards(3);
         }else if(victim->getRole() == "loyalist" && killer->getRole() == "lord"){
@@ -592,6 +601,41 @@ QString GameRule::getWinner(ServerPlayer *victim) const{
         case Player::Renegade: winner = "lord+loyalist"; break;
         default:
             break;
+        }
+    }else if(Config.EnableHegemony){
+        bool has_anjiang = false, has_diff_kingdoms = false;
+        QString init_kingdom;
+        foreach(ServerPlayer *p, room->getAlivePlayers()){
+            if(room->getTag(p->objectName()).toStringList().size()){
+                has_anjiang = true;
+            }
+
+            if(init_kingdom.isEmpty()){
+                init_kingdom = p->getKingdom();
+            }
+            else if(init_kingdom != p->getKingdom()){
+                has_diff_kingdoms = true;
+            }
+        }
+
+        if(!has_anjiang && !has_diff_kingdoms){
+            QStringList winners;
+            QString aliveKingdom = room->getAlivePlayers().first()->getKingdom();
+            foreach(ServerPlayer *p, room->getPlayers()){
+                if(p->isAlive())winners << p->objectName();
+                if(p->getKingdom() == aliveKingdom)
+                {
+                    QStringList generals = room->getTag(p->objectName()).toStringList();
+                    if(generals.size()&&!Config.Enable2ndGeneral)continue;
+                    if(generals.size()>1)continue;
+
+                    //if someone showed his kingdom before death,
+                    //he should be considered victorious as well if his kingdom survives
+                    winners << p->objectName();
+                }
+            }
+
+            winner = winners.join("+");
         }
     }else{
         QStringList alive_roles = room->aliveRoles(victim);
@@ -623,83 +667,13 @@ QString GameRule::getWinner(ServerPlayer *victim) const{
     return winner;
 }
 
-
-static const int LoseHpTo1 = 1;
-static const int ThrowAllCard = 2;
-
-BossMode::BossMode(QObject *parent)
-    :GameRule(parent)
-{
-    setObjectName("boss_mode");
-}
-
-bool BossMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-    Room *room = player->getRoom();
-
-    switch(event)
-    {
-
-    case GameOverJudge:{
-            const static QString evil = "lord+renegade";
-            const static QString justice = "rebel+loyalist";
-
-            QStringList alive_roles = room->aliveRoles(player);
-            if(!alive_roles.contains("rebel") && !alive_roles.contains("loyalist")){
-                room->gameOver(evil);
-                return true;
-            }
-
-            DamageStar damage = data.value<DamageStar>();
-            ServerPlayer *killer = NULL;
-            if(damage)
-                killer = damage->from;
-
-            if(player->isLord()){
-                QString winner;
-                if(!alive_roles.contains("renegade"))
-                    winner = justice;
-                else{
-                    if(killer == NULL || evil.contains(killer->getRole()))
-                        winner = justice;
-                    else
-                        winner = evil;
-                }
-
-                room->gameOver(winner);
-                return true;
-            }
-
-            break;
-        }
-
-    case GameStart:{
-            if(player->isLord()){
-                // find guard
-                QList<ServerPlayer *> players = room->getOtherPlayers(player);
-                foreach(ServerPlayer *player, players){
-                    if(player->getRoleEnum() == Player::Renegade){
-                        room->broadcastProperty(player, "role");
-                        break;
-                    }
-                }
-            }
-
-            break;
-        }
-
-    default:
-        break;
-    }
-
-    return GameRule::trigger(event, player, data);
-}
-
 HulaoPassMode::HulaoPassMode(QObject *parent)
     :GameRule(parent)
 {
     setObjectName("hulaopass_mode");
 
     events << HpChanged;
+    default_choice = "recover";
 }
 
 static int Transfiguration = 1;
@@ -735,6 +709,7 @@ bool HulaoPassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &
     case CardUsed:{
             CardUseStruct use = data.value<CardUseStruct>();
             if(use.card->inherits("Weapon") && player->askForSkillInvoke("weapon_recast", data)){
+                room->playCardEffect("@recast", player->getGeneral()->isMale());
                 room->throwCard(use.card);
                 player->drawCards(1, false);
                 return false;
@@ -791,6 +766,15 @@ bool HulaoPassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &
 
                         room->revivePlayer(player);
                     }else if(player->isWounded()){
+                        if(player->getHp() > 0 && (room->askForChoice(player, "Hulaopass", "recover+draw") == "draw")){
+                            LogMessage log;
+                            log.type = "#ReformingDraw";
+                            log.from = player;
+                            room->sendLog(log);
+                            player->drawCards(1, false);
+                            return false;
+                        }
+
                         LogMessage log;
                         log.type = "#ReformingRecover";
                         log.from = player;
@@ -815,3 +799,173 @@ bool HulaoPassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &
     return GameRule::trigger(event, player, data);
 }
 
+BasaraMode::BasaraMode(QObject *parent)
+    :GameRule(parent)
+{
+    setObjectName("basara_mode");
+    events << CardLost << Predamaged;
+    skill_mark["niepan"] = "@nirvana";
+    skill_mark["smallyeyan"] = "@flame";
+    skill_mark["luanwu"] = "@chaos";
+}
+QString BasaraMode::getMappedRole(const QString &role){
+    static QMap<QString, QString> roles;
+    if(roles.isEmpty()){
+        roles["wei"] = "lord";
+        roles["shu"] = "loyalist";
+        roles["wu"] = "rebel";
+        roles["qun"] = "renegade";
+    }
+    return roles[role];
+}
+int BasaraMode::getPriority() const
+{
+    return 5;
+}
+void BasaraMode::playerShowed(ServerPlayer *player) const{
+    Room *room = player->getRoom();
+    QStringList names = room->getTag(player->objectName()).toStringList();
+    if(names.isEmpty())
+        return;
+    if(Config.EnableHegemony){
+        QMap<QString, int> kingdom_roles;
+        foreach(ServerPlayer *p, room->getOtherPlayers(player)){
+            kingdom_roles[p->getKingdom()]++;
+        }
+        if(kingdom_roles[Sanguosha->getGeneral(names.first())->getKingdom()] >= 2
+                && player->getGeneralName() == "anjiang")
+            return;
+    }
+    QString answer = room->askForChoice(player, "RevealGeneral", "yes+no");
+    if(answer == "yes"){
+        QString general_name = room->askForGeneral(player,names);
+        generalShowed(player,general_name);
+        if(Config.EnableHegemony)room->getThread()->trigger(GameOverJudge, player);
+        playerShowed(player);
+    }
+}
+void BasaraMode::generalShowed(ServerPlayer *player, QString general_name) const
+{
+    Room * room = player->getRoom();
+    QStringList names = room->getTag(player->objectName()).toStringList();
+    if(names.isEmpty())return;
+    if(player->getGeneralName() == "anjiang")
+    {
+        QString transfigure_str = QString("%1:%2").arg(player->getGeneralName()).arg(general_name);
+        player->invoke("transfigure", transfigure_str);
+        room->setPlayerProperty(player,"general",general_name);
+    }else
+    {
+        QString transfigure_str = QString("%1:%2").arg(player->getGeneral2Name()).arg(general_name);
+        player->invoke("transfigure", transfigure_str);
+        room->setPlayerProperty(player,"general2",general_name);
+    }
+    foreach(QString skill_name, skill_mark.keys()){
+        if(player->hasSkill(skill_name))
+            room->setPlayerMark(player, skill_mark[skill_name], 1);
+    }
+    room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());
+    if(Config.EnableHegemony)room->setPlayerProperty(player, "role", getMappedRole(player->getGeneral()->getKingdom()));
+    names.removeOne(general_name);
+    room->setTag(player->objectName(),QVariant::fromValue(names));
+    LogMessage log;
+    log.type = "#BasaraReveal";
+    log.from = player;
+    log.arg  = player->getGeneralName();
+    log.arg2 = player->getGeneral2Name();
+    room->sendLog(log);
+    room->broadcastInvoke("playAudio","choose-item");
+}
+bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    Room *room = player->getRoom();
+    player->tag["event"] = event;
+    player->tag["event_data"] = data;
+    switch(event){
+    case GameStart:{
+        if(player->isLord()){
+            if(Config.EnableHegemony)
+                room->setTag("SkipNormalDeathProcess", true);
+            foreach(ServerPlayer* sp, room->getAlivePlayers())
+            {
+                QString transfigure_str = QString("%1:%2").arg(sp->getGeneralName()).arg("anjiang");
+                sp->invoke("transfigure", transfigure_str);
+                room->setPlayerProperty(sp,"general","anjiang");
+                room->setPlayerProperty(sp,"kingdom","god");
+
+                LogMessage log;
+                log.type = "#BasaraGeneralChosen";
+                log.arg = room->getTag(sp->objectName()).toStringList().at(0);
+                if(Config.Enable2ndGeneral)
+                {
+                    transfigure_str = QString("%1:%2").arg(sp->getGeneral2Name()).arg("anjiang");
+                    sp->invoke("transfigure", transfigure_str);
+                    room->setPlayerProperty(sp,"general2","anjiang");
+                    log.arg2 = room->getTag(sp->objectName()).toStringList().at(1);
+                }
+                sp->invoke("log",log.toString());
+                sp->tag["roles"] = room->getTag(sp->objectName()).toStringList().join("+");
+            }
+        }
+        break;
+    }
+    case CardEffected:{
+        if(player->getPhase() == Player::NotActive){
+            CardEffectStruct ces = data.value<CardEffectStruct>();
+            if(ces.card)
+                if(ces.card->inherits("TrickCard") ||
+                        ces.card->inherits("Slash"))
+                playerShowed(player);
+            const ProhibitSkill* prohibit = room->isProhibited(ces.from,ces.to,ces.card);
+            if(prohibit)
+            {
+                LogMessage log;
+                log.type = "#SkillAvoid";
+                log.from = ces.to;
+                log.arg  = prohibit->objectName();
+                log.arg2 = ces.card->objectName();
+                room->sendLog(log);
+                return true;
+            }
+        }
+        break;
+    }
+    case PhaseChange:{
+        if(player->getPhase() == Player::Start)
+            playerShowed(player);
+        break;
+    }
+    case Predamaged:{
+        playerShowed(player);
+        break;
+    }
+    case Death:{
+        if(Config.EnableHegemony){
+            if(player->getGeneralName() == "anjiang"){
+                QStringList generals = room->getTag(player->objectName()).toStringList();
+                room->setPlayerProperty(player, "general", generals.at(0));
+                if(Config.Enable2ndGeneral)room->setPlayerProperty(player, "general2", generals.at(1));
+                room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());
+                room->setPlayerProperty(player, "role", getMappedRole(player->getKingdom()));
+            }
+
+            DamageStar damage = data.value<DamageStar>();
+            ServerPlayer *killer = damage ? damage->from : NULL;
+            if(killer && killer->getKingdom() == damage->to->getKingdom()){
+                killer->throwAllEquips();
+                killer->throwAllHandCards();
+            }
+            else if(killer && killer->isAlive()){
+                killer->drawCards(3);
+            }
+
+        }
+
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    return false;
+}

@@ -12,7 +12,7 @@
 #include <QCommandLinkButton>
 
 QiaobianCard::QiaobianCard(){
-
+    mute = true;
 }
 
 bool QiaobianCard::targetsFeasible(const QList<const Player *> &targets, const Player *Self) const{
@@ -38,11 +38,13 @@ void QiaobianCard::use(Room *room, ServerPlayer *zhanghe, const QList<ServerPlay
     room->throwCard(this);
 
     if(zhanghe->getPhase() == Player::Draw){
+        room->playSkillEffect("qiaobian", 2);
         foreach(ServerPlayer *target, targets){
             int card_id = room->askForCardChosen(zhanghe, target, "h", "qiaobian");
             room->moveCardTo(Sanguosha->getCard(card_id), zhanghe, Player::Hand, false);
         }
     }else if(zhanghe->getPhase() == Player::Play){
+        room->playSkillEffect("qiaobian", 3);
         PlayerStar from = targets.first();
         if(!from->hasEquip() && from->getJudgingArea().isEmpty())
             return;
@@ -80,6 +82,10 @@ void QiaobianCard::use(Room *room, ServerPlayer *zhanghe, const QList<ServerPlay
             room->moveCardTo(card, to, place);
         room->removeTag("QiaobianTarget");
     }
+    else if(zhanghe->getPhase() == Player::Judge)
+        room->playSkillEffect("qiaobian", 1);
+    else
+        room->playSkillEffect("qiaobian", 4);
 }
 
 class QiaobianViewAsSkill: public OneCardViewAsSkill{
@@ -169,6 +175,7 @@ public:
 
             switch(judge.card->getSuit()){
             case Card::Heart:{
+                    room->playSkillEffect(objectName(), 4);
                     RecoverStruct recover;
                     recover.who = caiwenji;
                     room->recover(player, recover);
@@ -177,12 +184,13 @@ public:
                 }
 
             case Card::Diamond:{
+                    room->playSkillEffect(objectName(), 3);
                     player->drawCards(2);
-
                     break;
                 }
 
             case Card::Club:{
+                    room->playSkillEffect(objectName(), 1);
                     if(damage.from && damage.from->isAlive()){
                         int to_discard = qMin(2, damage.from->getCardCount(true));
                         if(to_discard != 0)
@@ -193,6 +201,7 @@ public:
                 }
 
             case Card::Spade:{
+                    room->playSkillEffect(objectName(), 2);
                     if(damage.from && damage.from->isAlive())
                         damage.from->turnOver();
 
@@ -223,14 +232,16 @@ public:
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         DamageStar damage = data.value<DamageStar>();
 
-        if(damage && damage->from){
+        if(damage && damage->from && damage->from->getGeneralName() != "anjiang"){
             Room *room = player->getRoom();
 
             LogMessage log;
             log.type = "#DuanchangLoseSkills";
             log.from = player;
             log.to << damage->from;
+            log.arg = objectName();
             room->sendLog(log);
+            room->playSkillEffect(objectName());
 
             QList<const Skill *> skills = damage->from->getVisibleSkillList();
             foreach(const Skill *skill, skills){
@@ -250,22 +261,6 @@ public:
         }
 
         return false;
-    }
-};
-
-class Guixiang: public GameStartSkill{
-public:
-    Guixiang():GameStartSkill("guixiang"){
-        frequency = Limited;
-    }
-
-    virtual void onGameStart(ServerPlayer *player) const{
-        if(player->getGeneralName() == "caiwenji"
-           && player->askForSkillInvoke(objectName()))
-        {
-            player->getRoom()->setPlayerProperty(player, "general", "sp_caiwenji");
-            player->getRoom()->setPlayerProperty(player, "kingdom", "wei");
-        }
     }
 };
 
@@ -306,6 +301,7 @@ public:
 
             if(player->askForSkillInvoke("tuntian", data)){
                 Room *room = player->getRoom();
+                room->playSkillEffect("tuntian");
 
                 JudgeStruct judge;
                 judge.pattern = QRegExp("(.*):(heart):(.*)");
@@ -352,6 +348,10 @@ public:
         log.arg = QString::number(dengai->getPile("field").length());
         room->sendLog(log);
 
+        room->playSkillEffect("zaoxian", 1);
+        room->broadcastInvoke("animate", "lightbox:$zaoxian1:4000");
+        room->getThread()->delay(4000);
+
         room->acquireSkill(dengai, "jixi");
 
         return false;
@@ -360,6 +360,7 @@ public:
 
 JixiCard::JixiCard(){
     target_fixed = true;
+    mute = true;
 }
 
 void JixiCard::onUse(Room *room, const CardUseStruct &card_use) const{
@@ -408,6 +409,7 @@ void JixiCard::onUse(Room *room, const CardUseStruct &card_use) const{
     use.from = dengai;
     use.to << target;
 
+    room->playSkillEffect("zaoxian", qrand() % 2 + 2);
     room->useCard(use);
 }
 
@@ -972,6 +974,7 @@ public:
 
     static QString SelectSkill(ServerPlayer *zuoci, bool acquire_instant = true){
         Room *room = zuoci->getRoom();
+		room->playSkillEffect("huashen");
 
         QString huashen_skill = zuoci->tag["HuashenSkill"].toString();
         if(!huashen_skill.isEmpty())
@@ -1023,6 +1026,11 @@ public:
     }
 
     virtual void onGameStart(ServerPlayer *zuoci) const{
+        if(zuoci->getGeneral2Name().startsWith("zuoci")){
+            zuoci->getRoom()->setPlayerProperty(zuoci, "general2", zuoci->getGeneralName());
+            zuoci->getRoom()->setPlayerProperty(zuoci, "general", "zuoci");
+        }
+
         AcquireGenerals(zuoci, 2);
         SelectSkill(zuoci);
     }
@@ -1107,9 +1115,12 @@ public:
         int n = damage.damage;
         if(n == 0)
             return;
+		Room *room = zuoci->getRoom();
+        if(room->askForSkillInvoke(zuoci, objectName())){
+            room->playSkillEffect(objectName());
 
-        if(zuoci->getRoom()->askForSkillInvoke(zuoci, objectName()))
             Huashen::AcquireGenerals(zuoci, n);
+        }
     }
 };
 
@@ -1154,7 +1165,7 @@ MountainPackage::MountainPackage()
     General *caiwenji = new General(this, "caiwenji", "qun", 3, false);
     caiwenji->addSkill(new Beige);
     caiwenji->addSkill(new Duanchang);
-    caiwenji->addSkill(new Guixiang);
+    caiwenji->addSkill(new SPConvertSkill("guixiang", "caiwenji", "sp_caiwenji"));
 
     General *zuoci = new General(this, "zuoci", "qun", 3);
     zuoci->addSkill(new Huashen);
@@ -1182,4 +1193,4 @@ MountainPackage::MountainPackage()
     patterns[".basic"] = new BasicPattern;
 }
 
-ADD_PACKAGE(Mountain);
+ADD_PACKAGE(Mountain)

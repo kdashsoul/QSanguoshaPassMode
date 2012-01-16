@@ -6,6 +6,7 @@
 #include "carditem.h"
 #include "engine.h"
 #include "ai.h"
+#include "general.h"
 
 class Yizhong: public TriggerSkill{
 public:
@@ -117,12 +118,13 @@ public:
 class Jiushi: public ZeroCardViewAsSkill{
 public:
     Jiushi():ZeroCardViewAsSkill("jiushi"){
-        analeptic = new Analeptic(Card::NoSuit, 0);
+        Analeptic *analeptic = new Analeptic(Card::NoSuit, 0);
         analeptic->setSkillName("jiushi");
+        this->analeptic = analeptic;
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return analeptic->isAvailable(player) && player->faceUp();
+        return Analeptic::IsAvailable(player) && player->faceUp();
     }
 
     virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
@@ -138,7 +140,7 @@ public:
     }
 
 private:
-    Analeptic *analeptic;
+    const Analeptic *analeptic;
 };
 
 class JiushiFlip: public TriggerSkill{
@@ -398,8 +400,8 @@ public:
             log.to << killer;
             room->sendLog(log);
 
-            killer->throwAllEquips();
             killer->throwAllHandCards();
+            killer->throwAllEquips();
 
             QString killer_name = killer->getGeneralName();
             if(killer_name == "zhugeliang" || killer_name == "wolong" || killer_name == "shenzhugeliang")

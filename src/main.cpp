@@ -8,7 +8,7 @@
 
 #include "mainwindow.h"
 #include "settings.h"
-#include "banpairdialog.h"
+#include "banpair.h"
 #include "server.h"
 
 #ifdef AUDIO_SUPPORT
@@ -44,15 +44,10 @@ int main(int argc, char *argv[])
     qApp->installTranslator(&qt_translator);
     qApp->installTranslator(&translator);
 
-    Config.init();
     Sanguosha = new Engine;
+    Config.init();
     BanPair::loadBanPairs();
 
-    QFile file("sanguosha.qss");
-    if(file.open(QIODevice::ReadOnly)){
-        QTextStream stream(&file);
-        qApp->setStyleSheet(stream.readAll());
-    }
     if(qApp->arguments().contains("-server")){
         Server *server = new Server(qApp);
         printf("Server is starting on port %u\n", Config.ServerPort);
@@ -65,12 +60,18 @@ int main(int argc, char *argv[])
         return qApp->exec();
     }
 
+    QFile file("sanguosha.qss");
+    if(file.open(QIODevice::ReadOnly)){
+        QTextStream stream(&file);
+        qApp->setStyleSheet(stream.readAll());
+    }
+
 #ifdef AUDIO_SUPPORT
 
 #ifdef  Q_OS_WIN32
     SoundEngine = irrklang::createIrrKlangDevice();
     if(SoundEngine)
-        SoundEngine->setSoundVolume(Config.Volume);
+        SoundEngine->setSoundVolume(Config.EffectVolume);
 #else
     SoundEngine = new Phonon::MediaObject(qApp);
     SoundOutput = new Phonon::AudioOutput(Phonon::GameCategory, qApp);

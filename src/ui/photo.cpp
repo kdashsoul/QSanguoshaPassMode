@@ -18,8 +18,9 @@
 #include <QPropertyAnimation>
 #include <QPushButton>
 #include <QMenu>
-#include <QGraphicsItemAnimation>
-#include <QTimeLine>
+#include <QGraphicsDropShadowEffect>
+
+#include "pixmapanimation.h"
 
 Photo::Photo()
     :Pixmap("image/system/photo-back.png"),
@@ -38,26 +39,33 @@ Photo::Photo()
     back_icon->setZValue(1.0);
 
     progress_bar = new QProgressBar;
-    progress_bar->setOrientation(Qt::Vertical);
     progress_bar->setMinimum(0);
     progress_bar->setMaximum(100);
     progress_bar->setValue(0);
     progress_bar->hide();
-    progress_bar->setMaximumWidth(10);
-    progress_bar->setMaximumHeight(pixmap.height());
+    progress_bar->setMaximumHeight(15);
+    progress_bar->setMaximumWidth(pixmap.width());
+    progress_bar->setTextVisible(false);
     timer_id = 0;
 
     frame_item = new QGraphicsPixmapItem(this);
     frame_item->setPos(-6, -6);
+    frame_item->setZValue(-1.0);
 
     QGraphicsProxyWidget *widget = new QGraphicsProxyWidget(this);
     widget->setWidget(progress_bar);
-    widget->setPos(pixmap.width() - 15, 0);
+    widget->setPos( -6 , - 25);
 
     skill_name_item = new QGraphicsSimpleTextItem(this);
     skill_name_item->setBrush(Qt::white);
     skill_name_item->setFont(Config.SmallFont);
     skill_name_item->moveBy(10, 30);
+
+    QGraphicsDropShadowEffect * drp = new QGraphicsDropShadowEffect;
+    drp->setBlurRadius(10);
+    drp->setColor(Qt::yellow);
+    drp->setOffset(0);
+    skill_name_item->setGraphicsEffect(drp);
 
     emotion_item = new QGraphicsPixmapItem(this);
     emotion_item->moveBy(10, 0);
@@ -89,6 +97,7 @@ Photo::Photo()
     mark_item->setDefaultTextColor(Qt::white);
 
     role_combobox = NULL;
+    pile_button = NULL;
 }
 
 void Photo::setOrder(int order){
@@ -113,20 +122,15 @@ void Photo::createRoleCombobox(){
     role_combobox = new RoleCombobox(this);
 
     QString role = player->getRole();
-    if(!role.isEmpty())
-        role_combobox->fix(role);
+    if(!ServerInfo.EnableHegemony && !role.isEmpty())
+            role_combobox->fix(role);
 
     connect(player, SIGNAL(role_changed(QString)), role_combobox, SLOT(fix(QString)));
 }
 
 void Photo::updateRoleComboboxPos()
 {
-    int i, n = pile_buttons.length();
-    for(i=0; i<n; i++){
-        QGraphicsProxyWidget *button_widget = pile_buttons.at(i);
-        button_widget->setPos(pos());
-        button_widget->moveBy(5, 15 + i * 10);
-    }
+    //if(pile_button)pile_button->setPos(46, 48);
 }
 
 void Photo::showProcessBar(){
@@ -164,6 +168,16 @@ void Photo::setEmotion(const QString &emotion, bool permanent){
 
     if(!permanent)
         QTimer::singleShot(2000, this, SLOT(hideEmotion()));
+
+    PixmapAnimation *pma = new PixmapAnimation();
+    pma->setPath(QString("image/system/emotion/%1/").arg(emotion));
+    if(pma->valid())
+    {
+        pma->setParentItem(this);
+        pma->startTimer(50);
+        connect(pma,SIGNAL(finished()),pma,SLOT(deleteLater()));
+    }
+    else delete pma;
 }
 
 void Photo::tremble(){
@@ -181,6 +195,7 @@ void Photo::tremble(){
 void Photo::showSkillName(const QString &skill_name){
     skill_name_item->setText(Sanguosha->translate(skill_name));
     skill_name_item->show();
+
     QTimer::singleShot(1500, this, SLOT(hideSkillName()));
 }
 
@@ -236,7 +251,6 @@ void Photo::setPlayer(const ClientPlayer *player)
         connect(player, SIGNAL(drank_changed()), this, SLOT(setDrankState()));
         connect(player, SIGNAL(action_taken()), this, SLOT(setActionState()));
         connect(player, SIGNAL(pile_changed(QString)), this, SLOT(updatePile(QString)));
-
 
         mark_item->setDocument(player->getMarkDoc());
     }
@@ -294,6 +308,8 @@ void Photo::updateAvatar(){
 
         avatar_area->setToolTip(QString());
         small_avatar_area->setToolTip(QString());
+
+        ready_item->hide();
     }
 
     hide_avatar = false;
@@ -510,56 +526,72 @@ static bool CompareByNumber(const Card *card1, const Card *card2){
 void Photo::updatePile(const QString &pile_name){
     QPushButton *button = NULL;
     QGraphicsProxyWidget *button_widget = NULL;
-    foreach(QGraphicsProxyWidget *pile_button, pile_buttons){
-        QWidget *widget = pile_button->widget();
-        if(widget->objectName() == pile_name){
-            button_widget = pile_button;
-            button = qobject_cast<QPushButton *>(widget);
-            break;
-        }
-    }
 
-    if(button == NULL){
+    if(pile_button == NULL){
         button = new QPushButton;
         button->setObjectName(pile_name);
+        button->setProperty("private_pile","true");
 
-        button_widget = new QGraphicsProxyWidget;
+        button_widget = new QGraphicsProxyWidget(this);
         button_widget->setWidget(button);
-        button_widget->setPos(pos());
-        button_widget->moveBy(5, 15 + pile_buttons.length() * 10);
-        button_widget->resize(80, 20);
-        scene()->addItem(button_widget);
-
-        pile_buttons << button_widget;
+        //button_widget->setPos(pos());
+        button_widget->moveBy(46, 68);
+        button_widget->resize(80, 16);
+        //scene()->addItem(button_widget);
 
         QMenu *menu = new QMenu(button);
         button->setMenu(menu);
+
+        pile_button = button_widget;
+    }else
+    {
+        button_widget = pile_button;
+        button = qobject_cast<QPushButton *>(pile_button->widget());
     }
 
     ClientPlayer *who = qobject_cast<ClientPlayer *>(sender());
     if(who == NULL)
         return;
 
-    const QList<int> &pile = who->getPile(pile_name);
-    if(pile.isEmpty())
-        button_widget->hide();
-    else{
-        button_widget->show();
-        button->setText(QString("%1 (%2)").arg(Sanguosha->translate(pile_name)).arg(pile.length()));
+    QStringList names = who->getPileNames();
+    button->menu()->clear();
+
+    button_widget->hide();
+    int active = 0;
+    foreach(QString pile_name,names)
+    {
+        const QList<int> &pile = who->getPile(pile_name);
+        if(!pile.isEmpty()){
+            button_widget->show();
+            active++;
+            button->setText(QString("%1 (%2)").arg(Sanguosha->translate(pile_name)).arg(pile.length()));
+        }
+
+        QMenu *menu = button->menu();
+        //menu->clear();
+
+        QList<const Card *> cards;
+        foreach(int card_id, pile){
+            const Card *card = Sanguosha->getCard(card_id);
+            cards << card;
+        }
+
+        qSort(cards.begin(), cards.end(), CompareByNumber);
+        foreach(const Card *card, cards){
+            menu->addAction(card->getSuitIcon(),
+                            QString("%1 (%2)").arg(card->getFullName())
+                            .arg(Sanguosha->translate(pile_name)));
+        }
+        menu->addSeparator();
     }
+    if(active>1)button->setText(QString(tr("Multiple")));
 
-    QMenu *menu = button->menu();
-    menu->clear();
-
-    QList<const Card *> cards;
-    foreach(int card_id, pile){
-        const Card *card = Sanguosha->getCard(card_id);
-        cards << card;
-    }
-
-    qSort(cards.begin(), cards.end(), CompareByNumber);
-    foreach(const Card *card, cards){
-        menu->addAction(card->getSuitIcon(), card->getFullName());
+    if(who->getMaxHP()>5)
+    {
+        button_widget->setPos(pos());
+        button_widget->moveBy(100, 68);
+        button_widget->resize(16,16);
+        button->setText(QString());
     }
 }
 
@@ -639,7 +671,7 @@ void Photo::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWi
 
     // draw iron chain
     if(player->isChained())
-        painter->drawPixmap(28, 16, chain);
+        painter->drawPixmap(this->boundingRect().width() - 22, 5, chain);
 
     back_icon->setVisible(! player->faceUp());
 }
@@ -677,7 +709,8 @@ void Photo::killPlayer(){
         MakeGray(small_avatar);
 
     kingdom_frame = QPixmap();
-    role_combobox->hide();
+    if(!ServerInfo.EnableHegemony)
+        role_combobox->hide();
 
     if(save_me_item)
         save_me_item->hide();

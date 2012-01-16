@@ -33,6 +33,7 @@ public:
 
     virtual QString getDefaultChoice(ServerPlayer *player) const;
     virtual int getEffectIndex(ServerPlayer *player, const Card *card) const;
+    virtual bool useCardSoundEffect() const;
     virtual QDialog *getDialog() const;
 
     void initMediaSource();
@@ -177,10 +178,22 @@ public:
     virtual void onGameStart(ServerPlayer *player) const = 0;
 };
 
-
-class PassiveSkill:public GameStartSkill{
+class SPConvertSkill: public GameStartSkill{
     Q_OBJECT
 
+public:
+    SPConvertSkill(const QString &name, const QString &from, const QString &to, bool transfigure = false);
+
+    virtual bool triggerable(const ServerPlayer *target) const;
+    virtual void onGameStart(ServerPlayer *player) const;
+
+private:
+    QString from, to;
+    bool transfigure;
+};
+
+class PassiveSkill: public GameStartSkill{
+    Q_OBJECT
 public:
     PassiveSkill(const QString &name);
     virtual void onGameStart(ServerPlayer *player) const;
@@ -233,6 +246,7 @@ public:
     virtual void onGameStart(ServerPlayer *player) const;
 
 private:
+    QString mark_name;
     int n;
 };
 

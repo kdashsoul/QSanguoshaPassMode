@@ -1985,7 +1985,7 @@ bool JianhunPassCard::targetFilter(const QList<const Player *> &targets, const P
 
 void JianhunPassCard::use(Room *room, ServerPlayer *huangzhong, const QList<ServerPlayer *> &targets) const{
     int n = 2 ;
-    if(huangzhong->getHp() == 1 || huangzhong->getAttackRange() >= 4)
+    if(huangzhong->getHp() == 1 || huangzhong->getAttackRange() >= 4 || Self->getMark("@gongshen_p") >= 8)
         n ++ ;
     CardUseStruct use;
     use.from = huangzhong;

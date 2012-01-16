@@ -101,6 +101,9 @@ void Skill::playEffect(int index) const{
             ClientInstance->setLines(filename);
     }
 }
+bool Skill::useCardSoundEffect() const{
+    return false;
+}
 
 void Skill::setFlag(ServerPlayer *player) const{
     player->getRoom()->setPlayerFlag(player, objectName());
@@ -306,6 +309,30 @@ bool GameStartSkill::trigger(TriggerEvent, ServerPlayer *player, QVariant &) con
     return false;
 }
 
+SPConvertSkill::SPConvertSkill(const QString &name, const QString &from, const QString &to, bool transfigure)
+    :GameStartSkill(name), from(from), to(to), transfigure(transfigure)
+{
+    frequency = Limited;
+}
+
+bool SPConvertSkill::triggerable(const ServerPlayer *target) const{
+    return GameStartSkill::triggerable(target) && target->getGeneralName() == from;
+}
+
+void SPConvertSkill::onGameStart(ServerPlayer *player) const{
+    if(player->askForSkillInvoke(objectName())){
+        Room *room = player->getRoom();
+        if(transfigure)
+            room->transfigure(player, to, true, false);
+        else
+            room->setPlayerProperty(player, "general", to);
+
+        const General *general = Sanguosha->getGeneral(to);
+        const QString kingdom = general->getKingdom();
+        if(kingdom != player->getKingdom())
+            room->setPlayerProperty(player, "kingdom", kingdom);
+    }
+}
 ProhibitSkill::ProhibitSkill(const QString &name)
     :Skill(name, Skill::Compulsory)
 {
@@ -337,12 +364,10 @@ bool ArmorSkill::triggerable(const ServerPlayer *target) const{
 }
 
 MarkAssignSkill::MarkAssignSkill(const QString &mark, int n)
-    :GameStartSkill("#" + mark), n(n)
+    :GameStartSkill(QString("#%1-%2").arg(mark).arg(n)), mark_name(mark), n(n)
 {
 }
 
 void MarkAssignSkill::onGameStart(ServerPlayer *player) const{
-    QString mark_name = objectName();
-    mark_name.remove("#");
     player->gainMark(mark_name, n);
 }

@@ -26,8 +26,9 @@ sgs.ai_skill_use["@@yinghun"] = function(self, prompt)
 		self.yinghun = self.friends_noself[1]
 		self.yinghunchoice = "dxt1"
 	else
-		self:sort(self.enemies, "chaofeng")
-		for _, enemy in ipairs(self.enemies) do
+		self:sort(self.enemies, "handcard")
+		for index = #self.enemies, 1, -1 do
+			local enemy = self.enemies[index]
 			if not self:hasSkills(sgs.lose_equip_skill, enemy) or enemy:getEquips():length()<x/2 then
 				self.yinghun = enemy
 				self.yinghunchoice = "d1tx"
@@ -100,13 +101,12 @@ sgs.ai_skill_use["@@fangzhu"] = function(self, prompt)
 end
 
 sgs.ai_skill_invoke.songwei = function(self, data)
-	return self:isFriend(self.room:getLord())
+	local who = data:toPlayer()
+	return self:isFriend(who)
 end
 
 -- baonue
-sgs.ai_skill_invoke.baonue = function(self, data)
-	return self.player:getRole() == "loyalist"
-end
+sgs.ai_skill_invoke.baonue = sgs.ai_skill_invoke.songwei
 
 local function getLowerBoundOfHandcard(self)
 	local least = math.huge
@@ -137,7 +137,7 @@ end
 
 -- haoshi
 sgs.ai_skill_invoke.haoshi = function(self, data)
-	if self.player:getHandcardNum() <= 1 then
+	if self.player:getHandcardNum() <= 1 and not self.player:hasSkill("yongsi") then
 		return true
 	end
 

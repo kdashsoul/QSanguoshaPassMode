@@ -31,7 +31,7 @@ public:
         AskForPlayerChoose,
         AskForYiji,
         AskForGuanxing,
-        AskForGongxin
+        AskForGongxin,
     };
 
     explicit Client(QObject *parent, const QString &filename = QString());
@@ -164,6 +164,7 @@ public:
     bool refusable;
     bool include_equip;
     int discard_num;
+    QString skill_name;
     QList<const Card*> discarded_list;
     QDialog *ask_dialog;
     QStringList players_to_choose;   
@@ -241,6 +242,7 @@ signals:
     void text_spoken(const QString &text);
     void line_spoken(const QString &line);
     void judge_result(const QString &who, const QString &result);
+    void card_used();
 
     void game_started();
     void game_over();
@@ -269,6 +271,7 @@ signals:
     void role_state_changed(const QString & state_str);
 
     void assign_asked();
+    void start_in_xs();
 };
 
 extern Client *ClientInstance;

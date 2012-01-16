@@ -41,19 +41,29 @@ private slots:
     void toggleCheck();
 };
 
-class KOFBanlistDialog: public QDialog{
+class BanlistDialog: public QDialog{
     Q_OBJECT
 
 public:
-    KOFBanlistDialog(QDialog *parent);
+    BanlistDialog(QWidget *parent, bool view = false);
 
 private:
-    QListWidget *list;
+    QList<QListWidget *>lists;
+    QListWidget * list;
+    int item;
+    QStringList ban_list;
+    QPushButton* add2nd;
 
 private slots:
     void addGeneral(const QString &name);
-    void removeGeneral();
+    void add2ndGeneral(const QString &name);
+    void addPair(const QString &first, const QString& second);
+    void doAdd2ndButton();
+    void doAddButton();
+    void doRemoveButton();
     void save();
+    void saveAll();
+    void switchTo(int item);
 };
 
 class ServerDialog: public QDialog{
@@ -80,16 +90,18 @@ private:
     QCheckBox *contest_mode_checkbox;
     QCheckBox *free_choose_checkbox;
     QCheckBox *free_assign_checkbox;
+    QCheckBox *free_assign_self_checkbox;
     QSpinBox *maxchoice_spinbox;
     QCheckBox *forbid_same_ip_checkbox;
     QCheckBox *disable_chat_checkbox;
     QCheckBox *second_general_checkbox;
     QCheckBox *scene_checkbox;	//changjing
+    QCheckBox *basara_checkbox;
+    QCheckBox *hegemony_checkbox;
     QComboBox *max_hp_scheme_combobox;
     QCheckBox *announce_ip_checkbox;
     QComboBox *scenario_combobox;
-    QComboBox *challenge_combobox;
-    QList<QLabel *> challenge_avatars;
+    QComboBox *mini_scene_combobox;
     QLineEdit *address_edit;
     QLineEdit *port_edit;
     QCheckBox *ai_enable_checkbox;
@@ -107,7 +119,6 @@ private slots:
     void onOkButtonClicked();
     void onDetectButtonClicked();
     void onHttpDone(bool error);
-    void updateChallengeLabel(int index);
     void select3v3Generals();
     void edit1v1Banlist();
 };
@@ -126,6 +137,7 @@ public:
     void daemonize();
     Room *createNewRoom();
     void signupPlayer(ServerPlayer *player);
+    void gamesOver();
 
 private:
     ServerSocket *server;

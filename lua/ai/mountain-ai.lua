@@ -6,10 +6,10 @@ local function card_for_qiaobian(self, who, return_prompt)
 		if not judges:isEmpty() then
 			for _, judge in sgs.qlist(judges) do
 				card = judge
-
-				if return_prompt:match("target") then
-					for _, enemy in ipairs(self.enemies) do
-						if not enemy:containsTrick(card:objectName()) and not self:cardProhibit(card, enemy) then target = enemy break end
+				for _, enemy in ipairs(self.enemies) do
+					if not enemy:containsTrick(card:objectName()) and not self:cardProhibit(card, enemy) then
+						target = enemy
+						break
 					end
 				end
 				if target then break end
@@ -26,7 +26,7 @@ local function card_for_qiaobian(self, who, return_prompt)
 				end
 			end
 
-			if card and return_prompt:match("target") then
+			if card then
 				for _, friend in ipairs(self.friends) do
 					if friend == who then
 					elseif friend:getCards("e"):isEmpty() or not self:hasSameEquip(card, friend) then
@@ -37,7 +37,7 @@ local function card_for_qiaobian(self, who, return_prompt)
 			end
 		end
 	else
-		local equips = who:getCards("e")
+		--[[local equips = who:getCards("e")
 		if equips:isEmpty() then return end
 		for _, equip in sgs.qlist(equips) do
 			if equip:inherits("Armor") then card = equip break
@@ -45,14 +45,28 @@ local function card_for_qiaobian(self, who, return_prompt)
 			elseif equip:inherits("Weapon") then card = equip break
 			elseif equip:inherits("OffensiveHorse") then card = equip break
 			end
-		end
+		end]]
 
-		if card and return_prompt:match("target") then
+		if not who:hasEquip() or (who:getCards("e"):length() == 1 and who:getArmor() and who:getArmor():inherits("GaleShell")) then return end
+		local card_id = self:askForCardChosen(who, "e", "snatch")
+		if card_id > 0 and who:hasEquip(sgs.Sanguosha:getCard(card_id)) then card = sgs.Sanguosha:getCard(card_id) end
+		local targets = {}
+		if card then
 			for _, friend in ipairs(self.friends) do
 				if friend:getCards("e"):isEmpty() or not self:hasSameEquip(card, friend) then
-					target = friend
+					table.insert(targets, friend)
 					break
 				end
+			end
+		end
+		
+		if #targets > 0 then
+			if card:inherits("Weapon") or card:inherits("OffensiveHorse") then
+				self:sort(targets, "threat")
+				target = targets[#targets]
+			else
+				self:sort(targets,"defense")
+				target = targets[1]
 			end
 		end
 	end
@@ -73,6 +87,7 @@ end
 sgs.ai_skill_playerchosen.qiaobian = function(self, targets)
 	local who = self.room:getTag("QiaobianTarget"):toPlayer()
 	if who then
+		if not card_for_qiaobian(self, who, "target") then self.room:writeToConsole("NULL") end
 		return card_for_qiaobian(self, who, "target")
 	end
 end
@@ -94,35 +109,29 @@ sgs.ai_skill_use["@qiaobian"] = function(self, prompt)
 	end
 
 	if prompt == "@qiaobian-draw" then
-		self:sort(self.enemies, "handcard")
-		local first, second
-		if #self.enemies > 1 then
-			first, second = self.enemies[1], self.enemies[2]
-			if first:getHandcardNum() > 0 and second:getHandcardNum() > 0 then
-				return "@QiaobianCard=" .. card:getEffectiveId() .."->".. first:objectName() .."+".. second:objectName()
-			end
-		elseif #self.enemies == 1 and #self.friends > 1 then
-			first = self.enemies[1]
-			if first:getHandcardNum() > 0 then
-				return "@QiaobianCard=" .. card:getEffectiveId() .."->".. first:objectName()
-			end
+		local cardstr = sgs.ai_skill_use["@@tuxi"](self, "@tuxi")
+		if cardstr:match("->") then
+			local targetstr = cardstr:split("->")[2]
+			return "@QiaobianCard=" .. card:getEffectiveId() .. "->" .. targetstr
+		else
+			return "."
 		end
 	end
 
 	if prompt == "@qiaobian-play" then
-		if self.player:getHandcardNum()-2 > self.player:getHp() then return "." end
+		-- if self.player:getHandcardNum()-2 > self.player:getHp() then return "." end
 
 		self:sort(self.enemies, "hp")
 		local has_armor = true
 		local judge
 		for _, friend in ipairs(self.friends_noself) do
-			if not friend:getCards("j"):isEmpty() and card_for_qiaobian(self, friend, "card+target") then
+			if not friend:getCards("j"):isEmpty() and card_for_qiaobian(self, friend, ".") then
 				return "@QiaobianCard=" .. card:getEffectiveId() .."->".. friend:objectName()
 			end
 		end
 
 		for _, friend in ipairs(self.friends_noself) do
-			if not friend:getCards("e"):isEmpty() and self:hasSkills(sgs.lose_equip_skill, friend) and card_for_qiaobian(self, friend, "card+target") then
+			if not friend:getCards("e"):isEmpty() and self:hasSkills(sgs.lose_equip_skill, friend) and card_for_qiaobian(self, friend, ".") then
 				return "@QiaobianCard=" .. card:getEffectiveId() .."->".. friend:objectName()
 			end
 			if not friend:getArmor() then has_armor = false end
@@ -134,18 +143,18 @@ sgs.ai_skill_use["@qiaobian"] = function(self, prompt)
 				if self:getUseValue(hcard) > top_value then	top_value = self:getUseValue(hcard) end
 			end
 		end
-		if top_value >= 3.7 then return "." end
+		if top_value >= 3.7 and #(self:getTurnUse())>0 then return "." end
 
 		local targets = {}
 		for _, enemy in ipairs(self.enemies) do
-			if enemy:getArmor() and not has_armor and card_for_qiaobian(self, enemy, ".") then
+			if card_for_qiaobian(self, enemy, ".") then
 				table.insert(targets, enemy)
 			end
 		end
-
-		self:sort(targets, "defense")
-		for _, target in ipairs(targets) do
-			return "@QiaobianCard=" .. card:getEffectiveId() .."->".. target:objectName()
+		
+		if #targets > 0 then
+			self:sort(targets, "defense")
+			return "@QiaobianCard=" .. card:getEffectiveId() .."->".. targets[#targets]:objectName()
 		end
 	end
 
@@ -247,7 +256,7 @@ sgs.ai_skill_invoke.fangquan = function(self, data)
 	end
 
 	local limit = self.player:getMaxCards()
-	return self.player:getHandcardNum() <= limit
+	return self.player:getHandcardNum() <= limit and not self.player:isKongcheng()
 end
 
 sgs.ai_skill_playerchosen.fangquan = function(self, targets)
@@ -382,71 +391,69 @@ local zhiba_skill={}
 zhiba_skill.name="zhiba_pindian"
 table.insert(sgs.ai_skills, zhiba_skill)
 zhiba_skill.getTurnUseCard = function(self)
-	local lord = self.room:getLord()
-	if lord:getHandcardNum() == 0
-		or self.player:getHandcardNum() == 0
-		or self.player:getHandcardNum() < self.player:getHp()
-		or self.player == lord
-		or self.player:getKingdom() ~= "wu"
-		or self.player:hasUsed("ZhibaCard")
-		or not lord:hasSkill("sunce_zhiba") then
-		return
-	end
-
-	local zhiba_str
-	local cards = self.player:getHandcards()
-
-	local max_num = 0, max_card
-	local min_num = 14, min_card
-	for _, hcard in sgs.qlist(cards) do
-		if hcard:getNumber() > max_num then
-			max_num = hcard:getNumber()
-			max_card = hcard
-		end
-
-		if hcard:getNumber() <= min_num and not (self:isFriend(lord) and hcard:inherits("Shit")) then
-			if hcard:getNumber() == min_num then
-				if min_card and self:getKeepValue(hcard) > self:getKeepValue(min_card) then
-					min_num = hcard:getNumber()
-					min_card = hcard
-				end
-			else
-				min_num = hcard:getNumber()
-				min_card = hcard
-			end
-		end
-	end
-
-	local lord_max_num = 0, lord_max_card
-	local lord_min_num = 14, lord_min_card
-	local lord_cards = lord:getHandcards()
-	for _, lcard in sgs.qlist(lord_cards) do
-		if lcard:getNumber() > lord_max_num then
-			lord_max_card = lcard
-			lord_max_num = lcard:getNumber()
-		end
-		if lcard:getNumber() < lord_min_num then
-			lord_min_num = lcard:getNumber()
-			lord_min_card = lcard
-		end
-	end
-
-	if self:isEnemy(lord) and max_num > lord_max_num then
-		zhiba_str = "@ZhibaCard=" .. max_card:getEffectiveId()
-	end
-	if self:isFriend(lord) and min_num < lord_min_num then
-		zhiba_str = "@ZhibaCard=" .. min_card:getEffectiveId()
-	end
-
- 	if not zhiba_str then return end
-
-	return sgs.Card_Parse(zhiba_str)
+	if self.player:isKongcheng() or self.player:getHandcardNum() < self.player:getHp() or self.player:getKingdom() ~= "wu"
+		or self.player:hasUsed("ZhibaCard") then return end
+	return sgs.Card_Parse("@ZhibaCard=.")
 end
 
 sgs.ai_skill_use_func["ZhibaCard"] = function(card, use, self)
-	use.card = card
-	if use.to then
-		use.to:append(self.room:getLord())
+	local lords = {}
+	for _, player in sgs.qlist(self.room:getOtherPlayers(self.player)) do
+		if player:hasLordSkill("sunce_zhiba") and not player:isKongcheng() then table.insert(lords, player) end
+	end
+	if #lords == 0 then return end
+	self:sort(lords, "defense")
+	for _, lord in ipairs(lords) do
+		local zhiba_str
+		local cards = self.player:getHandcards()
+
+		local max_num = 0, max_card
+		local min_num = 14, min_card
+		for _, hcard in sgs.qlist(cards) do
+			if hcard:getNumber() > max_num then
+				max_num = hcard:getNumber()
+				max_card = hcard
+			end
+
+			if hcard:getNumber() <= min_num and not (self:isFriend(lord) and hcard:inherits("Shit")) then
+				if hcard:getNumber() == min_num then
+					if min_card and self:getKeepValue(hcard) > self:getKeepValue(min_card) then
+						min_num = hcard:getNumber()
+						min_card = hcard
+					end
+				else
+					min_num = hcard:getNumber()
+					min_card = hcard
+				end
+			end
+		end
+
+		local lord_max_num = 0, lord_max_card
+		local lord_min_num = 14, lord_min_card
+		local lord_cards = lord:getHandcards()
+		for _, lcard in sgs.qlist(lord_cards) do
+			if lcard:getNumber() > lord_max_num then
+				lord_max_card = lcard
+				lord_max_num = lcard:getNumber()
+			end
+			if lcard:getNumber() < lord_min_num then
+				lord_min_num = lcard:getNumber()
+				lord_min_card = lcard
+			end
+		end
+
+		if self:isEnemy(lord) and max_num > lord_max_num then
+			zhiba_str = "@ZhibaCard=" .. max_card:getEffectiveId()
+		end
+		if self:isFriend(lord) and min_num < lord_min_num then
+			zhiba_str = "@ZhibaCard=" .. min_card:getEffectiveId()
+		end
+
+		if zhiba_str then
+			use.card = sgs.Card_Parse(zhiba_str)
+			if use.to then use.to:append(lord) end
+			return
+		end
 	end
 end
 
@@ -455,10 +462,4 @@ sgs.ai_skill_choice["zhiba_pindian"] = function(self, choices)
 	if self:isEnemy(who) then return "reject"
 	else return "accept"
 	end
-end
-
-sgs.ai_skill_choice["huashen"] = function(self, choices)
-	local parseprompt = choices:split("+")
-	local index = math.random(1, #parseprompt)
-	return choices[index]
 end

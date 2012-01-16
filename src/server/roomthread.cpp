@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "gamerule.h"
 #include "ai.h"
+#include "settings.h"
 
 #include <QTime>
 
@@ -137,6 +138,13 @@ void CardUseStruct::parse(const QString &str, Room *room){
         foreach(QString target_name, target_names)
             to << room->findChild<ServerPlayer *>(target_name);
     }
+}
+
+QString EventTriplet::toString() const{
+    return QString("event = %1, target = %2[%3], data = %4[%5]")
+            .arg(event)
+            .arg(target->objectName()).arg(target->getGeneralName())
+            .arg(data->toString()).arg(data->typeName());
 }
 
 RoomThread::RoomThread(Room *room)
@@ -325,6 +333,10 @@ static bool CompareByPriority(const TriggerSkill *a, const TriggerSkill *b){
 bool RoomThread::trigger(TriggerEvent event, ServerPlayer *target, QVariant &data){
     Q_ASSERT(QThread::currentThread() == this);
 
+    // push it to event stack
+    EventTriplet triplet(event, target, &data);
+    event_stack.push_back(triplet);
+
     bool broken = false;
     foreach(const TriggerSkill *skill, skill_table[event]){
         if(skill->triggerable(target)){
@@ -339,7 +351,14 @@ bool RoomThread::trigger(TriggerEvent event, ServerPlayer *target, QVariant &dat
             ai->filterEvent(event, target, data);
     }
 
+    // pop event stack
+    event_stack.pop_back();
+
     return broken;
+}
+
+const QList<EventTriplet> *RoomThread::getEventStack() const{
+    return &event_stack;
 }
 
 bool RoomThread::trigger(TriggerEvent event, ServerPlayer *target){
@@ -370,7 +389,7 @@ void RoomThread::addTriggerSkill(const TriggerSkill *skill){
 }
 
 void RoomThread::delay(unsigned long secs){
-    if(room->property("to_test").toString().isEmpty())
+    if(room->property("to_test").toString().isEmpty()&&Config.value("AIDelay",1000).toInt()>0)
         msleep(secs);
 }
 

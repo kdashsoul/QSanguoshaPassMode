@@ -8,6 +8,9 @@
 Pixmap::Pixmap(const QString &filename, bool center_as_origin)
     :pixmap(filename), markable(false), marked(false)
 {
+
+#ifndef QT_NO_DEBUG
+//only complains about pixmap loading errors under debug mode
     if(pixmap.isNull()){
         QImageReader reader(filename);
         QString error_string = reader.errorString();
@@ -16,7 +19,7 @@ Pixmap::Pixmap(const QString &filename, bool center_as_origin)
                           .arg(filename).arg(metaObject()->className()).arg(error_string);
         QMessageBox::warning(NULL, tr("Warning"), warning);
     }
-
+#endif
     if(center_as_origin)
         setTransformOriginPoint(pixmap.width()/2, pixmap.height()/2);
 }
@@ -55,7 +58,7 @@ void Pixmap::MakeGray(QPixmap &pixmap){
         for(j=0; j<img.height(); j++){
             QRgb color = img.pixel(i, j);
             int gray = qGray(color);
-            color = qRgb(gray, gray, gray);
+            color = qRgba(gray, gray, gray, qAlpha(color));
             img.setPixel(i, j, color);
         }
     }
@@ -81,20 +84,24 @@ void Pixmap::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
 
 QVariant Pixmap::itemChange(GraphicsItemChange change, const QVariant &value){
     if(change == ItemSelectedHasChanged){
-        if(value.toBool()){
-            QGraphicsColorizeEffect *effect = new QGraphicsColorizeEffect(this);
-            effect->setColor(QColor(0xCC, 0x00, 0x00));
-            setGraphicsEffect(effect);
-        }else
-            setGraphicsEffect(NULL);
+//        if(value.toBool()){
+//            QGraphicsColorizeEffect *effect = new QGraphicsColorizeEffect(this);
+//            effect->setColor(QColor(0xCC, 0x00, 0x00));
+//            setGraphicsEffect(effect);
+//        }else
+//            setGraphicsEffect(NULL);
 
         emit selected_changed();
     }else if(change == ItemEnabledHasChanged){
-        if(value.toBool()){
-            setOpacity(1.0);
-        }else{
-            setOpacity(0.7);
+        if(this->inherits("CardItem"))
+        {
+            if(value.toBool()){
+                setOpacity(1.0);
+            }else{
+                setOpacity(0.7);
+            }
         }
+        else emit enable_changed();
     }
 
     return QGraphicsObject::itemChange(change, value);

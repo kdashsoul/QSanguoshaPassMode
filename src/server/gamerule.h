@@ -21,15 +21,6 @@ private:
     QString getWinner(ServerPlayer *victim) const;
 };
 
-class BossMode : public GameRule{
-    Q_OBJECT
-
-public:
-    BossMode(QObject *parent);
-
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const;
-};
-
 class HulaoPassMode: public GameRule{
     Q_OBJECT
 
@@ -40,6 +31,22 @@ public:
 
 private:
     mutable jmp_buf env;
+};
+
+class BasaraMode: public GameRule{
+    Q_OBJECT
+
+public:
+    BasaraMode(QObject *parent);
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const;
+    virtual int getPriority() const;
+    void playerShowed(ServerPlayer *player) const;
+    void generalShowed(ServerPlayer *player,QString general_name) const;
+    static QString getMappedRole(const QString& role);
+
+private:
+    QMap<QString, QString> skill_mark;
 };
 
 #endif // GAMERULE_H

@@ -301,6 +301,9 @@ public:
 
         return slash;
     }
+    virtual bool useCardSoundEffect() const{
+        return true;
+    }
 };
 
 Spear::Spear(Suit suit, int number)
@@ -570,7 +573,7 @@ void SavageAssault::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.to->getRoom();
     const Card *slash = room->askForCard(effect.to, "slash", "savage-assault-slash:" + effect.from->objectName());
     if(slash)
-        room->broadcastInvoke("animate", QString("slash:%1").arg(effect.to->objectName()));
+        room->setEmotion(effect.to, "killer");
     else{
         DamageStruct damage;
         damage.card = this;
@@ -593,7 +596,7 @@ void ArcheryAttack::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.to->getRoom();
     const Card *jink = room->askForCard(effect.to, "jink", "archery-attack-jink:" + effect.from->objectName());
     if(jink)
-        room->broadcastInvoke("animate", QString("jink:%1").arg(effect.to->objectName()));
+        room->setEmotion(effect.to, "jink");
     else{
         DamageStruct damage;
         damage.card = this;

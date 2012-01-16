@@ -26,6 +26,7 @@ public:
     enum Relation { Friend, Enemy, Neutrality };
     static Relation GetRelation3v3(const ServerPlayer *a, const ServerPlayer *b);
     static Relation GetRelationBoss(const ServerPlayer *a, const ServerPlayer *b);
+    static Relation GetRelationHegemony(const ServerPlayer *a, const ServerPlayer *b);
     static Relation GetRelation(const ServerPlayer *a, const ServerPlayer *b);
     Relation relationTo(const ServerPlayer *other) const;
     bool isFriend(const ServerPlayer *other) const;
@@ -106,6 +107,8 @@ public:
     virtual ServerPlayer *askForPlayerChosen(const QList<ServerPlayer *> &targets, const QString &reason);
     virtual int askForAG(const QList<int> &card_ids, bool refusable, const QString &reason);
     virtual const Card *askForSinglePeach(ServerPlayer *dying);
+    virtual const Card *askForPindian(ServerPlayer *requestor, const QString &reason);
+    virtual Card::Suit askForSuit();
 
     virtual ServerPlayer *askForYiji(const QList<int> &cards, int &card_id);
     virtual void askForGuanxing(const QList<int> &cards, QList<int> &up, QList<int> &bottom, bool up_only);

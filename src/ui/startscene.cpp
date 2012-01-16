@@ -68,10 +68,10 @@ void StartScene::switchToServer(Server *server){
     if(SoundEngine) {
 #ifdef  Q_OS_WIN32
         SoundEngine->drop();
-        SoundEngine = NULL;
 #else
         delete SoundEngine;
 #endif
+        SoundEngine = NULL;
     }
 #endif
 
@@ -161,6 +161,14 @@ void StartScene::printServerInfo(){
         server_log->append(tr("Scene Mode is enabled"));
     else
         server_log->append(tr("Scene Mode is disabled"));
+
+    server_log->append( Config.EnableBasara ?
+                        tr("Basara Mode is enabled") :
+                        tr("Basara Mode is disabled"));
+
+    server_log->append( Config.EnableHegemony ?
+                        tr("Hegemony Mode is enabled") :
+                        tr("Hegemony Mode is disabled"));
 
     if(Config.EnableAI){
         server_log->append(tr("This server is AI enabled, AI delay is %1 milliseconds").arg(Config.AIDelay));

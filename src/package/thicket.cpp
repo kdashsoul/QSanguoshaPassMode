@@ -7,6 +7,7 @@
 #include "clientplayer.h"
 #include "client.h"
 #include "engine.h"
+#include "general.h"
 
 class Xingshang: public TriggerSkill{
 public:
@@ -122,7 +123,10 @@ public:
             foreach(ServerPlayer *p, players){
                 QVariant who = QVariant::fromValue(p);
                 if(p->hasLordSkill("songwei") && player->askForSkillInvoke("songwei", who)){
-                    room->playSkillEffect(objectName(), 1);
+                    if(player->getGeneral()->isMale())
+                        room->playSkillEffect(objectName(), 1);
+                    else
+                        room->playSkillEffect(objectName(), 2);
                     p->drawCards(1);
                 }
             }
@@ -225,14 +229,14 @@ public:
 
     virtual bool trigger(TriggerEvent , ServerPlayer *zhurong, QVariant &data) const{
         DamageStruct damage = data.value<DamageStruct>();
-
-        if(damage.card && damage.card->inherits("Slash") && damage.to->isAlive()
-            && !zhurong->isKongcheng() && !damage.to->isKongcheng() && damage.to != zhurong){
+        ServerPlayer *target = damage.to;
+        if(damage.card && damage.card->inherits("Slash") && !zhurong->isKongcheng()
+            && !target->isKongcheng() && target != zhurong && !damage.chain){
             Room *room = zhurong->getRoom();
             if(room->askForSkillInvoke(zhurong, objectName(), data)){
                 room->playSkillEffect(objectName(), 1);
 
-                bool success = zhurong->pindian(damage.to, "lieren", NULL);
+                bool success = zhurong->pindian(target, "lieren", NULL);
                 if(success)
                     room->playSkillEffect(objectName(), 2);
                 else{
@@ -240,8 +244,8 @@ public:
                     return false;
                 }
 
-                if(!damage.to->isNude()){
-                    int card_id = room->askForCardChosen(zhurong, damage.to, "he", objectName());
+                if(!target->isNude()){
+                    int card_id = room->askForCardChosen(zhurong, target, "he", objectName());
                     if(room->getCardPlace(card_id) == Player::Hand)
                         room->moveCardTo(Sanguosha->getCard(card_id), zhurong, Player::Hand, false);
                     else
@@ -802,7 +806,7 @@ public:
         }
 
         if(trigger_this){
-            QString result = room->askForChoice(dongzhuo, "benghuai", "hp+max_hp");
+            QString result = room->askForChoice(dongzhuo, "benghuai", "hp+maxhp");
 
             room->playSkillEffect(objectName());
             room->setEmotion(dongzhuo, "bad");
@@ -913,8 +917,9 @@ ThicketPackage::ThicketPackage()
     jiaxu->addSkill(new Weimu);
     jiaxu->addSkill(new MarkAssignSkill("@chaos", 1));
     jiaxu->addSkill(new Luanwu);
+    jiaxu->addSkill(new SPConvertSkill("guiwei", "jiaxu", "sp_jiaxu"));
 
-    related_skills.insertMulti("luanwu", "#@chaos");
+    related_skills.insertMulti("luanwu", "#@chaos-1");
 
     dongzhuo = new General(this, "dongzhuo$", "qun", 8);
     dongzhuo->addSkill(new Jiuchi);

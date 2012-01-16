@@ -5,6 +5,7 @@
 #include "carditem.h"
 #include "engine.h"
 #include "ai.h"
+#include "general.h"
 
 // skill cards
 
@@ -59,7 +60,7 @@ HuangtianCard::HuangtianCard(){
 
 void HuangtianCard::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &targets) const{
     ServerPlayer *zhangjiao = targets.first();
-    if(zhangjiao->hasSkill("huangtian")){
+    if(zhangjiao->hasLordSkill("huangtian")){
         zhangjiao->obtainCard(this);
         room->setEmotion(zhangjiao, "good");
     }

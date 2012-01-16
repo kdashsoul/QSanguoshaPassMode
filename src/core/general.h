@@ -13,7 +13,7 @@ class QSize;
 class General : public QObject
 {
     Q_OBJECT
-    Q_ENUMS(Gender)
+    Q_ENUMS(Gender);
     Q_PROPERTY(QString kingdom READ getKingdom CONSTANT)
     Q_PROPERTY(int maxhp READ getMaxHp CONSTANT)
     Q_PROPERTY(bool male READ isMale STORED false CONSTANT)
@@ -23,7 +23,7 @@ class General : public QObject
     Q_PROPERTY(bool hidden READ isHidden CONSTANT)
 
 public:
-    explicit General(Package *package, const QString &name, const QString &kingdom, int max_hp = 4, bool male = true, bool hidden = false);
+    explicit General(Package *package, const QString &name, const QString &kingdom, int max_hp = 4, bool male = true, bool hidden = false, bool never_shown = false);
 
     // property getters/setters
     int getMaxHp() const;
@@ -33,6 +33,7 @@ public:
     bool isNeuter() const;
     bool isLord() const;
     bool isHidden() const;
+    bool isTotallyHidden() const;
 
     enum Gender {Male, Female, Neuter};
     Gender getGender() const;
@@ -67,6 +68,7 @@ private:
     QSet<QString> skill_set;
     QSet<QString> extra_set;
     bool hidden;
+    bool never_shown;
 };
 
 #endif // GENERAL_H

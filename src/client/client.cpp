@@ -386,6 +386,7 @@ void Client::startInXs(const QString &left_seconds){
     int seconds = left_seconds.toInt();
     lines_doc->setHtml(tr("Game will start in <b>%1</b> seconds").arg(left_seconds));
 
+    emit start_in_xs();
     if(seconds == 0 && Sanguosha->getScenario(ServerInfo.GameMode) == NULL){
         emit avatars_hiden();
     }
@@ -562,7 +563,7 @@ QString Client::getPlayerName(const QString &str){
         ClientPlayer *player = getPlayer(str);
         general_name = player->getGeneralName();
         general_name = Sanguosha->translate(general_name);
-        if(ServerInfo.GameMode == "08same")
+        if(ServerInfo.GameMode == "08same" || player->getGeneralName() == "anjiang")
             general_name = QString("%1[%2]").arg(general_name).arg(player->getSeat());
         return general_name;
 
@@ -910,6 +911,12 @@ void Client::speakToServer(const QString &text){
 }
 
 void Client::addHistory(const QString &add_str){
+    if(add_str == "pushPile")
+    {
+        emit card_used();
+        return;
+    }
+
     QRegExp rx("(.+)(#\\d+)?");
     if(rx.exactMatch(add_str)){
         QStringList texts = rx.capturedTexts();
@@ -1092,6 +1099,11 @@ void Client::killPlayer(const QString &player_name){
     if(!Self->hasFlag("marshalling")){
         QString general_name = player->getGeneralName();
         QString last_word = Sanguosha->translate(QString("~%1").arg(general_name));
+        if(last_word.startsWith("~")){
+            QStringList origin_generals = general_name.split("_");
+            if(origin_generals.length()>1)
+                last_word = Sanguosha->translate(("~") +  origin_generals.at(1));
+        }
 
         skill_title = tr("%1[dead]").arg(Sanguosha->translate(general_name));
         skill_line = last_word;
@@ -1452,7 +1464,9 @@ void Client::askForYiji(const QString &card_list){
 }
 
 void Client::askForPlayerChosen(const QString &players){
-    players_to_choose = players.split("+");
+    skill_name = players.split(":").at(1);
+    QString player_list = players.split(":").at(0);
+    players_to_choose = player_list.split("+");
 
     Q_ASSERT(!players_to_choose.isEmpty());
 
@@ -1506,7 +1520,7 @@ void Client::speak(const QString &speak_data){
 
     if(who == "."){
         QString line = tr("<font color='red'>System: %1</font>").arg(text);
-        emit line_spoken(line);
+        emit line_spoken(QString("<p style=\"margin:3px 2px;\">%1</p>").arg(line));
         return;
     }
 
@@ -1619,11 +1633,11 @@ void Client::transfigure(const QString &transfigure_tr){
         const General *furui = Sanguosha->getGeneral(generals.first());
         const General *atarashi = Sanguosha->getGeneral(generals.last());
 
-        foreach(const Skill *skill, furui->getVisibleSkills()){
+        if(furui)foreach(const Skill *skill, furui->getVisibleSkills()){
             emit skill_detached(skill->objectName());
         }
 
-        foreach(const Skill *skill, atarashi->getVisibleSkills()){
+        if(atarashi)foreach(const Skill *skill, atarashi->getVisibleSkills()){
             emit skill_attached(skill->objectName(), false);
         }
     }

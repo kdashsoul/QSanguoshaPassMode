@@ -35,7 +35,7 @@ public:
 class General : public QObject
 {
 public:
-       explicit General(Package *package, const char *name, const char *kingdom, int max_hp = 4, bool male = true, bool hidden = false);
+	explicit General(Package *package, const char *name, const char *kingdom, int max_hp = 4, bool male = true, bool hidden = false, bool never_shown = false);
 
     // property getters/setters
     int getMaxHp() const;
@@ -45,6 +45,7 @@ public:
     bool isNeuter() const;
     bool isLord() const;
     bool isHidden() const;
+	bool isTotallyHidden() const;
 
     enum Gender {Male, Female, Neuter};
     Gender getGender() const;
@@ -96,6 +97,7 @@ public:
     QString getRole() const;    
     Role getRoleEnum() const;
 
+	void setGeneral(const General *general);
     void setGeneralName(const char *general_name);
     QString getGeneralName() const;    
 
@@ -228,6 +230,7 @@ public:
 class ServerPlayer : public Player
 {
 public:
+	ServerPlayer(Room *room);
     void setSocket(ClientSocket *socket);
     void invoke(const char *method, const char *arg = ".");
     QString reportHeader() const;
@@ -288,7 +291,7 @@ public:
     // 3v3 methods
     void addToSelected(const char *general);
     QStringList getSelected() const;
-    QString findReasonable(const QStringList &generals);
+	QString findReasonable(const QStringList &generals, bool no_unreasonable = false);
     void clearSelected();
 
     int getGeneralMaxHP() const;
@@ -442,6 +445,7 @@ enum TriggerEvent{
     FinishJudge,
 
 	Pindian,
+    TurnedOver,
 
     Predamage,
     Predamaged,
@@ -467,6 +471,10 @@ enum TriggerEvent{
     CardResponsed,
     CardDiscarded,
     CardLost,
+    CardLostDone,
+    CardGot,
+    CardGotDone,
+    CardDrawnDone,
 
     CardEffect,
     CardEffected,
@@ -630,8 +638,6 @@ public:
     void addScenario(Scenario *scenario);
     const Scenario *getScenario(const char *name) const;
 
-    const ChallengeModeSet *getChallengeModeSet() const;
-    const ChallengeMode *getChallengeMode(const char *name) const;
 
     const General *getGeneral(const char *name) const;
     int getGeneralCount(bool include_banned = false) const;
@@ -749,9 +755,9 @@ public:
     void setCurrent(ServerPlayer *current);
     int alivePlayerCount() const;
     QList<ServerPlayer *> getOtherPlayers(ServerPlayer *except) const;
+	QList<ServerPlayer *> getPlayers() const;
     QList<ServerPlayer *> getAllPlayers() const;
     QList<ServerPlayer *> getAlivePlayers() const;
-    void output(const char *message);
     void enterDying(ServerPlayer *player, DamageStruct *reason);
     void killPlayer(ServerPlayer *victim, DamageStruct *reason = NULL);
     void revivePlayer(ServerPlayer *player);
@@ -871,6 +877,10 @@ public:
 			$self->output(msg);
 	}
 
+	void outputEventStack(){
+		if(Config.value("DebugOutput", false).toBool())
+			$self->outputEventStack();
+	}
 	void writeToConsole(const char *msg){
 		$self->output(msg);
 	}

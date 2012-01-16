@@ -5,9 +5,10 @@
 #include "client.h"
 
 #include <QSize>
+#include <QFile>
 
-General::General(Package *package, const QString &name, const QString &kingdom, int max_hp, bool male, bool hidden)
-    :QObject(package), kingdom(kingdom), max_hp(max_hp), gender(male ? Male : Female), hidden(hidden)
+General::General(Package *package, const QString &name, const QString &kingdom, int max_hp, bool male, bool hidden, bool never_shown)
+    :QObject(package), kingdom(kingdom), max_hp(max_hp), gender(male ? Male : Female), hidden(hidden), never_shown(never_shown)
 {
     static QChar lord_symbol('$');
     if(name.contains(lord_symbol)){
@@ -57,10 +58,15 @@ bool General::isHidden() const{
     return hidden;
 }
 
+bool General::isTotallyHidden() const{
+    return never_shown;
+}
+
 QString General::getPixmapPath(const QString &category) const{
     QString suffix = "png";
     if(category == "card")
         suffix = "jpg";
+
     return QString("image/generals/%1/%2.%3").arg(category).arg(getBasicName()).arg(suffix);
 }
 
@@ -154,8 +160,6 @@ const General *General::getPassGeneral() const{
 
 QString General::getBasicName() const{
     QString name = objectName() ;
-//    if(name.startsWith("sp_"))
-//        name.remove(QRegExp("^sp_")) ;
     if(name.endsWith("_p"))
         name.chop(2);
     return name;

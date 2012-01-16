@@ -1,6 +1,7 @@
 #include "settings.h"
 #include "photo.h"
 #include "card.h"
+#include "engine.h"
 
 #include <QFontDatabase>
 #include <QStringList>
@@ -23,7 +24,7 @@ Settings::Settings()
 
 void Settings::init(){
     if(!qApp->arguments().contains("-server")){
-        QString font_path = value("DefaultFontPath", "font/girl.ttf").toString();
+        QString font_path = value("DefaultFontPath", "font/font.ttf").toString();
         int font_id = QFontDatabase::addApplicationFont(font_path);
         if(font_id!=-1){
             QString font_family = QFontDatabase::applicationFontFamilies(font_id).first();
@@ -46,21 +47,29 @@ void Settings::init(){
 
     CountDownSeconds = value("CountDownSeconds", 3).toInt();
     GameMode = value("GameMode", "02p").toString();
+
+
     if(!contains("BanPackages")){
         QStringList banlist;
         banlist << "nostalgia" << "yitian" << "wisdom" << "test"
                 << "disaster" << "god" << "YJCM" << "yitian_cards"
                 << "sp" << "sp_cards"
                 << "joy" << "joy_equip";
+
         setValue("BanPackages", banlist);
     }
+
     BanPackages = value("BanPackages").toStringList();
+
     ContestMode = value("ContestMode", false).toBool();
     FreeChoose = value("FreeChoose", false).toBool();
     ForbidSIMC = value("ForbidSIMC", false).toBool();
     DisableChat = value("DisableChat", false).toBool();
+    FreeAssignSelf = value("FreeAssignSelf", false).toBool();
     Enable2ndGeneral = value("Enable2ndGeneral", false).toBool();
     EnableScene = value("EnableScene", false).toBool();	//changjing
+    EnableBasara= value("EnableBasara",false).toBool();
+    EnableHegemony = value("EnableHegemony",false).toBool();
     MaxHpScheme = value("MaxHpScheme", 0).toInt();
     AnnounceIP = value("AnnounceIP", false).toBool();
     Address = value("Address", QString()).toString();
@@ -94,13 +103,70 @@ void Settings::init(){
     EnableEffects = value("EnableEffects", true).toBool();
     EnableLastWord = value("EnableLastWord", true).toBool();
     EnableBgMusic = value("EnableBgMusic", true).toBool();
-    Volume = value("Volume", 1.0f).toFloat();
+    BGMVolume = value("BGMVolume", 1.0f).toFloat();
+    EffectVolume = value("EffectVolume", 1.0f).toFloat();
 
-    BackgroundBrush = value("BackgroundBrush", "backdrop/chibi.jpg").toString();
+    BackgroundBrush = value("BackgroundBrush", "backdrop/new-version.jpg").toString();
 
-    if(!contains("1v1/Banlist")){
-        QStringList banlist;
-        banlist << "sunquan" << "huatuo" << "zhangliao" << "liubei";
-        setValue("1v1/Banlist", banlist);
+    QStringList kof_ban, basara_ban, hegemony_ban, pairs_ban;
+
+    kof_ban << "sunquan" << "huatuo" << "zhangliao" << "liubei";
+
+    basara_ban << "dongzhuo" << "zuoci" << "shenzhugeliang" << "shenlubu";
+
+    hegemony_ban.append(basara_ban);
+    hegemony_ban << "xiahoujuan";
+    foreach(QString general, Sanguosha->getLimitedGeneralNames()){
+        if(Sanguosha->getGeneral(general)->getKingdom() == "god" && !hegemony_ban.contains(general))
+            hegemony_ban << general;
     }
+
+    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "+luboyan"
+                << "caocao+caochong" << "xushu+zhugeliang" << "simayi+caizhaoji"
+                << "zhenji+zhangjiao" << "zhenji+simayi" << "huanggai+yuanshao"
+                << "huanggai+wuguotai" << "dengshizai+caoren" << "dengshizai+shenlubu"
+                << "luxun+liubei" << "luxun+wolong" << "luxun+yuji"
+                << "huangyueying+wolong" << "huangyueying+yuanshao" << "huangyueying+ganning"
+                << "shuangxiong+sunce" << "shuangxiong+huanggai" << "shuangxiong+huangyueying"
+                << "dengai+guojia" << "dengai+simayi" << "dengai+zhangjiao"
+                << "dengai+shenzhugeliang" << "dengai+shensimayi"
+                << "jiangboyue+huangyueying" << "jiangboyue+wolong" << "jiangboyue+yuanshao"
+                << "jiangboyue+shuangxiong" << "jiangboyue+ganning" << "jiangboyue+luxun"
+                << "weiyan+huanggai" << "jiangwei+zhangjiao" << "caoren+shenlubu"
+                << "fazheng+xiahoudun" << "luxun+zhanggongqi" << "sunquan+lingtong"
+                << "sunquan+sunshangxiang" << "wuguotai+guojia" << "wuguotai+xunyu"
+                << "caizhaoji+caoren" << "caizhaoji+dengshizai" << "yuanshu+zhanghe"
+                << "yuanshu+lumeng" << "yuanshu+caochong" << "huatuo+guojia"
+                << "huatuo+xunyu" << "huatuo+xiahoujuan" << "huatuo+zhanggongqi"
+                << "lukang+liubei" << "lukang+wolong" << "lukang+yuji" << "jiangboyue+lukang"
+                << "lukang+zhanggongqi" << "bgm_diaochan+caoren" << "bgm_diaochan+shenlubu"
+                << "bgm_diaochan+caizhaoji";
+
+    QStringList banlist = value("Banlist/1v1").toStringList();
+    foreach(QString ban_general, kof_ban){
+        if(!banlist.contains(ban_general))
+            banlist << ban_general;
+    }
+    setValue("Banlist/1v1", banlist);
+
+    banlist = value("Banlist/Basara").toStringList();
+    foreach(QString ban_general, basara_ban){
+        if(!banlist.contains(ban_general))
+                banlist << ban_general;
+    }
+    setValue("Banlist/Basara", banlist);
+
+    banlist = value("Banlist/Hegemony").toStringList();
+    foreach(QString ban_general, hegemony_ban){
+        if(!banlist.contains(ban_general))
+                banlist << ban_general;
+    }
+    setValue("Banlist/Hegemony", banlist);
+
+    banlist = value("Banlist/Pairs").toStringList();
+    foreach(QString ban_general, pairs_ban){
+        if(!banlist.contains(ban_general))
+                banlist << ban_general;
+    }
+    setValue("Banlist/Pairs", banlist);
 }

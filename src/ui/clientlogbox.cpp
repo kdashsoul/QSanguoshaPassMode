@@ -43,6 +43,7 @@ void ClientLogBox::appendLog(
     if(type.startsWith("$")){
         const Card *card = Sanguosha->getCard(card_str.toInt());
         QString log_name = card->getLogName();
+        log_name = bold(log_name, Qt::yellow);
 
         log = Sanguosha->translate(type);
         log.replace("%from", from);
@@ -65,15 +66,17 @@ void ClientLogBox::appendLog(
         if(card == NULL)
             return;
         QString card_name = card->getLogName();
+        card_name = bold(card_name, Qt::yellow);
 
         if(card->isVirtualCard()){
             QString skill_name = Sanguosha->translate(card->getSkillName());
+            skill_name = bold(skill_name, Qt::yellow);
 
             QList<int> card_ids = card->getSubcards();
             QStringList subcard_list;
             foreach(int card_id, card_ids){
                 const Card *subcard = Sanguosha->getCard(card_id);
-                subcard_list << subcard->getLogName();
+                subcard_list << bold(subcard->getLogName(), Qt::yellow);
             }
 
             QString subcard_str = subcard_list.join(",");
@@ -153,5 +156,10 @@ void ClientLogBox::appendLog(const QString &log_str){
 void ClientLogBox::appendSeparator(){
     const Player *player = qobject_cast<const Player *>(sender());
     if(player->getPhase() == Player::NotActive)
-        append("------------------------");
+        append("<font color='white'>------------------------</font>");
+}
+
+void ClientLogBox::append(const QString &text)
+{
+    QTextEdit::append(QString("<p style=\"margin:3px p2x; line-height:120%;\">%1</p>").arg(text));
 }

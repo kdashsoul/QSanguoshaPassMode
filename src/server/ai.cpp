@@ -54,6 +54,20 @@ AI::Relation AI::GetRelationBoss(const ServerPlayer *a, const ServerPlayer *b){
         return Friend;
 }
 
+AI::Relation AI::GetRelationHegemony(const ServerPlayer *a, const ServerPlayer *b){
+    const bool aShown = a->getRoom()->getTag(a->objectName()).toStringList().isEmpty();
+    const bool bShown = b->getRoom()->getTag(b->objectName()).toStringList().isEmpty();
+    const QString aName = aShown ?
+                a->getGeneralName() :
+                a->getRoom()->getTag(a->objectName()).toStringList().first();
+    const QString bName = bShown ?
+                b->getGeneralName() :
+                b->getRoom()->getTag(b->objectName()).toStringList().first();
+    const QString aKingdom = Sanguosha->getGeneral(aName)->getKingdom();
+    const QString bKingdom = Sanguosha->getGeneral(bName)->getKingdom();
+    qDebug() << aKingdom << bKingdom <<aShown << bShown;
+    return aKingdom == bKingdom ? Friend :Enemy;
+}
 AI::Relation AI::GetRelation(const ServerPlayer *a, const ServerPlayer *b){
     RoleMapping map, map_good, map_bad;
     if(map.isEmpty()){
@@ -112,6 +126,8 @@ AI::Relation AI::relationTo(const ServerPlayer *other) const{
         return GetRelation3v3(self, other);
     else if(room->getMode() == "08_boss")
         return GetRelationBoss(self, other);
+    else if(Config.EnableHegemony)
+        return GetRelationHegemony(self, other);
 
     return GetRelation(self, other);
 }

@@ -32,8 +32,11 @@ public:
     bool FreeChoose;
     bool ForbidSIMC;
     bool DisableChat;
+    bool FreeAssignSelf;
     bool Enable2ndGeneral;
     bool EnableScene;	//changjing
+    bool EnableBasara;
+    bool EnableHegemony;
     int MaxHpScheme;
     bool AnnounceIP;
     QString Address;
@@ -60,7 +63,8 @@ public:
     bool EnableEffects;
     bool EnableLastWord;
     bool EnableBgMusic;
-    float Volume;
+    float BGMVolume;
+    float EffectVolume;
 
     QString BackgroundBrush;
 };
