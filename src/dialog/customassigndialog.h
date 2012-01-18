@@ -13,16 +13,6 @@
 #include <QButtonGroup>
 #include <QLabel>
 
-#ifndef SERVER_H
-static QLayout *HLay(QWidget *left, QWidget *right){
-    QHBoxLayout *layout = new QHBoxLayout;
-    layout->addWidget(left);
-    layout->addWidget(right);
-
-    return layout;
-}
-#endif
-
 class LabelButton : public QLabel {
     Q_OBJECT
 public:
@@ -50,7 +40,7 @@ public:
     CustomAssignDialog(QWidget *parent);
 
 protected:
-  //  virtual void accept();
+    virtual void accept();
     virtual void reject();
 
 private:
@@ -59,9 +49,13 @@ private:
     LabelButton *general_label, *general_label2;
     QCheckBox *max_hp_prompt,*hp_prompt;
     QSpinBox *max_hp_spin,*hp_spin;
+    QSpinBox *player_draw;
     QCheckBox *self_select_general, *self_select_general2;
     QPushButton *removeEquipButton, *removeHandButton, *removeJudgeButton, *removePileButton;
     QCheckBox *set_turned, *set_chained;
+    QComboBox *single_turn_box, *before_next_box;
+    QCheckBox *single_turn, *before_next;
+    QLabel *single_turn_text, *single_turn_text2, *before_next_text, *before_next_text2;
 
     QMap<QString, QString> role_mapping, general_mapping, general2_mapping;
     QMap<int, QString> player_mapping;
@@ -71,11 +65,13 @@ private:
     QMap<QString, int> player_maxhp, player_hp;
     QMap<QString, bool> player_turned, player_chained;
     QList<int> set_pile;
+    QMap<QString, int> player_start_draw;
 
     QString general_name, general_name2;
     bool choose_general2;
     bool free_choose_general, free_choose_general2;
     QString starter;
+    bool is_single_turn, is_before_next;
 
 private slots:
     void updateRole(int index);
@@ -93,6 +89,8 @@ private slots:
     void setPlayerMaxHpEnabled(bool toggled);
     void getPlayerHp(int hp);
     void getPlayerMaxHp(int maxhp);
+    void setPlayerStartDraw(int draw_num);
+    void setPlayerDrawNum(int index);
 
     void removeEquipCard();
     void removeHandCard();
@@ -107,7 +105,13 @@ private slots:
     void doPileCardAssign();
     void clearGeneral2();
 
+    void checkSingleTurnBox(bool toggled);
+    void checkBeforeNextBox(bool toggled);
+
     void on_list_itemSelectionChanged(QListWidgetItem *current);
+
+    void load();
+    bool save(QString path = QString());
 
 public slots:
     void getChosenGeneral(QString general_name);
@@ -115,6 +119,10 @@ public slots:
     void getHandCard(int card_id);
     void getJudgeCard(int card_id);
     void getPileCard(int card_id);
+
+signals:
+    void card_addin(int card_id);
+    void scenario_changed();
 };
 
 
@@ -141,14 +149,18 @@ class CardAssignDialog : public QDialog {
     Q_OBJECT
 public:
 
-    CardAssignDialog(QWidget *parent = 0, QString card_type = QString(), QString class_name = QString());
+    CardAssignDialog(QWidget *parent = 0, QString card_type = QString(), QString class_name = QString(), QList<int> excluded = QList<int>());
 private:
     void addCard(const Card *card);
 
     QListWidget *card_list;
+    QString card_type, class_name;
+    QList<int> excluded_card;
 
 private slots:
     void askCard();
+    void updateCardList();
+    void updateExcluded(int card_id);
 
 signals:
     void card_chosen(int card_id);

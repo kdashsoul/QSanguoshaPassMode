@@ -7,10 +7,6 @@
 #include "package.h"
 #include "exppattern.h"
 
-#ifdef AUDIO_SUPPORT
-#include "irrKlang.h"
-#endif
-
 #include <QHash>
 #include <QStringList>
 #include <QMetaObject>
@@ -39,8 +35,10 @@ public:
     QStringList getBanPackages() const;
     Card *cloneCard(const QString &name, Card::Suit suit, int number) const;
     SkillCard *cloneSkillCard(const QString &name) const;
+    QString getVersionNumber() const;
     QString getVersion() const;
     QString getVersionName() const;
+    QString getMODName() const;
     QStringList getExtensions() const;
     QStringList getKingdoms() const;
     QColor getKingdomColor(const QString &kingdom) const;

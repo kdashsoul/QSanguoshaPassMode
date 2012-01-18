@@ -11,6 +11,7 @@
 #include "recorder.h"
 #include "indicatoritem.h"
 #include "pixmapanimation.h"
+#include "audio.h"
 
 #include <QPropertyAnimation>
 #include <QParallelAnimationGroup>
@@ -39,8 +40,6 @@
 #include <QMovie>
 #include <QtCore>
 
-
-
 #ifdef Q_OS_WIN32
 #include <QAxObject>
 #endif
@@ -49,19 +48,6 @@
 
 #include "joystick.h"
 
-#endif
-
-#ifdef AUDIO_SUPPORT
-#ifdef Q_OS_WIN32
-    #include "irrKlang.h"
-    extern irrklang::ISoundEngine *SoundEngine;
-    static irrklang::ISound *BackgroundMusic;
-#else
-    #include <phonon/MediaObject>
-    #include <phonon/AudioOutput>
-    static Phonon::MediaObject *BackgroundMusic;
-    static Phonon::AudioOutput *SoundOutput;
-#endif
 #endif
 
 static QPointF DiscardedPos(-6, 8);
@@ -397,21 +383,7 @@ RoomScene::RoomScene(QMainWindow *main_window)
 
     createStateItem();
 
-    //adjustItems();
-
     animations = new EffectAnimation();
-    PixmapAnimation::LoadEmotion("peach");
-    PixmapAnimation::LoadEmotion("analeptic");
-    PixmapAnimation::LoadEmotion("chain");
-    PixmapAnimation::LoadEmotion("damage");
-    PixmapAnimation::LoadEmotion("fire_slash");
-    PixmapAnimation::LoadEmotion("thunder_slash");
-    PixmapAnimation::LoadEmotion("killer");
-    PixmapAnimation::LoadEmotion("jink");
-    PixmapAnimation::LoadEmotion("no-success");
-    PixmapAnimation::LoadEmotion("slash_black");
-    PixmapAnimation::LoadEmotion("slash_red");
-    PixmapAnimation::LoadEmotion("success");
     drawPile = NULL;
     view_transform = QMatrix();
 }
@@ -2390,12 +2362,7 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
         QString damage_effect;
         switch(delta){
         case -1: {
-                ClientPlayer *player = ClientInstance->getPlayer(who);
-                int r = qrand() % 3 + 1;
-                if(player->getGeneral()->isMale())
-                    damage_effect = QString("injure1-male%1").arg(r);
-                else
-                    damage_effect = QString("injure1-female%1").arg(r);
+                damage_effect = "injure1";
                 break;
             }
 
@@ -2471,15 +2438,6 @@ void RoomScene::onGameOver(){
 
     bool victory = Self->property("win").toBool();
 
-    if(victory && ServerInfo.GameMode.contains("_mini_"))
-    {
-        QString id = ServerInfo.GameMode;
-        id.replace("_mini_","");
-        int stage = Config.value("MiniSceneStage",1).toInt();
-        int current = id.toInt();
-        if((stage == current) && stage<20)
-            Config.setValue("MiniSceneStage",current+1);
-    }
 
 #ifdef AUDIO_SUPPORT
     QString win_effect;
@@ -2487,11 +2445,7 @@ void RoomScene::onGameOver(){
         win_effect = "win";
         foreach(const Player *player, ClientInstance->getPlayers()){
             if(player->property("win").toBool() && player->isCaoCao()){
-
-#ifdef Q_OS_WIN
-                if(SoundEngine)
-                    SoundEngine->stopAllSounds();
-#endif
+                Audio::stop();
 
                 win_effect = "win-cc";
                 break;
@@ -2550,7 +2504,21 @@ void RoomScene::onGameOver(){
 void RoomScene::addRestartButton(QDialog *dialog){
     dialog->resize(main_window->width()/2, dialog->height());
 
-    QPushButton *restart_button = new QPushButton(tr("Restart Game"));
+    bool goto_next =false;
+    if(Config.GameMode.contains("_mini_") && Self->property("win").toBool())
+    {
+        QString id = Config.GameMode;
+        id.replace("_mini_","");
+        int stage = Config.value("MiniSceneStage",1).toInt();
+        int current = id.toInt();
+        if((stage == current) && stage<20)
+            goto_next = true;
+    }
+
+    QPushButton *restart_button;
+      restart_button = goto_next ?
+              new QPushButton(tr("Next Stage"))
+            : new QPushButton(tr("Restart Game"));
     QPushButton *return_button = new QPushButton(tr("Return to main menu"));
     QHBoxLayout *hlayout = new QHBoxLayout;
     hlayout->addStretch();
@@ -3191,29 +3159,11 @@ void RoomScene::onGameStart(){
     // start playing background music
     QString bgmusic_path = Config.value("BackgroundMusic", "audio/system/background.mp3").toString();
 
-#ifdef  Q_OS_WIN32
-    if(SoundEngine) {
-        const char *filename = bgmusic_path.toLocal8Bit().data();
-        BackgroundMusic = SoundEngine->play2D(filename, true, false, true);
-
-        if(BackgroundMusic)
-            BackgroundMusic->setVolume(Config.BGMVolume);
-    }
-#else
-    if(BackgroundMusic == NULL) {
-        SoundOutput = new Phonon::AudioOutput(Phonon::GameCategory, this);
-        BackgroundMusic = new Phonon::MediaObject(this);
-        connect(BackgroundMusic, SIGNAL(aboutToFinish()), SLOT(onMusicFinish()));
-        Phonon::createPath(BackgroundMusic, SoundOutput);
-    }
-    if(BackgroundMusic) {
-        // This crashes when running twice
-        // BackgroundMusic->setCurrentSource(bgmusic_path);
-        // BackgroundMusic->play();
-    }
-#endif
+    Audio::playBGM(bgmusic_path);
+    Audio::setBGMVolume(Config.BGMVolume);
 
 #endif
+
     game_started = true;
     drawPile = new Pixmap("image/system/card-back.png");
     addItem(drawPile);
@@ -3226,13 +3176,6 @@ void RoomScene::onGameStart(){
     reLayout(view_transform);
 }
 
-#ifdef AUDIO_SUPPORT
-#ifndef  Q_OS_WIN32
-void RoomScene::onMusicFinish(){
-    BackgroundMusic->seek(0);
-}
-#endif
-#endif
 void RoomScene::freeze(){
 
     ClientInstance->disconnectFromHost();
@@ -3248,10 +3191,9 @@ void RoomScene::freeze(){
     chat_edit->setEnabled(false);
 
 #ifdef AUDIO_SUPPORT
-#ifdef  Q_OS_WIN32
-    if(BackgroundMusic)
-        BackgroundMusic->stop();
-#endif
+
+    Audio::stopBGM();
+
 #endif
 
     progress_bar->hide();

@@ -154,10 +154,6 @@ void General::lastWord() const{
     Sanguosha->playEffect(filename);
 }
 
-const General *General::getPassGeneral() const{
-    return Sanguosha->getGeneral(objectName()+"_p") ;
-}
-
 QString General::getBasicName() const{
     QString name = objectName() ;
     if(name.endsWith("_p"))

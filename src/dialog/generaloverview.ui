@@ -74,24 +74,6 @@
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <item>
-           <widget class="QRadioButton" name="orginalRadio">
-            <property name="text">
-             <string>orginal</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="passRadio">
-            <property name="text">
-             <string>pass</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
          <widget class="QLabel" name="skillLabel">
           <property name="text">
            <string>Skill</string>

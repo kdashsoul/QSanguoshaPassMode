@@ -9,6 +9,7 @@
 #include "scenario-overview.h"
 #include "window.h"
 #include "halldialog.h"
+#include "pixmapanimation.h"
 
 #include <cmath>
 #include <QGraphicsView>
@@ -134,6 +135,32 @@ void MainWindow::gotoScene(QGraphicsScene *scene){
     changeBackground();
 }
 
+void MainWindow::updateLoadingProgress(int progress)
+{
+    QGraphicsScene *scene = view->scene();
+
+    static QGraphicsTextItem *text;
+    if(text==NULL)
+    {
+        text = scene->addText(tr("Loaded %1/100").arg(progress),Config.BigFont);
+        QGraphicsDropShadowEffect *drop = new QGraphicsDropShadowEffect;
+        drop->setBlurRadius(5);
+        drop->setOffset(0);
+        drop->setColor(Qt::yellow);
+        text->setGraphicsEffect(drop);
+        text->moveBy(-text->boundingRect().width()/2,
+                     -text->boundingRect().height()/2);
+    }else text->setPlainText(tr("Loaded %1/100").arg(progress));
+
+    if(progress == 100)
+    {
+        view->setScene(this->scene);
+        RoomScene * scene = qobject_cast<RoomScene*>(this->scene);
+        scene->adjustItems();
+        changeBackground();
+    }
+}
+
 void MainWindow::on_actionExit_triggered()
 {
     QMessageBox::StandardButton result;
@@ -171,9 +198,15 @@ void MainWindow::on_actionStart_Server_triggered()
     }
 }
 
-void MainWindow::checkVersion(const QString &server_version){
+void MainWindow::checkVersion(const QString &server_version, const QString &server_mod){
+    QString client_mod = Sanguosha->getMODName();
+    if(client_mod != server_mod){
+        QMessageBox::warning(this, tr("Warning"), tr("Client MOD name is not same as the server!"));
+        return;
+    }
+
     Client *client = qobject_cast<Client *>(sender());
-    QString client_version = Sanguosha->getVersion();
+    QString client_version = Sanguosha->getVersionNumber();
 
     if(server_version == client_version){
         client->signup();
@@ -203,7 +236,7 @@ void MainWindow::checkVersion(const QString &server_version){
 void MainWindow::startConnection(){
     Client *client = new Client(this);
 
-    connect(client, SIGNAL(version_checked(QString)), SLOT(checkVersion(QString)));
+    connect(client, SIGNAL(version_checked(QString,QString)), SLOT(checkVersion(QString,QString)));
     connect(client, SIGNAL(error_message(QString)), SLOT(networkError(QString)));
 }
 
@@ -238,6 +271,43 @@ void MainWindow::networkError(const QString &error_msg){
         QMessageBox::warning(this, tr("Network error"), error_msg);
 }
 
+
+BackLoader::BackLoader(QObject * parent)
+    :QThread(parent)
+{
+}
+
+void BackLoader::run()
+{
+    PixmapAnimation::LoadEmotion("peach");
+    emit completed(8);
+    PixmapAnimation::LoadEmotion("analeptic");
+    emit completed(16);
+    PixmapAnimation::LoadEmotion("chain");
+    emit completed(25);
+    PixmapAnimation::LoadEmotion("damage");
+    emit completed(33);
+    PixmapAnimation::LoadEmotion("fire_slash");
+    emit completed(41);
+    PixmapAnimation::LoadEmotion("thunder_slash");
+    emit completed(49);
+    PixmapAnimation::LoadEmotion("killer");
+    emit completed(58);
+    PixmapAnimation::LoadEmotion("jink");
+    emit completed(66);
+    PixmapAnimation::LoadEmotion("no-success");
+    emit completed(74);
+    PixmapAnimation::LoadEmotion("slash_black");
+    emit completed(82);
+    PixmapAnimation::LoadEmotion("slash_red");
+    emit completed(91);
+    PixmapAnimation::LoadEmotion("success");
+    emit completed(100);
+
+    emit finished();
+}
+
+
 void MainWindow::enterRoom(){
     // add current ip to history
     if(!Config.HistoryIPs.contains(Config.HostAddress)){
@@ -245,6 +315,14 @@ void MainWindow::enterRoom(){
         Config.HistoryIPs.sort();
         Config.setValue("HistoryIPs", Config.HistoryIPs);
     }
+
+    QGraphicsScene *loading_scene = new QGraphicsScene;
+    gotoScene(loading_scene);
+
+    BackLoader *loader = new BackLoader(this);
+    loader->start();
+
+    connect(loader,SIGNAL(completed(int)),this,SLOT(updateLoadingProgress(int)));
 
     ui->actionStart_Game->setEnabled(false);
     ui->actionStart_Server->setEnabled(false);
@@ -277,8 +355,7 @@ void MainWindow::enterRoom(){
 
     connect(room_scene, SIGNAL(restart()), this, SLOT(startConnection()));
     connect(room_scene, SIGNAL(return_to_start()), this, SLOT(gotoStartScene()));
-
-    gotoScene(room_scene);
+    this->scene = room_scene;
 }
 
 void MainWindow::gotoStartScene(){
@@ -351,9 +428,12 @@ void MainWindow::on_actionAbout_triggered()
     QString signature = tr("\"A Short Song\" by Cao Cao");
     content.append(QString("<p align='right'><i>%1</i></p>").arg(signature));
 
+    QString email = "moligaloo@gmail.com";
     content.append(tr("This is the open source clone of the popular <b>Sanguosha</b> game,"
                       "totally written in C++ Qt GUI framework <br />"
-                      "My Email: moligaloo@gmail.com <br/>"));
+                      "My Email: <a href='mailto:%1'>%1</a> <br/>"
+                      "My QQ: 365840793 <br/>"
+                      ).arg(email));
 
     QString config;
 
@@ -378,7 +458,8 @@ void MainWindow::on_actionAbout_triggered()
     QString forum_url = "http://qsanguosha.com";
     content.append(tr("Forum: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(forum_url));
 
-    Window *window = new Window(tr("About QSanguosha"), QSize(365, 450));
+
+    Window *window = new Window(tr("About QSanguosha"), QSize(420, 450));
     scene->addItem(window);
     window->setZValue(9.0);
 
@@ -434,28 +515,6 @@ void MainWindow::on_actionShow_Hide_Menu_triggered()
 {
     QMenuBar *menu_bar = menuBar();
     menu_bar->setVisible(! menu_bar->isVisible());
-}
-
-void MainWindow::on_actionAbout_irrKlang_triggered()
-{
-    QString content = tr("irrKlang is a cross platform sound library for C++, C# and all .NET languages. <br />");
-    content.append("<p align='center'> <img src='image/system/irrklang.png' /> </p> <br/>");
-
-    QString address = "http://www.ambiera.com/irrklang/";
-    content.append(tr("Official site: <a href='%1'>%1</a> <br/>").arg(address));
-
-#ifdef AUDIO_SUPPORT
-    content.append(tr("Current versionn %1 <br/>").arg(IRR_KLANG_VERSION));
-#endif
-
-    Window *window = new Window(tr("About irrKlang"), QSize(500, 259));
-    scene->addItem(window);
-
-    window->addContent(content);
-    window->addCloseButton(tr("OK"));
-    window->shift();
-
-    window->appear();
 }
 
 void MainWindow::on_actionMinimize_to_system_tray_triggered()
@@ -985,4 +1044,51 @@ void MainWindow::on_actionView_ban_list_triggered()
 {
     BanlistDialog *dialog = new BanlistDialog(this, true);
     dialog->exec();
+}
+
+#include "audio.h"
+
+void MainWindow::on_actionAbout_fmod_triggered()
+{
+    QString content = tr("FMOD is a proprietary audio library made by Firelight Technologies");
+    content.append("<p align='center'> <img src='image/system/fmod.png' /> </p> <br/>");
+
+    QString address = "http://www.fmod.org";
+    content.append(tr("Official site: <a href='%1'>%1</a> <br/>").arg(address));
+
+#ifdef AUDIO_SUPPORT
+    content.append(tr("Current versionn %1 <br/>").arg(Audio::getVersion()));
+#endif
+
+    Window *window = new Window(tr("About fmod"), QSize(500, 259));
+    scene->addItem(window);
+
+    window->addContent(content);
+    window->addCloseButton(tr("OK"));
+    window->shift();
+
+    window->appear();
+}
+
+#include "lua.hpp"
+
+void MainWindow::on_actionAbout_Lua_triggered()
+{
+    QString content = tr("Lua is a powerful, fast, lightweight, embeddable scripting language.");
+    content.append("<p align='center'> <img src='image/system/lua.png' /> </p> <br/>");
+
+    QString address = "http://www.lua.org";
+    content.append(tr("Official site: <a href='%1'>%1</a> <br/>").arg(address));
+
+    content.append(tr("Current versionn %1 <br/>").arg(LUA_RELEASE));
+    content.append(LUA_COPYRIGHT);
+
+    Window *window = new Window(tr("About Lua"), QSize(500, 450));
+    scene->addItem(window);
+
+    window->addContent(content);
+    window->addCloseButton(tr("OK"));
+    window->shift();
+
+    window->appear();
 }

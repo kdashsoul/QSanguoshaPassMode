@@ -71,6 +71,17 @@ private:
     QList<RoomItem*> room_items;
 };
 
+class BackLoader: public QThread
+{
+    Q_OBJECT
+public:
+    BackLoader(QObject *parent =0 );
+signals:
+    void completed(int progress);
+protected:
+    virtual void run();
+};
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -91,6 +102,8 @@ private:
     void restoreFromConfig();
 
 private slots:
+    void on_actionAbout_Lua_triggered();
+    void on_actionAbout_fmod_triggered();
     void on_actionSend_lowlevel_command_triggered();
     void on_actionReplay_file_convert_triggered();
     void on_actionAI_Melee_triggered();
@@ -100,7 +113,6 @@ private slots:
     void on_actionCard_editor_triggered();
     void on_actionAcknowledgement_triggered();
     void on_actionBroadcast_triggered();
-    void on_actionAbout_irrKlang_triggered();
     void on_actionScenario_Overview_triggered();
     void on_actionRole_assign_table_triggered();
     void on_actionMinimize_to_system_tray_triggered();
@@ -114,11 +126,12 @@ private slots:
     void on_actionStart_Server_triggered();
     void on_actionExit_triggered();
 
-    void checkVersion(const QString &server_version);
+    void checkVersion(const QString &server_version, const QString &server_mod);
     void startConnection();
     void networkError(const QString &error_msg);
     void enterRoom();
     void gotoScene(QGraphicsScene *scene);
+    void updateLoadingProgress(int progress);
     void gotoStartScene();
     void startGameInAnotherInstance();
     void changeBackground();

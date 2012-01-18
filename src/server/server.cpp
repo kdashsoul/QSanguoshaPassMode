@@ -7,6 +7,7 @@
 #include "scenario.h"
 #include "contestdb.h"
 #include "choosegeneraldialog.h"
+#include "customassigndialog.h"
 
 #include <QInputDialog>
 #include <QMessageBox>
@@ -190,6 +191,8 @@ QWidget *ServerDialog::createAdvancedTab(){
 
     basara_checkbox = new QCheckBox(tr("Enable Basara"));
     basara_checkbox->setChecked(Config.EnableBasara);
+    updateButtonEnablility(mode_group->checkedButton());
+    connect(mode_group,SIGNAL(buttonClicked(QAbstractButton*)),this,SLOT(updateButtonEnablility(QAbstractButton*)));
 
     hegemony_checkbox = new QCheckBox(tr("Enable Hegemony"));
     hegemony_checkbox->setChecked(Config.EnableHegemony);
@@ -271,6 +274,22 @@ QWidget *ServerDialog::createAITab(){
 
 void ServerDialog::ensureEnableAI(){
     ai_enable_checkbox->setChecked(true);
+}
+void ServerDialog::updateButtonEnablility(QAbstractButton *button)
+{
+    if(!button)return;
+    if(button->objectName().contains("scenario")
+            || button->objectName().contains("mini")
+            || button->objectName().contains("1v1")
+            || button->objectName().contains("1v3"))
+    {
+        basara_checkbox->setChecked(false);
+        basara_checkbox->setEnabled(false);
+    }
+    else
+    {
+        basara_checkbox->setEnabled(true);
+    }
 }
 
 void BanlistDialog::switchTo(int item)
@@ -581,8 +600,12 @@ QGroupBox *ServerDialog::createGameModeBox(){
         }
 
 
+        QPushButton *mini_scene_button = new QPushButton(tr("Custom Mini Scene"));
+        connect(mini_scene_button, SIGNAL(clicked()), this, SLOT(doCustomAssign()));
+
         item_list << HLay(scenario_button, scenario_combobox);
-        item_list << HLay(mini_scenes,mini_scene_combobox);
+        item_list << HLay(scenario_button, mini_scene_button);
+        item_list << HLay(mini_scenes, mini_scene_combobox);
     }
 
     QRadioButton *button = new QRadioButton(tr("Custom Mode"));
@@ -748,6 +771,11 @@ void Select3v3GeneralDialog::fillListWidget(QListWidget *list, const Package *pa
     list->setResizeMode(QListView::Adjust);
 
     connect(action, SIGNAL(triggered()), this, SLOT(toggleCheck()));
+}
+
+void ServerDialog::doCustomAssign(){
+    CustomAssignDialog *dialog = new CustomAssignDialog(this);
+    dialog->exec();
 }
 
 void Select3v3GeneralDialog::toggleCheck(){

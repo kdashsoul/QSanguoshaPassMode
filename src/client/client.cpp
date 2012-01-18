@@ -186,7 +186,17 @@ void Client::request(const QString &message){
 }
 
 void Client::checkVersion(const QString &server_version){
-    emit version_checked(server_version);
+    QString version_number, mod_name;
+    if(server_version.contains(QChar(':'))){
+        QStringList texts = server_version.split(QChar(':'));
+        version_number = texts.value(0);
+        mod_name = texts.value(1);
+    }else{
+        version_number = server_version;
+        mod_name = "official";
+    }
+
+    emit version_checked(version_number, mod_name);
 }
 
 void Client::setup(const QString &setup_str){
@@ -603,6 +613,10 @@ void Client::setPromptList(const QStringList &texts){
         prompt.replace("%arg", arg);
     }
 
+    if(texts.length() >= 5){
+        QString arg2 = Sanguosha->translate(texts.at(4));
+        prompt.replace("%2arg", arg2);
+    }
     prompt_doc->setHtml(prompt);
 }
 
@@ -736,19 +750,26 @@ void Client::askForSkillChoice(const QString &skills_str){
     QStringList skill_infos = words.at(1).split("+");
 
     QDialog *dialog = new QDialog;
+    dialog->setFixedSize(400,400);
     dialog->setWindowTitle(tr("Study skill:"));
 
     QHBoxLayout *layout = new QHBoxLayout;
-
     QTabWidget *tab_widget = new QTabWidget;
 
-    QWidget *tab = new QWidget;
-
-//    QScrollArea *scrollArea = new QScrollArea(tab);
-//    scrollArea->setWidgetResizable(true);
 
     QVBoxLayout *vLayout = new QVBoxLayout ;
-    tab->setLayout(vLayout);
+
+    QWidget *main_tab = new QWidget;
+    main_tab->setLayout(vLayout);
+
+    QWidget *feature_tab = new QWidget;
+    feature_tab->setLayout(vLayout);
+
+    QWidget *common_tab = new QWidget;
+    QScrollArea* scroll = new QScrollArea();
+    common_tab->setLayout(vLayout);
+    scroll->setWidget(common_tab);
+    scroll->setWidgetResizable(true);
 
     foreach(QString skill_info , skill_infos){
         QCommandLinkButton *button = new QCommandLinkButton;
@@ -768,9 +789,10 @@ void Client::askForSkillChoice(const QString &skills_str){
 
         vLayout->addWidget(button);
     }
-//    tab_widget->addTab(tab,"skill_main") ;
-//    tab_widget->addTab(tab,"skill_feature") ;
-    tab_widget->addTab(tab,"skill_common") ;
+
+    tab_widget->addTab(main_tab,"skill_main") ;
+    tab_widget->addTab(feature_tab,"skill_feature") ;
+    tab_widget->addTab(scroll,"skill_common") ;
 
     layout->addWidget(tab_widget);
 
@@ -1553,7 +1575,7 @@ void Client::speak(const QString &speak_data){
     QString line = tr("<font color='%1'>[%2] said: %3 </font>")
                    .arg(Config.TextEditColor.name()).arg(title).arg(text);
 
-    emit line_spoken(line);
+    emit line_spoken(QString("<p style=\"margin:3px 2px;\">%1</p>").arg(line));
 }
 
 void Client::moveFocus(const QString &focus){

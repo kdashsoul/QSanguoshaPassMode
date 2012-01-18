@@ -60,14 +60,11 @@ int Skill::getEffectIndex(ServerPlayer *, const Card *) const{
 
 void Skill::initMediaSource(){
     sources.clear();
-    QString name = objectName() ;
-    if(name.endsWith("_p"))
-        name.chop(2);
 
     if(parent()){
         int i;
         for(i=1; ;i++){
-            QString effect_file = QString("audio/skill/%1%2.ogg").arg(name).arg(i);
+            QString effect_file = QString("audio/skill/%1%2.ogg").arg(objectName()).arg(i);
             if(QFile::exists(effect_file))
                 sources << effect_file;
             else
@@ -75,11 +72,15 @@ void Skill::initMediaSource(){
         }
 
         if(sources.isEmpty()){
-            QString effect_file = QString("audio/skill/%1.ogg").arg(name);
+            QString effect_file = QString("audio/skill/%1.ogg").arg(objectName());
             if(QFile::exists(effect_file))
                 sources << effect_file;
         }
     }
+}
+
+Skill::Location Skill::getLocation() const{
+    return parent() ? Right : Left;
 }
 
 void Skill::playEffect(int index) const{

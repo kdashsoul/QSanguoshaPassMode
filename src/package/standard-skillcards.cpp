@@ -39,8 +39,8 @@ void RendeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *
     int old_value = source->getMark("rende");
     int new_value = old_value + subcards.length();
     room->setPlayerMark(source, "rende", new_value);
-
-    if(old_value < 2 && new_value >= 2){
+    int num = source->isSkillEnhance("rende",1) ? 1 : 2;
+    if(old_value < num && new_value >= num){
         RecoverStruct recover;
         recover.card = this;
         recover.who = source;

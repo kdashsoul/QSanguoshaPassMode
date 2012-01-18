@@ -13,6 +13,7 @@
 #include <QRadioButton>
 #include <QCheckBox>
 #include <QTabWidget>
+#include <QScrollArea>
 
 OptionButton::OptionButton(QString icon_path, const QString &caption, QWidget *parent)
     :QToolButton(parent)
@@ -392,8 +393,8 @@ PassChooseDialog::PassChooseDialog(QWidget *parent,const QString &flag)
     max_buttons = 0 ;
     setWindowTitle(tr("Pass choose generals"));
     QTabWidget *tab_widget = new QTabWidget;
-
-    const Package *stdpack = Sanguosha->findChild<const Package *>("pass");
+    setFixedSize(575,215);
+    const Package *stdpack = Sanguosha->findChild<const Package *>("standard");
     QList<const General *> all_generals = stdpack->findChildren<const General *>();
     QMap<QString, QList<const General*> > map;
     foreach(const General *general, all_generals){
@@ -426,9 +427,11 @@ PassChooseDialog::PassChooseDialog(QWidget *parent,const QString &flag)
 
 QWidget *PassChooseDialog::createTab(const QList<const General *> &generals,QSignalMapper *mapper){
     QWidget *tab = new QWidget;
-
     QGridLayout *layout = new QGridLayout;
     layout->setOriginCorner(Qt::TopLeftCorner);
+    QScrollArea* scroll = new QScrollArea();
+    scroll->setWidget(tab);
+    scroll->setWidgetResizable(true);
     QList<OptionButton *> buttons;
     const int columns = 8;
     for(int i=0; i<generals.length(); i++){
@@ -462,5 +465,5 @@ QWidget *PassChooseDialog::createTab(const QList<const General *> &generals,QSig
         layout->setRowStretch(row_count,max_row_count);
     }
     tab->setLayout(layout);
-    return tab;
+    return scroll;
 }

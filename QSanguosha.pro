@@ -4,11 +4,11 @@
 TARGET = QSanguosha
 QT += network sql
 TEMPLATE = app
-CONFIG += warn_on audio joystick qaxcontainer
+CONFIG += warn_on audio qaxcontainer
 
-macx {
-    CONFIG -= joystick # in Mac, we do not support joystick currently
-}
+# If you want to enable joystick support, please uncomment the following line:
+# CONFIG += joystick
+# However, joystick is not supported under Mac OS X temporarily
 
 SOURCES += src/main.cpp \
 	src/client/aux-skills.cpp \
@@ -84,7 +84,7 @@ SOURCES += src/main.cpp \
     	src/core/banpair.cpp \
     	src/ui/chatwidget.cpp \
     	src/scenario/miniscenarios.cpp \
-        src/pass/pass-general.cpp \
+	src/dialog/customassigndialog.cpp \
         src/pass/pass-package.cpp
 
 
@@ -162,8 +162,9 @@ HEADERS += src/client/aux-skills.h \
         src/core/banpair.h \
         src/ui/chatwidget.h \
 	src/scenario/miniscenarios.h \
-        src/pass/pass-package.h \
-        src/pass/pass-general.h
+    	src/dialog/customassigndialog.h \
+	src/core/audio.h \
+        src/pass/pass-package.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \
@@ -197,9 +198,9 @@ macx {
 
 CONFIG(audio){
     DEFINES += AUDIO_SUPPORT
-    INCLUDEPATH += include/irrKlang
-    win32: LIBS += irrKlang.lib
-    unix: QT += phonon
+    INCLUDEPATH += include/fmod
+    LIBS += -lfmodex
+    SOURCES += src/core/audio.cpp
 }
 
 CONFIG(joystick){
@@ -214,25 +215,5 @@ TRANSLATIONS += sanguosha.ts
 
 OTHER_FILES += \
     sanguosha.qss
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

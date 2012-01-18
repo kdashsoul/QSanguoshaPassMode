@@ -252,6 +252,8 @@ void PassMode::initGameStart(ServerPlayer *player) const{
             const General *general = Sanguosha->getGeneral(name);
             if(p->getKingdom() != general->getKingdom())
                 room->setPlayerProperty(p, "kingdom", general->getKingdom());
+            // debug
+            p->enHanceSkill("rende",1);
             askForLearnSkill(p);
         }else{
             QStringList enemys = enemy_list.at(0).split("+");

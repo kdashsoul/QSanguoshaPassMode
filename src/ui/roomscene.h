@@ -327,12 +327,6 @@ private slots:
     void onSelectChange();
     void onEnabledChange();
 
-#ifdef AUDIO_SUPPORT
-#ifndef  Q_OS_WIN32
-    void onMusicFinish();
-#endif
-#endif
-
 #ifdef JOYSTICK_SUPPORT
     void onJoyButtonClicked(int bit);
     void onJoyDirectionClicked(int direction);

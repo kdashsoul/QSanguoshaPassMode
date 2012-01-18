@@ -8,6 +8,7 @@ class QRadioButton;
 
 #include "socket.h"
 #include "detector.h"
+#include "clientstruct.h"
 
 #include <QDialog>
 #include <QLineEdit>
@@ -121,6 +122,9 @@ private slots:
     void onHttpDone(bool error);
     void select3v3Generals();
     void edit1v1Banlist();
+    void updateButtonEnablility(QAbstractButton* button);
+
+    void doCustomAssign();
 };
 
 class Scenario;

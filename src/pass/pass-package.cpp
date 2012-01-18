@@ -4,7 +4,6 @@
 #include "clientplayer.h"
 #include "client.h"
 #include "carditem.h"
-#include "pass-general.h"
 
 class TipoPass:public PassiveSkill{
 public:
@@ -3549,20 +3548,6 @@ public:
     }
 };
 
-class ColorPattern: public CardPattern{
-public:
-    ColorPattern(const QString &color_name)
-        :color_name(color_name){
-    }
-
-    virtual bool match(const Player *player, const Card *card) const{
-        bool match_color = (card->isBlack() && color_name == "black") || (card->isRed() && color_name == "red");
-        return ! player->hasEquip(card) && match_color;
-    }
-private:
-    QString color_name;
-};
-
 class NothrowHandcardsPattern: public CardPattern{
 public:
     virtual bool match(const Player *player, const Card *card) const{
@@ -3585,180 +3570,6 @@ public:
 PassPackage::PassPackage()
     :Package("pass")
 {
-    PassGeneral *caocao = new PassGeneral(this,Sanguosha->getGeneral("caocao"));
-    caocao->addSkill(new JianxiongPass);
-    caocao->addSkill(new XietianPass);
-    caocao->addSkill(new BadaoPass);
-    caocao->addSkill(new BadaoPassCost);
-    related_skills.insert("badao_p","badao_p_cost");
-
-    PassGeneral *simayi = new PassGeneral(this,Sanguosha->getGeneral("simayi"));
-    simayi->addSkill("guicai");
-    simayi->addSkill(new FankuiPass);
-    simayi->addSkill(new LangguPass);
-
-    PassGeneral *xiahoudun = new PassGeneral(this,Sanguosha->getGeneral("xiahoudun"));
-    xiahoudun->addSkill(new GangliePass);
-    xiahoudun->addSkill(new JueduanPass);
-
-    PassGeneral *guojia = new PassGeneral(this,Sanguosha->getGeneral("guojia"));
-    guojia->addSkill(new YijiPass);
-    guojia->addSkill(new TianduPass);
-
-    PassGeneral *zhenji = new PassGeneral(this,Sanguosha->getGeneral("zhenji"));
-    zhenji->addSkill("luoshen");
-    zhenji->addSkill("qingguo");
-    zhenji->addSkill(new JinghongPass);
-
-    PassGeneral *xuchu = new PassGeneral(this,Sanguosha->getGeneral("xuchu"));
-    xuchu->addSkill(new LuoyiPass);
-    xuchu->addSkill(new GuantongPass);
-    xuchu->addSkill("#luoyi");
-    related_skills.insert("luoyi_p","#luoyi");
-
-    PassGeneral *zhangliao = new PassGeneral(this,Sanguosha->getGeneral("zhangliao"));
-    zhangliao->addSkill(new TuxiPass);
-
-    PassGeneral *caopi = new PassGeneral(this,Sanguosha->getGeneral("caopi"));
-    caopi->addSkill(new XingshangPass);
-    caopi->addSkill(new FangzhuPass);
-    caopi->addSkill(new FanzhiPass);
-
-
-    PassGeneral *liubei = new PassGeneral(this,Sanguosha->getGeneral("liubei"));
-    liubei->addSkill(new RendePass);
-    liubei->addSkill(new JijiangPass);
-    liubei->addSkill(new JijiangPassCost);
-    liubei->addSkill(new ZhaoliePass);
-    related_skills.insertMulti("jijiang_p", "#jijiang_p_cost");
-
-    PassGeneral *guanyu_p = new PassGeneral(this,Sanguosha->getGeneral("guanyu"));
-    guanyu_p->addSkill("wusheng");
-    guanyu_p->addSkill(new WenjiuPass);
-    guanyu_p->addSkill(new WenjiuPassBuff);
-    guanyu_p->addSkill(new TuodaoPass);
-    related_skills.insertMulti("wenjiu_p", "#wenjiu_p");
-
-    PassGeneral *zhangfei_p = new PassGeneral(this,Sanguosha->getGeneral("zhangfei"));
-    zhangfei_p->addSkill("paoxiao");
-    zhangfei_p->addSkill(new BaonuPass);
-    zhangfei_p->addSkill(new DuanhePass);
-
-    PassGeneral *zhaoyun_p = new PassGeneral(this,Sanguosha->getGeneral("zhaoyun"));
-    zhaoyun_p->addSkill("longdan");
-    zhaoyun_p->addSkill(new LongweiPass);
-    zhaoyun_p->addSkill(new LonghouPass);
-
-    PassGeneral *machao_p = new PassGeneral(this,Sanguosha->getGeneral("machao"));
-    machao_p->addSkill(new TiejiPass);
-    machao_p->addSkill(new MashuPass);
-
-    PassGeneral *zhugeliang_p = new PassGeneral(this,Sanguosha->getGeneral("zhugeliang"));
-    zhugeliang_p->addSkill(new GuanxingPass);
-    zhugeliang_p->addSkill("kongcheng");
-    zhugeliang_p->addSkill(new BeifaPass);
-
-    PassGeneral *huangyueying_p = new PassGeneral(this,Sanguosha->getGeneral("huangyueying"));
-    huangyueying_p->addSkill(new JizhiPass);
-    huangyueying_p->addSkill("qicai");
-    huangyueying_p->addSkill(new ShipoPass);
-    huangyueying_p->addSkill(new JumouPass);
-
-    PassGeneral *huangzhong_p = new PassGeneral(this,Sanguosha->getGeneral("huangzhong"));
-    huangzhong_p->addSkill(new LiegongPass);
-    huangzhong_p->addSkill(new LiegongPassMark);
-    huangzhong_p->addSkill(new GongshenPass);
-    huangzhong_p->addSkill(new JianhunPass);
-    related_skills.insertMulti("liegong_p", "#liegong_p_mark");
-
-
-    PassGeneral *sunquan_p = new PassGeneral(this,Sanguosha->getGeneral("sunquan"));
-    sunquan_p->addSkill(new ZhihengPass);
-
-    PassGeneral *zhouyu_p = new PassGeneral(this, Sanguosha->getGeneral("zhouyu"));
-    zhouyu_p->addSkill("yingzi");
-    zhouyu_p->addSkill(new FanjianPass);
-    zhouyu_p->addSkill(new QuwuPass);
-
-    PassGeneral *lumeng_p = new PassGeneral(this, Sanguosha->getGeneral("lumeng"));
-    lumeng_p->addSkill(new KejiPass);
-    lumeng_p->addSkill(new BaiyiPass);
-    lumeng_p->addSkill(new DujiangPass);
-
-    PassGeneral *luxun_p = new PassGeneral(this, Sanguosha->getGeneral("luxun"));
-    luxun_p->addSkill("qianxun");
-    luxun_p->addSkill(new LianyingPass);
-
-    PassGeneral *ganning_p = new PassGeneral(this, Sanguosha->getGeneral("ganning"));
-    ganning_p->addSkill("qixi");
-    ganning_p->addSkill(new TongjiPass);
-    ganning_p->addSkill(new JieluePass);
-
-    PassGeneral *huanggai_p = new PassGeneral(this, Sanguosha->getGeneral("huanggai"));
-    huanggai_p->addSkill(new KurouPass);
-    huanggai_p->addSkill(new ZhaxiangPass);
-
-    PassGeneral *daqiao_p = new PassGeneral(this, Sanguosha->getGeneral("daqiao"));
-    daqiao_p->addSkill("guose");
-    daqiao_p->addSkill(new YuyuePass);
-    daqiao_p->addSkill(new ShuangxingPass);
-
-    PassGeneral *sunshangxiang_p = new PassGeneral(this, Sanguosha->getGeneral("sunshangxiang"));
-    sunshangxiang_p->addSkill(new JieyinPass);
-    sunshangxiang_p->addSkill("xiaoji");
-    sunshangxiang_p->addSkill(new JinguoPass);
-
-    PassGeneral *lubu_p = new PassGeneral(this, Sanguosha->getGeneral("lubu"));
-    lubu_p->addSkill("wushuang");
-    lubu_p->addSkill(new ZhanshenPass);
-    lubu_p->addSkill(new NuozhanPass);
-
-    PassGeneral *huatuo = new PassGeneral(this, Sanguosha->getGeneral("huatuo"));
-    huatuo->addSkill(new QingnangPass);
-    huatuo->addSkill(new QingnangPassBuff);
-    huatuo->addSkill("jijiu");
-    huatuo->addSkill(new YangshenPass);
-    huatuo->addSkill(new MafeiPass);
-    huatuo->addSkill(new MafeiPassBuff);
-    related_skills.insertMulti("qingnang_p", "#qingnang_p");
-    related_skills.insertMulti("mafei_p", "#mafei_p");
-
-    PassGeneral *diaochan = new PassGeneral(this, Sanguosha->getGeneral("diaochan"));
-    diaochan->addSkill(new LijianPass);
-    diaochan->addSkill("biyue");
-
-    PassGeneral *yuji = new PassGeneral(this, Sanguosha->getGeneral("yuji"));
-    yuji->addSkill(new GuhuoPass);
-    yuji->addSkill(new GuhuoPassMark);
-    yuji->addSkill(new BuguaPass);
-    yuji->addSkill(new HuanshuPass);
-    related_skills.insertMulti("guhuo_p", "#guhuo_p");
-
-    PassGeneral *zhangjiao = new PassGeneral(this, Sanguosha->getGeneral("zhangjiao"));
-    zhangjiao->addSkill("guidao");
-    zhangjiao->addSkill(new HuangtianPass);
-    zhangjiao->addSkill(new LeijiPass);
-    zhangjiao->addSkill(new DajiPass);
-
-    PassGeneral *dongzhuo = new PassGeneral(this, Sanguosha->getGeneral("dongzhuo"));
-    dongzhuo->addSkill(new JiuchiPass);
-    dongzhuo->addSkill("roulin");
-    dongzhuo->addSkill(new BenghuaiPass);
-    dongzhuo->addSkill(new BaonuePass);
-
-    General *jiaxu = new PassGeneral(this, Sanguosha->getGeneral("jiaxu"));
-    jiaxu->addSkill(new WeimuPass);
-    jiaxu->addSkill(new Skill("wansha_p"));
-    jiaxu->addSkill(new LuanwuPass);
-    jiaxu->addSkill(new DumouPass);
-
-    General *gongsunzan = new PassGeneral(this, Sanguosha->getGeneral("gongsunzan"));
-    gongsunzan->addSkill(new BaimaPass);
-    gongsunzan->addSkill(new ZhuiliePass);
-    gongsunzan->addSkill(new YicongPass);
-    gongsunzan->addSkill(new YicongPassEffect);
-    related_skills.insertMulti("yicong_p", "#yicong_p");
-
     General *shizu = new General(this,"shizu_e","evil",3, true, true);
     shizu->addSkill(new ShiqiPass);
 
@@ -3785,16 +3596,6 @@ PassPackage::PassPackage()
     General *kuangdaoke = new General(this,"kuangdaoke_e","evil",3, true, true);
     kuangdaoke->addSkill(new LianzhanPass);
     kuangdaoke->addSkill(new DouzhiPass);
-
-
-    PassGeneral *shenguanyu_p = new PassGeneral(this, Sanguosha->getGeneral("shenguanyu"));
-    shenguanyu_p->addSkill(new WushenPass);
-    shenguanyu_p->addSkill(new WuhunPass);
-    shenguanyu_p->addSkill(new QishenPass);
-
-    PassGeneral *shenlumeng_p = new PassGeneral(this, Sanguosha->getGeneral("shenlumeng"));
-    shenlumeng_p->addSkill(new SheliePass);
-    shenlumeng_p->addSkill("gongxin");
 
 
     skills << new Skill("nuhou_p") << new TipoPass << new Skill("kezhi_p") << new Skill("fenjin_p") << new QuanhengPass
@@ -3824,8 +3625,6 @@ PassPackage::PassPackage()
     addMetaObject<QingnangPassCard>();
     addMetaObject<LuanwuPassCard>();
 
-    patterns[".CR"] = new ColorPattern("red");
-    patterns[".CB"] = new ColorPattern("black");
     patterns[".NTH!"] = new NothrowHandcardsPattern;
     patterns[".NT!"] = new NothrowPattern;
 }

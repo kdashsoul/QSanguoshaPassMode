@@ -51,8 +51,6 @@ public:
     QString getSkillDescription() const;
     QString getBasicName() const;
 
-    const General *getPassGeneral() const;
-
     static QSize BigIconSize;
     static QSize SmallIconSize;
     static QSize TinyIconSize;
