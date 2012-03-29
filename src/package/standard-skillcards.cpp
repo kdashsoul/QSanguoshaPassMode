@@ -33,13 +33,12 @@ void RendeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *
         }
     }else
         target = targets.first();
-
     room->moveCardTo(this, target, Player::Hand, false);
 
     int old_value = source->getMark("rende");
     int new_value = old_value + subcards.length();
     room->setPlayerMark(source, "rende", new_value);
-    int num = source->isSkillEnhance("rende",1) ? 1 : 2;
+    int num = Self->isSkillEnhance("rende",1) ? 1 : 2;
     if(old_value < num && new_value >= num){
         RecoverStruct recover;
         recover.card = this;
@@ -107,7 +106,7 @@ void FanjianCard::onEffect(const CardEffectStruct &effect) const{
 
     int card_id = zhouyu->getRandomHandCardId();
     const Card *card = Sanguosha->getCard(card_id);
-    Card::Suit suit = room->askForSuit(target);
+    Card::Suit suit = room->askForSuit(target, "fanjian");
 
     LogMessage log;
     log.type = "#ChooseSuit";
@@ -210,6 +209,7 @@ void QingnangCard::onEffect(const CardEffectStruct &effect) const{
 GuicaiCard::GuicaiCard(){
     target_fixed = true;
     will_throw = false;
+    can_jilei = true;
 }
 
 void GuicaiCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
@@ -234,6 +234,8 @@ bool LiuliCard::targetFilter(const QList<const Player *> &targets, const Player 
     int card_id = subcards.first();
     if(Self->getWeapon() && Self->getWeapon()->getId() == card_id)
         return Self->distanceTo(to_select) <= 1;
+    else if(Self->getOffensiveHorse() && Self->getOffensiveHorse()->getId() == card_id)
+        return Self->distanceTo(to_select) <= (Self->getWeapon()?Self->getWeapon()->getRange():1);
     else
         return true;
 }
@@ -253,6 +255,16 @@ bool JijiangCard::targetFilter(const QList<const Player *> &targets, const Playe
 void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer *> &targets) const{
     QList<ServerPlayer *> lieges = room->getLieges("shu", liubei);
     const Card *slash = NULL;
+
+    if(liubei->isSkillEnhance("jijiang",1)){
+        Slash *slash = new Slash(Card::NoSuit,0) ;
+        CardUseStruct card_use;
+        card_use.card = slash;
+        card_use.from = liubei;
+        card_use.to << targets.first();
+        room->useCard(card_use);
+        return;
+    }
 
     QVariant tohelp = QVariant::fromValue((PlayerStar)liubei);
     foreach(ServerPlayer *liege, lieges){
@@ -279,3 +291,12 @@ void CheatCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *
         room->obtainCard(source, subcards.first());
 }
 
+ChangeCard::ChangeCard(){
+    target_fixed = true;
+}
+void ChangeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    if(Config.FreeChoose){
+        QString name = Self->tag["GeneralName"].toString();
+        room->transfigure(source, name, false, true);
+    }
+}

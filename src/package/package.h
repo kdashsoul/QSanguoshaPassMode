@@ -69,6 +69,18 @@ protected:
     Type type;
 };
 
-#define ADD_PACKAGE(name) extern "C" { Q_DECL_EXPORT Package *New##name(){ return new name##Package;}  }
+typedef QHash<QString, Package *> PackageHash;
+class PackageAdder{
+
+
+public:
+    PackageAdder(const QString &name, Package *pack){
+        packages()[name] = pack;
+    }
+    
+    static PackageHash& packages(void);
+};
+
+#define ADD_PACKAGE(name) static PackageAdder name##PackageAdder(#name, new name##Package);
 
 #endif // PACKAGE_H

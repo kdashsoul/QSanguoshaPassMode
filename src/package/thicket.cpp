@@ -24,27 +24,29 @@ public:
             return false;
 
         Room *room = player->getRoom();
-        ServerPlayer *caopi = room->findPlayerBySkillName(objectName());
-        if(caopi && caopi->isAlive() && room->askForSkillInvoke(caopi, objectName(), data)){
-            if(player->isCaoCao()){
-                room->playSkillEffect(objectName(), 3);
-            }else if(player->getGeneral()->isMale())
-                room->playSkillEffect(objectName(), 1);
-            else
-                room->playSkillEffect(objectName(), 2);
+        QList<ServerPlayer *> caopis = room->findPlayersBySkillName(objectName());
+        foreach(ServerPlayer *caopi, caopis){
+            if(caopi->isAlive() && room->askForSkillInvoke(caopi, objectName(), data)){
+                if(player->isCaoCao()){
+                    room->playSkillEffect(objectName(), 3);
+                }else if(player->getGeneral()->isMale())
+                    room->playSkillEffect(objectName(), 1);
+                else
+                    room->playSkillEffect(objectName(), 2);
 
-            caopi->obtainCard(player->getWeapon());
-            caopi->obtainCard(player->getArmor());
-            caopi->obtainCard(player->getDefensiveHorse());
-            caopi->obtainCard(player->getOffensiveHorse());
+                caopi->obtainCard(player->getWeapon());
+                caopi->obtainCard(player->getArmor());
+                caopi->obtainCard(player->getDefensiveHorse());
+                caopi->obtainCard(player->getOffensiveHorse());
 
-            DummyCard *all_cards = player->wholeHandCards();
-            if(all_cards){
-                room->moveCardTo(all_cards, caopi, Player::Hand, false);
-                delete all_cards;
+                DummyCard *all_cards = player->wholeHandCards();
+                if(all_cards){
+                    room->moveCardTo(all_cards, caopi, Player::Hand, false);
+                    delete all_cards;
+                }
+                break;
             }
         }
-
         return false;
     }
 };
@@ -188,7 +190,7 @@ private:
 class Huoshou: public TriggerSkill{
 public:
     Huoshou():TriggerSkill("huoshou"){
-        events << Predamage << CardEffected;
+        events << Predamage;
         frequency = Compulsory;
     }
 
@@ -207,6 +209,7 @@ public:
                 log.from = menghuo;
                 log.to << damage.to;
                 log.arg = player->getGeneralName();
+                log.arg2 = objectName();
                 room->sendLog(log);
 
                 room->playSkillEffect(objectName());
@@ -417,6 +420,7 @@ public:
 
 HaoshiCard::HaoshiCard(){
     will_throw = false;
+    mute = true;
 }
 
 bool HaoshiCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
@@ -483,10 +487,8 @@ public:
             lusu->setFlags("-haoshi");
 
             Room *room = lusu->getRoom();
-            if(lusu->getHandcardNum() <= 5){
-                room->playSkillEffect("haoshi");
-                return false;
-            }
+            if(lusu->getHandcardNum() <= 5)
+                return false;            
 
             QList<ServerPlayer *> other_players = room->getOtherPlayers(lusu);
             int least = 1000;
@@ -530,6 +532,7 @@ public:
     virtual int getDrawNum(ServerPlayer *lusu, int n) const{
         Room *room = lusu->getRoom();
         if(room->askForSkillInvoke(lusu, "haoshi")){
+            room->playSkillEffect("haoshi");
             lusu->setFlags("haoshi");
             return n + 2;
         }else
@@ -768,7 +771,8 @@ public:
             ServerPlayer *dongzhuo = effect.to;
             Room *room = female->getRoom();
 
-            room->playSkillEffect(objectName(), 2);
+            int index = effect.drank ? 3 : 2;
+            room->playSkillEffect(objectName(), index);
             room->slashResult(effect, askForDoubleJink(dongzhuo, "roulin2"));
 
             return true;
@@ -808,20 +812,19 @@ public:
         if(trigger_this){
             QString result = room->askForChoice(dongzhuo, "benghuai", "hp+maxhp");
 
-            room->playSkillEffect(objectName());
+            int index = dongzhuo->getGeneral()->isFemale() ? 2: 1;
+            room->playSkillEffect(objectName(), index);
             room->setEmotion(dongzhuo, "bad");
 
             LogMessage log;
             log.from = dongzhuo;
-            if(result == "hp"){
-                log.type = "#BenghuaiLoseHp";
-                room->sendLog(log);
+            log.arg = objectName();
+            log.type = "#TriggerSkill";
+            room->sendLog(log);
+            if(result == "hp")
                 room->loseHp(dongzhuo);
-            }else{
-                log.type = "#BenghuaiLoseMaxHp";
-                room->sendLog(log);
+            else
                 room->loseMaxHp(dongzhuo);
-            }
         }
 
         return false;

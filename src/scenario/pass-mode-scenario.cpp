@@ -245,16 +245,14 @@ void PassMode::initGameStart(ServerPlayer *player) const{
             room->setTag("Times", 1);
 
             QString name = room->askForGeneralPass(p,"");
-
             room->transfigure(p, name, true, true);
             room->setPlayerProperty(p, "maxhp", p->getMaxHP() + 1);
             room->setPlayerProperty(p, "hp", p->getMaxHP());
             const General *general = Sanguosha->getGeneral(name);
             if(p->getKingdom() != general->getKingdom())
                 room->setPlayerProperty(p, "kingdom", general->getKingdom());
-            // debug
-            p->enHanceSkill("rende",1);
-            askForLearnSkill(p);
+            player->gainMark("@exp",50);
+            room->askForSkillLearn(p);
         }else{
             QStringList enemys = enemy_list.at(0).split("+");
             QString enemy_name = enemys.at(p->getSeat()-2) ;
@@ -286,33 +284,6 @@ void PassMode::setTimesDifficult(Room *room) const{
             room->setPlayerProperty(player, "hp", player->getMaxHP());
         }
     }
-}
-
-bool PassMode::askForLearnSkill(ServerPlayer *lord) const{
-    Room *room = lord->getRoom();
-    QString choice;
-    while(choice != "."){
-        QString skill_info;
-        int min_exp = 999;
-        getLearnSkillInfo(lord, skill_info, min_exp);
-
-        choice = room->askForSkillChoice(lord, skill_info);
-
-        QString skill_name = choice ;
-        int exp = lord->getMark("@exp");
-        int need_exp = skill_map.value(skill_name);
-        if(exp >= need_exp){
-            exp -= need_exp;
-            room->setPlayerMark(lord, "@exp", exp);
-            room->acquireSkill(lord, skill_name);
-
-        }
-
-        if(exp < min_exp)
-            break;
-    }
-
-    return true;
 }
 
 void PassMode::getLearnSkillInfo(ServerPlayer *lord, QString &skills, int &min_exp) const{
@@ -432,7 +403,7 @@ void PassMode::setNextStageInfo(Room *room, int stage, bool save_loaded) const{
     room->setTag("Stage", stage+1);
     ServerPlayer *lord = room->getLord();
 
-    askForLearnSkill(lord);
+    //room->askForSkillLearn(lord);
 
     if(!save_loaded){
         room->setPlayerProperty(lord, "hp", lord->getMaxHP());

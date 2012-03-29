@@ -2,7 +2,7 @@
 # Project created by QtCreator 2010-06-13T04:26:52
 # -------------------------------------------------
 TARGET = QSanguosha
-QT += network sql
+QT += network sql declarative
 TEMPLATE = app
 CONFIG += warn_on audio qaxcontainer
 
@@ -15,6 +15,7 @@ SOURCES += src/main.cpp \
 	src/client/client.cpp \
 	src/client/clientplayer.cpp \
 	src/client/clientstruct.cpp \
+	src/core/banpair.cpp \
 	src/core/card.cpp \
 	src/core/engine.cpp \
 	src/core/general.cpp \
@@ -27,6 +28,7 @@ SOURCES += src/main.cpp \
 	src/dialog/choosegeneraldialog.cpp \
 	src/dialog/configdialog.cpp \
 	src/dialog/connectiondialog.cpp \
+	src/dialog/customassigndialog.cpp \
 	src/dialog/distanceviewdialog.cpp \
 	src/dialog/generaloverview.cpp \
 	src/dialog/generalselector.cpp \
@@ -50,9 +52,12 @@ SOURCES += src/main.cpp \
 	src/package/thicket.cpp \
 	src/package/wind.cpp \
 	src/package/yjcm-package.cpp \
+	src/package/yjcm2012-package.cpp \
         src/package/bgm-package.cpp \
+        src/package/special3v3-package.cpp \
 	src/scenario/scenario.cpp \
 	src/scenario/scenerule.cpp \
+	src/scenario/miniscenarios.cpp \
         src/scenario/pass-mode-scenario.cpp \
 	src/server/ai.cpp \
 	src/server/contestdb.cpp \
@@ -66,32 +71,61 @@ SOURCES += src/main.cpp \
 	src/ui/button.cpp \
 	src/ui/cardcontainer.cpp \
 	src/ui/carditem.cpp \
+	src/ui/chatwidget.cpp \
 	src/ui/clientlogbox.cpp \
 	src/ui/dashboard.cpp \
 	src/ui/indicatoritem.cpp \
 	src/ui/photo.cpp \
 	src/ui/pixmap.cpp \
+	src/ui/pixmapanimation.cpp \
 	src/ui/rolecombobox.cpp \
 	src/ui/roomscene.cpp \
+	src/ui/sprite.cpp \
 	src/ui/startscene.cpp \
 	src/ui/window.cpp \
 	src/util/detector.cpp \
 	src/util/nativesocket.cpp \
 	src/util/recorder.cpp \
-	swig/sanguosha_wrap.cxx \
-        src/ui/pixmapanimation.cpp \
-        src/ui/sprite.cpp \	
-    	src/core/banpair.cpp \
-    	src/ui/chatwidget.cpp \
-    	src/scenario/miniscenarios.cpp \
-	src/dialog/customassigndialog.cpp \
-        src/pass/pass-package.cpp
-
+        src/lua/print.c \
+        src/lua/lzio.c \
+        src/lua/lvm.c \
+        src/lua/lundump.c \
+        src/lua/ltm.c \
+        src/lua/ltablib.c \
+        src/lua/ltable.c \
+    src/lua/lstrlib.c \
+    src/lua/lstring.c \
+    src/lua/lstate.c \
+    src/lua/lparser.c \
+    src/lua/loslib.c \
+    src/lua/lopcodes.c \
+    src/lua/lobject.c \
+    src/lua/loadlib.c \
+    src/lua/lmem.c \
+    src/lua/lmathlib.c \
+    src/lua/llex.c \
+    src/lua/liolib.c \
+    src/lua/linit.c \
+    src/lua/lgc.c \
+    src/lua/lfunc.c \
+    src/lua/ldump.c \
+    src/lua/ldo.c \
+    src/lua/ldebug.c \
+    src/lua/ldblib.c \
+    src/lua/lcode.c \
+    src/lua/lbaselib.c \
+    src/lua/lauxlib.c \
+    src/lua/lapi.c \
+    src/pass/pass-package.cpp \
+    swig/sanguosha_wrap.cxx \
+    src/package/package.cpp
 
 HEADERS += src/client/aux-skills.h \
 	src/client/client.h \
 	src/client/clientplayer.h \
 	src/client/clientstruct.h \
+	src/core/audio.h \
+	src/core/banpair.h \
 	src/core/card.h \
 	src/core/engine.h \
 	src/core/general.h \
@@ -104,6 +138,7 @@ HEADERS += src/client/aux-skills.h \
 	src/dialog/choosegeneraldialog.h \
 	src/dialog/configdialog.h \
 	src/dialog/connectiondialog.h \
+	src/dialog/customassigndialog.h \
 	src/dialog/distanceviewdialog.h \
 	src/dialog/generaloverview.h \
 	src/dialog/generalselector.h \
@@ -127,7 +162,10 @@ HEADERS += src/client/aux-skills.h \
 	src/package/thicket.h \
 	src/package/wind.h \
 	src/package/yjcm-package.h \
+	src/package/yjcm2012-package.h \
         src/package/bgm-package.h \
+	src/package/special3v3-package.h \
+	src/scenario/miniscenarios.h \
 	src/scenario/scenario.h \
 	src/scenario/scenerule.h \
         src/scenario/pass-mode-scenario.h \
@@ -144,27 +182,47 @@ HEADERS += src/client/aux-skills.h \
 	src/ui/button.h \
 	src/ui/cardcontainer.h \
 	src/ui/carditem.h \
+	src/ui/chatwidget.h \
 	src/ui/clientlogbox.h \
 	src/ui/dashboard.h \
 	src/ui/indicatoritem.h \
 	src/ui/photo.h \
 	src/ui/pixmap.h \
+	src/ui/pixmapanimation.h \
 	src/ui/rolecombobox.h \
 	src/ui/roomscene.h \
+	src/ui/sprite.h \
 	src/ui/startscene.h \
 	src/ui/window.h \
 	src/util/detector.h \
 	src/util/nativesocket.h \
 	src/util/recorder.h \
 	src/util/socket.h \
-        src/ui/pixmapanimation.h \
-        src/ui/sprite.h \
-        src/core/banpair.h \
-        src/ui/chatwidget.h \
-	src/scenario/miniscenarios.h \
-    	src/dialog/customassigndialog.h \
-	src/core/audio.h \
-        src/pass/pass-package.h
+    src/lua/lzio.h \
+    src/lua/lvm.h \
+    src/lua/lundump.h \
+    src/lua/lualib.h \
+    src/lua/luaconf.h \
+    src/lua/lua.hpp \
+    src/lua/lua.h \
+    src/lua/ltm.h \
+    src/lua/ltable.h \
+    src/lua/lstring.h \
+    src/lua/lstate.h \
+    src/lua/lparser.h \
+    src/lua/lopcodes.h \
+    src/lua/lobject.h \
+    src/lua/lmem.h \
+    src/lua/llimits.h \
+    src/lua/llex.h \
+    src/lua/lgc.h \
+    src/lua/lfunc.h \
+    src/lua/ldo.h \
+    src/lua/ldebug.h \
+    src/lua/lcode.h \
+    src/lua/lauxlib.h \
+    src/lua/lapi.h \
+    src/pass/pass-package.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \
@@ -172,7 +230,6 @@ FORMS += src/dialog/cardoverview.ui \
 	src/dialog/generaloverview.ui \
 	src/dialog/mainwindow.ui 
 	
-INCLUDEPATH += include/lua
 INCLUDEPATH += include
 INCLUDEPATH += src/client
 INCLUDEPATH += src/core
@@ -182,19 +239,13 @@ INCLUDEPATH += src/scenario
 INCLUDEPATH += src/server
 INCLUDEPATH += src/ui
 INCLUDEPATH += src/util
+INCLUDEPATH += src/lua
 
 win32{
     RC_FILE += resource/icon.rc
-    LIBS += -L. -llua -lm
 }
 
-unix:!macx {
-    LIBS += -lm -llua
-}
-
-macx {
-    LIBS += -L. -lm -llua5.1
-}
+LIBS += -L. -lm
 
 CONFIG(audio){
     DEFINES += AUDIO_SUPPORT
@@ -214,6 +265,7 @@ CONFIG(joystick){
 TRANSLATIONS += sanguosha.ts
 
 OTHER_FILES += \
-    sanguosha.qss
-
-
+    sanguosha.qss \
+    acknowledgement/main.qml \
+    acknowledgement/list.png \
+    acknowledgement/back.png

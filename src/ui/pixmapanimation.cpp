@@ -1,5 +1,7 @@
 #include "pixmapanimation.h"
 #include <QPainter>
+#include <QPixmapCache>
+#include <QDir>
 
 PixmapAnimation::PixmapAnimation(QGraphicsScene *scene) :
     QGraphicsItem(0,scene)
@@ -22,35 +24,28 @@ void PixmapAnimation::setPath(const QString &path)
     frames.clear();
 
     int i = 0;
-    while(true)
-    {
-        QString pic_path = QString("%1%2%3").arg(path).arg(i).arg(".png");
-        QPixmap *frame;
-        if(Loaded_animation_pixmaps[pic_path] != NULL)frame = Loaded_animation_pixmaps[pic_path];
-        else    frame = new QPixmap(pic_path);
-        if(frame->isNull())break;
-
-        frames << frame;
-        Loaded_animation_pixmaps[pic_path] = frame;
-        i++;
-    }
+    QString pic_path = QString("%1%2%3").arg(path).arg(i++).arg(".png");
+    do{
+        frames << GetFrameFromCache(pic_path);
+        pic_path = QString("%1%2%3").arg(path).arg(i++).arg(".png");
+    }while(!GetFrameFromCache(pic_path).isNull());
 
     current = 0;
 }
 
 void PixmapAnimation::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
-    painter->drawPixmap(0,0,*frames.at(current));
+    painter->drawPixmap(0,0,frames.at(current));
 }
 
 QRectF PixmapAnimation::boundingRect() const
 {
-    return frames.at(current)->rect();
+    return frames.at(current).rect();
 }
 
 bool PixmapAnimation::valid()
 {
-    return frames.size();
+    return !frames.isEmpty();
 }
 
 void PixmapAnimation::timerEvent(QTimerEvent *e)
@@ -105,19 +100,19 @@ PixmapAnimation* PixmapAnimation::GetPixmapAnimation(QGraphicsObject *parent, co
     }
 }
 
-void PixmapAnimation::LoadEmotion(const QString &emotion)
-{
-    int i = 0;
-    QString path = QString("image/system/emotion/%1/").arg(emotion);
-    while(true)
-    {
-        QString pic_path = QString("%1%2%3").arg(path).arg(i).arg(".png");
-        QPixmap *frame;
-        if(Loaded_animation_pixmaps[pic_path] != NULL)frame = Loaded_animation_pixmaps[pic_path];
-        else    frame = new QPixmap(pic_path);
-        if(frame->isNull())break;
-
-        Loaded_animation_pixmaps[pic_path] = frame;
-        i++;
+QPixmap PixmapAnimation::GetFrameFromCache(const QString &filename){
+    QPixmap pixmap;
+    if(!QPixmapCache::find(filename, &pixmap)){
+        pixmap.load(filename);
+        if(!pixmap.isNull())
+            QPixmapCache::insert(filename, pixmap);
     }
+
+    return pixmap;
+}
+
+int PixmapAnimation::GetFrameCount(const QString &emotion){
+    QString path = QString("image/system/emotion/%1/").arg(emotion);
+    QDir dir(path);
+    return dir.entryList(QDir::Files | QDir::NoDotAndDotDot).count();
 }

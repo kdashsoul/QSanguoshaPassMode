@@ -31,6 +31,17 @@ protected:
     ScenarioRule *rule;
 };
 
-#define ADD_SCENARIO(name) extern "C" { Q_DECL_EXPORT Scenario *New##name##Scenario() { return new name##Scenario; } }
+typedef QHash<QString, Scenario *> ScenarioHash;
+
+class ScenarioAdder{
+public:
+    ScenarioAdder(const QString &name, Scenario *scenario){
+        scenarios()[name] = scenario;
+    }
+
+    static ScenarioHash& scenarios(void);
+};
+
+#define ADD_SCENARIO(name) static ScenarioAdder name##ScenarioAdder(#name, new name##Scenario);
 
 #endif // SCENARIO_H

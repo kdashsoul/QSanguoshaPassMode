@@ -76,7 +76,6 @@ public:
     void setTimesDifficult(Room *room) const;
     bool resetPlayerSkills(SaveDataStruct *savedata) const;
 
-    bool askForLearnSkill(ServerPlayer *lord) const;
     void getLearnSkillInfo(ServerPlayer *lord, QString &skills, int &min_exp) const;
 
     bool askForLoadData(Room *room) const;

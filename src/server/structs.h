@@ -78,6 +78,7 @@ struct DyingStruct{
 
     ServerPlayer *who; // who is ask for help
     DamageStruct *damage; // if it is NULL that means the dying is caused by losing hp
+    QList<ServerPlayer *> savers; // savers are the available players who can use peach for the dying player
 };
 
 struct RecoverStruct{
@@ -121,6 +122,7 @@ struct JudgeStruct{
     JudgeStructPattern pattern;
     bool good;
     QString reason;
+    bool time_consuming;
 };
 
 enum TriggerEvent{
@@ -166,6 +168,7 @@ enum TriggerEvent{
     CardLostDone,
     CardGot,
     CardGotDone,
+    CardDrawing,
     CardDrawnDone,
 
     CardEffect,
@@ -184,17 +187,18 @@ typedef DamageStruct *DamageStar;
 typedef PindianStruct *PindianStar;
 typedef const CardMoveStruct *CardMoveStar;
 
-Q_DECLARE_METATYPE(DamageStruct);
-Q_DECLARE_METATYPE(CardEffectStruct);
-Q_DECLARE_METATYPE(SlashEffectStruct);
-Q_DECLARE_METATYPE(CardUseStruct);
-Q_DECLARE_METATYPE(CardMoveStar);
-Q_DECLARE_METATYPE(CardStar);
-Q_DECLARE_METATYPE(PlayerStar);
-Q_DECLARE_METATYPE(DyingStruct);
-Q_DECLARE_METATYPE(RecoverStruct);
-Q_DECLARE_METATYPE(JudgeStar);
-Q_DECLARE_METATYPE(DamageStar);
-Q_DECLARE_METATYPE(PindianStar);
+Q_DECLARE_METATYPE(DamageStruct)
+Q_DECLARE_METATYPE(CardEffectStruct)
+Q_DECLARE_METATYPE(SlashEffectStruct)
+Q_DECLARE_METATYPE(CardUseStruct)
+Q_DECLARE_METATYPE(CardMoveStar)
+Q_DECLARE_METATYPE(CardStar)
+Q_DECLARE_METATYPE(PlayerStar)
+Q_DECLARE_METATYPE(DyingStruct)
+Q_DECLARE_METATYPE(RecoverStruct)
+Q_DECLARE_METATYPE(JudgeStar)
+Q_DECLARE_METATYPE(DamageStar)
+Q_DECLARE_METATYPE(PindianStar)
+Q_DECLARE_METATYPE(QList<int>)
 
 #endif // STRUCTS_H

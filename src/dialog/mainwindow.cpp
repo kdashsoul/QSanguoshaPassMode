@@ -195,6 +195,8 @@ void MainWindow::on_actionStart_Server_triggered()
     StartScene *start_scene = qobject_cast<StartScene *>(scene);
     if(start_scene){
         start_scene->switchToServer(server);
+        if(Config.value("EnableMinimizeDialog", false).toBool())
+            this->on_actionMinimize_to_system_tray_triggered();
     }
 }
 
@@ -279,30 +281,39 @@ BackLoader::BackLoader(QObject * parent)
 
 void BackLoader::run()
 {
-    PixmapAnimation::LoadEmotion("peach");
-    emit completed(8);
-    PixmapAnimation::LoadEmotion("analeptic");
-    emit completed(16);
-    PixmapAnimation::LoadEmotion("chain");
-    emit completed(25);
-    PixmapAnimation::LoadEmotion("damage");
-    emit completed(33);
-    PixmapAnimation::LoadEmotion("fire_slash");
-    emit completed(41);
-    PixmapAnimation::LoadEmotion("thunder_slash");
-    emit completed(49);
-    PixmapAnimation::LoadEmotion("killer");
-    emit completed(58);
-    PixmapAnimation::LoadEmotion("jink");
-    emit completed(66);
-    PixmapAnimation::LoadEmotion("no-success");
-    emit completed(74);
-    PixmapAnimation::LoadEmotion("slash_black");
-    emit completed(82);
-    PixmapAnimation::LoadEmotion("slash_red");
-    emit completed(91);
-    PixmapAnimation::LoadEmotion("success");
-    emit completed(100);
+    QStringList emotions;
+    emotions << "peach"
+            << "analeptic"
+            << "chain"
+            << "damage"
+            << "fire_slash"
+            << "thunder_slash"
+            << "killer"
+            << "jink"
+            << "no-success"
+            << "slash_black"
+            << "slash_red"
+            << "success";
+
+    double total = 0;
+    foreach(QString emotion, emotions){
+        int n = PixmapAnimation::GetFrameCount(emotion);
+        total += n;
+    }
+
+    int loaded = 0;
+    foreach(QString emotion, emotions){
+        int n = PixmapAnimation::GetFrameCount(emotion);
+        for(int i=0; i<n; i++){
+            QString filename = QString("image/system/emotion/%1/%2.png").arg(emotion).arg(i);
+            PixmapAnimation::GetFrameFromCache(filename);
+
+            loaded ++;
+
+            double process = (loaded / total) * 100;
+            emit completed(static_cast<int>(process));
+        }
+    }
 
     emit finished();
 }
@@ -326,6 +337,7 @@ void MainWindow::enterRoom(){
 
     ui->actionStart_Game->setEnabled(false);
     ui->actionStart_Server->setEnabled(false);
+	ui->actionAI_Melee->setEnabled(false);
 
     RoomScene *room_scene = new RoomScene(this);
 
@@ -351,6 +363,17 @@ void MainWindow::enterRoom(){
         connect(ui->actionDeath_note, SIGNAL(triggered()), room_scene, SLOT(makeKilling()));
         connect(ui->actionDamage_maker, SIGNAL(triggered()), room_scene, SLOT(makeDamage()));
         connect(ui->actionRevive_wand, SIGNAL(triggered()), room_scene, SLOT(makeReviving()));
+        connect(ui->actionSend_lowlevel_command, SIGNAL(triggered()), this, SLOT(sendLowLevelCommand()));
+        connect(ui->actionExecute_script_at_server_side, SIGNAL(triggered()), room_scene, SLOT(doScript()));
+    }
+    else{
+        ui->menuCheat->setEnabled(false);
+        ui->actionGet_card->disconnect();
+        ui->actionDeath_note->disconnect();
+        ui->actionDamage_maker->disconnect();
+        ui->actionRevive_wand->disconnect();
+        ui->actionSend_lowlevel_command->disconnect();
+        ui->actionExecute_script_at_server_side->disconnect();
     }
 
     connect(room_scene, SIGNAL(restart()), this, SLOT(startConnection()));
@@ -379,6 +402,13 @@ void MainWindow::gotoStartScene(){
     setCentralWidget(view);
     restoreFromConfig();
 
+    ui->menuCheat->setEnabled(false);
+    ui->actionGet_card->disconnect();
+    ui->actionDeath_note->disconnect();
+    ui->actionDamage_maker->disconnect();
+    ui->actionRevive_wand->disconnect();
+    ui->actionSend_lowlevel_command->disconnect();
+    ui->actionExecute_script_at_server_side->disconnect();
     gotoScene(start_scene);
 
     addAction(ui->actionShow_Hide_Menu);
@@ -431,8 +461,9 @@ void MainWindow::on_actionAbout_triggered()
     QString email = "moligaloo@gmail.com";
     content.append(tr("This is the open source clone of the popular <b>Sanguosha</b> game,"
                       "totally written in C++ Qt GUI framework <br />"
-                      "My Email: <a href='mailto:%1'>%1</a> <br/>"
+                      "My Email: <a href='mailto:%1' style = \"color:#0072c1; \">%1</a> <br/>"
                       "My QQ: 365840793 <br/>"
+                      "My Weibo: http://weibo.com/moligaloo <br/>"
                       ).arg(email));
 
     QString config;
@@ -453,11 +484,10 @@ void MainWindow::on_actionAbout_triggered()
     content.append(tr("Compilation time: %1 %2 <br/>").arg(date).arg(time));
 
     QString project_url = "http://github.com/Moligaloo/QSanguosha";
-    content.append(tr("Project home: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(project_url));
+    content.append(tr("Source code: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(project_url));
 
     QString forum_url = "http://qsanguosha.com";
     content.append(tr("Forum: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(forum_url));
-
 
     Window *window = new Window(tr("About QSanguosha"), QSize(420, 450));
     scene->addItem(window);
@@ -578,7 +608,7 @@ void MainWindow::on_actionRole_assign_table_triggered()
 
     content = QString("<table border='1'>%1</table").arg(content);
 
-    Window *window = new Window(tr("Role assign table"), QSize(232, 342));
+    Window *window = new Window(tr("Role assign table"), QSize(280, 380));
     scene->addItem(window);
 
     window->addContent(content);
@@ -638,28 +668,9 @@ void MainWindow::on_actionBroadcast_triggered()
 
 void MainWindow::on_actionAcknowledgement_triggered()
 {
-    QStringList contents;
-    contents.append(tr("QSanguosha staff:"));
-
-    contents.append(tr("AI Maintainance: William915, donle"));
-    contents.append(tr("Game Design: Moligaloo, Ubun Tenkei"));
-    contents.append(tr("Miscellaneous: Hypercross"));
-    contents.append(tr("Founder: Moligaloo"));
-
-    QString content;
-    foreach(QString string, contents)
-    {
-        content.append(QString("<p align='right'><i>%1</i></p>").arg(string));
-    }
-
-    Window *window = new Window(tr("About QSanguosha"), QSize(365, 411));
-    scene->addItem(window);
-
-    window->addContent(content);
-    window->addCloseButton(tr("OK"));
-    window->shift();
-
-    window->appear();
+    AcknowledgementScene* ack = new AcknowledgementScene;
+    connect(ack,SIGNAL(go_back()),this,SLOT(gotoStartScene()));
+    gotoScene(ack);
 }
 
 void MainWindow::on_actionPC_Console_Start_triggered()
@@ -695,15 +706,7 @@ void MainWindow::on_actionScript_editor_triggered()
 MeleeDialog::MeleeDialog(QWidget *parent)
     :QDialog(parent)
 {
-    server=NULL;
-    lordCount=0;
-    lordWinCount=0;
-    loyalistCount=0;
-    loyalistWinCount=0;
-    renegadeCount=0;
-    renegadeWinCount=0;
-    rebelCount=0;
-    rebelWinCount=0;
+    server=NULL;    
     room_count=0;
 
     setWindowTitle(tr("AI Melee"));
@@ -752,13 +755,14 @@ QGroupBox *MeleeDialog::createGeneralBox(){
     QFormLayout *form_layout = new QFormLayout;
     spinbox = new QSpinBox;
     spinbox->setRange(1, 50);
-    spinbox->setValue(10);
+    spinbox->setValue(1);
 
     start_button = new QPushButton(tr("Start"));
     connect(start_button, SIGNAL(clicked()), this, SLOT(startTest()));
 
     loop_checkbox = new QCheckBox(tr("LOOP"));
     loop_checkbox->setObjectName("loop_checkbox");
+    loop_checkbox->setChecked(true);
 
     form_layout->addRow(tr("Num of rooms"), spinbox);
     form_layout->addRow(loop_checkbox, start_button);
@@ -825,8 +829,9 @@ void MeleeDialog::startTest(){
     if(server){
         server->gamesOver();
     }else{
-        server = new Server(this);
+        server = new Server(this->parentWidget());
         server->listen();
+        connect(server, SIGNAL(server_message(QString)), server_log,SLOT(append(QString)));
     }
     Config.AIDelay = 0;
     room_count = spinbox->value();
@@ -834,7 +839,6 @@ void MeleeDialog::startTest(){
         Room *room = server->createNewRoom();
         connect(room, SIGNAL(game_start()), this, SLOT(onGameStart()));
         connect(room, SIGNAL(game_over(QString)), this, SLOT(onGameOver(QString)));
-        connect(server, SIGNAL(server_message(QString)), server_log,SLOT(append(QString)));
 
         room->startTest(avatar_button->property("to_test").toString());
     }
@@ -893,7 +897,6 @@ void MeleeDialog::onGameOver(const QString &winner){
         Room *room = server->createNewRoom();
         connect(room, SIGNAL(game_start()), this, SLOT(onGameStart()));
         connect(room, SIGNAL(game_over(QString)), this, SLOT(onGameOver(QString)));
-        connect(server, SIGNAL(server_message(QString)), server_log,SLOT(append(QString)));
 
         room->startTest(avatar_button->property("to_test").toString());
     }
@@ -952,6 +955,21 @@ void MeleeDialog::setGeneral(const QString &general_name){
     }
 }
 
+AcknowledgementScene::AcknowledgementScene(QObject *parent) :
+    QGraphicsScene(parent)
+{
+    view = new QDeclarativeView;
+    view->setSource(QUrl::fromLocalFile("acknowledgement/main.qml"));
+    addWidget(view);
+    view->move( - width()/2, - height()/2);
+    view->setStyleSheet(QString("background: transparent"));
+
+    QObject *item = view->rootObject();
+
+    connect(item,SIGNAL(go_back()),this,SIGNAL(go_back()));
+}
+
+
 void MainWindow::on_actionAI_Melee_triggered()
 {
     MeleeDialog *dialog = new MeleeDialog(this);
@@ -994,50 +1012,32 @@ void MainWindow::on_actionReplay_file_convert_triggered()
     }
 }
 
-void MainWindow::on_actionSend_lowlevel_command_triggered()
+void MainWindow::sendLowLevelCommand()
 {
     QString command = QInputDialog::getText(this, tr("Send low level command"), tr("Please input the raw low level command"));
     if(!command.isEmpty())
         ClientInstance->request(command);
 }
-void MeleeDialog::updateResultBox(QString role, int win){
-    // role types << "lord" << "loyalist" << "renegade" << "rebel";
-    // int lordCount,lordWinCount,loyalistCount,loyalistWinCount,renegadeCount,renegadeWinCount,rebelCount,rebelWinCount;
-    QLineEdit *lord_edit = new QLineEdit;
-    QLineEdit *loyalist_edit = new QLineEdit;
-    QLineEdit *rebel_edit = new QLineEdit;
-    QLineEdit *renegade_edit = new QLineEdit;
-    QLineEdit *total_edit = new QLineEdit;
-    lord_edit=result_box->findChild<QLineEdit *>("lord_edit");
-    loyalist_edit=result_box->findChild<QLineEdit *>("loyalist_edit");
-    rebel_edit=result_box->findChild<QLineEdit *>("rebel_edit");
-    renegade_edit=result_box->findChild<QLineEdit *>("renegade_edit");
-    total_edit=result_box->findChild<QLineEdit *>("total_edit");
-    int totalCount,totalWinCount;
 
-    if(role=="lord"){
-        lordCount++;
-        lordWinCount+=win;
-        lord_edit->setText(QString::number(lordWinCount) +" / "+QString::number(lordCount) + " = " + QString::number(100.0*(double)lordWinCount/lordCount,'f',2) + "%");
-    }
-    else if(role=="loyalist"){
-        loyalistCount++;
-        loyalistWinCount+=win;
-        loyalist_edit->setText(QString::number(loyalistWinCount) +" / "+QString::number(loyalistCount) + " = " + QString::number(100.0*(double)loyalistWinCount/loyalistCount,'f',2) + "%");
-    }
-    else if(role=="renegade"){
-        renegadeCount++;
-        renegadeWinCount+=win;
-        renegade_edit->setText(QString::number(renegadeWinCount) +" / "+QString::number(renegadeCount) + " = " + QString::number(100.0*(double)renegadeWinCount/renegadeCount,'f',2) + "%");
-    }
-    else if(role=="rebel"){
-        rebelCount++;
-        rebelWinCount+=win;
-        rebel_edit->setText(QString::number(rebelWinCount) +" / "+QString::number(rebelCount) + " = " + QString::number(100.0*(double)rebelWinCount/rebelCount,'f',2) + "%");
-    }
-    totalCount=lordCount+loyalistCount+renegadeCount+rebelCount;
-    totalWinCount=lordWinCount+loyalistWinCount+renegadeWinCount+rebelWinCount;
-    total_edit->setText(QString::number(totalWinCount) +" / "+QString::number(totalCount) + " = " + QString::number(100.0*(double)totalWinCount/(double)totalCount,'f',2) + "%");
+void MeleeDialog::updateResultBox(QString role, int win){    
+    QLineEdit *edit = result_box->findChild<QLineEdit *>(role + "_edit");
+    double roleCount = ++(this->roleCount[role]);
+    double winCount = (this->winCount[role] += win);
+    double rate = winCount / roleCount * 100;
+    edit->setText(QString("%1 / %2 = %3 %").arg(winCount).arg(roleCount).arg(rate));
+
+    double totalCount = 0, totalWinCount = 0;
+
+    foreach(int count, this->roleCount.values())
+        totalCount += count;
+
+    foreach(int count, this->winCount.values())
+        totalWinCount += count;
+
+    QLineEdit *total_edit = result_box->findChild<QLineEdit *>("total_edit");
+    total_edit->setText(QString("%1 / %2 = %3 %").arg(totalWinCount).arg(totalCount).arg(totalWinCount/totalCount*100));
+
+    server_log->append(tr("End of game %1").arg(totalCount));
 }
 
 void MainWindow::on_actionView_ban_list_triggered()
@@ -1054,7 +1054,7 @@ void MainWindow::on_actionAbout_fmod_triggered()
     content.append("<p align='center'> <img src='image/system/fmod.png' /> </p> <br/>");
 
     QString address = "http://www.fmod.org";
-    content.append(tr("Official site: <a href='%1'>%1</a> <br/>").arg(address));
+    content.append(tr("Official site: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(address));
 
 #ifdef AUDIO_SUPPORT
     content.append(tr("Current versionn %1 <br/>").arg(Audio::getVersion()));
@@ -1078,12 +1078,12 @@ void MainWindow::on_actionAbout_Lua_triggered()
     content.append("<p align='center'> <img src='image/system/lua.png' /> </p> <br/>");
 
     QString address = "http://www.lua.org";
-    content.append(tr("Official site: <a href='%1'>%1</a> <br/>").arg(address));
+    content.append(tr("Official site: <a href='%1' style = \"color:#0072c1; \">%1</a> <br/>").arg(address));
 
     content.append(tr("Current versionn %1 <br/>").arg(LUA_RELEASE));
     content.append(LUA_COPYRIGHT);
 
-    Window *window = new Window(tr("About Lua"), QSize(500, 450));
+    Window *window = new Window(tr("About Lua"), QSize(500, 500));
     scene->addItem(window);
 
     window->addContent(content);

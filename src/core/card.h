@@ -31,6 +31,7 @@ class Card : public QObject
     Q_PROPERTY(bool once READ isOnce CONSTANT)
     Q_PROPERTY(bool mute READ isMute CONSTANT)
     Q_PROPERTY(bool equipped READ isEquipped)
+    Q_PROPERTY(Color color READ getColor)
 
     Q_ENUMS(Suit)
     Q_ENUMS(CardType)
@@ -38,6 +39,8 @@ class Card : public QObject
 public:
     // enumeration type
     enum Suit {Spade, Club, Heart, Diamond, NoSuit};
+    enum Color{Red, Black, Colorless};
+
     static const Suit AllSuits[4];
 
     // card types
@@ -68,6 +71,7 @@ public:
     void setSuit(Suit suit);
 
     bool sameColorWith(const Card *other) const;
+    Color getColor() const;
     bool isEquipped() const;
 
     QString getPixmapPath() const;
@@ -111,6 +115,7 @@ public:
     bool isOnce() const;
     bool isMute() const;
     bool willThrow() const;
+    bool canJilei() const;
 
     virtual void onUse(Room *room, const CardUseStruct &card_use) const;
     virtual void use(Room *room, ServerPlayer *source,  const QList<ServerPlayer *> &targets) const;
@@ -137,6 +142,7 @@ protected:
     QString skill_name;
     bool mute;
     bool will_throw;
+    bool can_jilei;
 
 private:
     Suit suit;

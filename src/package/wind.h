@@ -63,7 +63,7 @@ class GuhuoCard: public SkillCard{
 
 public:
     Q_INVOKABLE GuhuoCard();
-    bool guhuo(ServerPlayer *yuji) const;
+    bool guhuo(ServerPlayer* yuji, const QString& message) const;
 
     virtual bool targetFixed() const;
     virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
@@ -77,20 +77,22 @@ class GuhuoDialog: public QDialog{
     Q_OBJECT
 
 public:
-    static GuhuoDialog *GetInstance();
+    static GuhuoDialog *GetInstance(const QString &object, bool left = true, bool right = true);
 
 public slots:
     void popup();
     void selectCard(QAbstractButton *button);
 
 private:
-    GuhuoDialog();
+    explicit GuhuoDialog(const QString &object, bool left = true, bool right = true);
 
     QGroupBox *createLeft();
     QGroupBox *createRight();
     QAbstractButton *createButton(const Card *card);
     QButtonGroup *group;
     QHash<QString, const Card *> map;
+
+    QString object_name;
 };
 
 class WindPackage: public Package{

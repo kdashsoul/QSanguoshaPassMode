@@ -17,6 +17,8 @@ const Card::Suit Card::AllSuits[4] = {
 Card::Card(Suit suit, int number, bool target_fixed)
     :target_fixed(target_fixed), once(false), mute(false), will_throw(true), suit(suit), number(number), id(-1)
 {
+    can_jilei = will_throw;
+
     if(number < 1 || number > 13)
         number = 0;
 }
@@ -115,7 +117,18 @@ void Card::setSuit(Suit suit){
 }
 
 bool Card::sameColorWith(const Card *other) const{
-    return isBlack() == other->isBlack();
+    return getColor() == other->getColor();
+}
+
+Card::Color Card::getColor() const{
+    switch(suit){
+    case Spade:
+    case Club: return Black;
+    case Heart:
+    case Diamond: return Red;
+    default:
+        return Colorless;
+    }
 }
 
 bool Card::isEquipped() const{
@@ -155,10 +168,7 @@ bool Card::CompareByType(const Card *a, const Card *b){
 
 QString Card::getPixmapPath() const{
     QString path = QString("image/card/%1.jpg").arg(objectName());
-    if(QFile::exists(path))
-        return path;
-    else
-        return "image/card/unknown.jpg";
+    return QFile::exists(path) ? path : "image/card/unknown.jpg";
 }
 
 QString Card::getIconPath() const{
@@ -477,8 +487,8 @@ void Card::clearSubcards(){
     subcards.clear();
 }
 
-bool Card::isAvailable(const Player *) const{
-    return true;
+bool Card::isAvailable(const Player *player) const{
+    return !player->isJilei(this) && !player->isLocked(this);
 }
 
 const Card *Card::validate(const CardUseStruct *) const{
@@ -501,6 +511,10 @@ bool Card::isMute() const{
 
 bool Card::willThrow() const{
     return will_throw;
+}
+
+bool Card::canJilei() const{
+    return can_jilei;
 }
 
 // ---------   Skill card     ------------------
@@ -536,7 +550,7 @@ QString SkillCard::toString() const{
 
 // ---------- Dummy card      -------------------
 
-DummyCard::DummyCard()
+DummyCard::DummyCard():SkillCard()
 {
     target_fixed = true;
     setObjectName("dummy");

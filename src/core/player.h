@@ -62,7 +62,9 @@ public:
     // property setters/getters
     int getHp() const;
     void setHp(int hp);
+    int getMaxHp() const;
     int getMaxHP() const;
+    void setMaxHp(int max_hp);
     void setMaxHP(int max_hp);
     int getLostHp() const;
     bool isWounded() const;
@@ -197,6 +199,10 @@ public:
     void jilei(const QString &type);
     bool isJilei(const Card *card) const;
 
+    void setCardLocked(const QString &name);
+    bool isLocked(const Card *card) const;
+    bool hasCardLock(const QString &card_str) const;
+
     bool isCaoCao() const;
     void copyFrom(Player* p);
 
@@ -205,7 +211,8 @@ public:
     QVariantMap tag;
 
     bool isSkillEnhance(const QString skill_name,const int index) const;
-    void enHanceSkill(const QString &skill_name,const int index);
+    bool isSkillEnhance(const QString &enhance_name) const;
+    void enhanceSkill(const QString &enhance_name);
 protected:
     QMap<QString, int> marks;
     QMap<QString, QList<int> > piles;
@@ -235,8 +242,8 @@ private:
     QList<const DelayedTrick *> delayed_tricks;
     QHash<const Player *, int> fixed_distance;
 
-    QSet<Card::CardType> jilei_set;
-
+    QSet<QString> jilei_set;
+	QSet<QString> lock_card;
     QSet<QString> skills_enhance;
 signals:
     void general_changed();

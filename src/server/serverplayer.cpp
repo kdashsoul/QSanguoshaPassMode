@@ -6,6 +6,7 @@
 #include "settings.h"
 #include "recorder.h"
 #include "banpair.h"
+#include "lua-wrapper.h"
 
 ServerPlayer::ServerPlayer(Room *room)
     : Player(room), socket(NULL), room(room),
@@ -21,21 +22,30 @@ Room *ServerPlayer::getRoom() const{
     return room;
 }
 
-void ServerPlayer::playCardEffect(const Card *card){
-    if(card->isVirtualCard() && !card->isMute()){
-        QString skill_name = card->getSkillName();
-        const Skill *skill = Sanguosha->getSkill(skill_name);
-        int index = -1;
-        if(skill){
-            if(skill->useCardSoundEffect()){
-                room->playCardEffect(card->objectName(), getGeneral()->isMale());
-                return;
-            }
-            index = skill->getEffectIndex(this, card);
-        }
+void ServerPlayer::playCardEffect(const QString &card_name) const{
+    QString gender = getGender() == General::Male ? "M" : "F";
+    room->broadcastInvoke("playCardEffect", QString("%1:%2").arg(card_name).arg(gender));
+}
+void ServerPlayer::playCardEffect(const Card *card) const{
+    if(card->isMute())
+        return;
+
+    if(!card->isVirtualCard())
+        playCardEffect(card->objectName());
+
+    QString skill_name = card->getSkillName();
+    const Skill *skill = Sanguosha->getSkill(skill_name);
+    if(skill == NULL)
+        return;
+
+    int index = skill->getEffectIndex(this, card);
+    if(index == 0)
+        return;
+
+    if(index == -1 && skill->getSources().isEmpty())
+        playCardEffect(card->objectName());
+    else
         room->playSkillEffect(skill_name, index);
-    }else
-        room->playCardEffect(card->objectName(), getGeneral()->isMale());
 }
 
 int ServerPlayer::getRandomHandCardId() const{
@@ -196,6 +206,15 @@ void ServerPlayer::unicast(const QString &message) const{
         recorder->recordLine(message);
 }
 
+void ServerPlayer::startNetworkDelayTest(){
+    test_time = QDateTime::currentDateTime();
+    invoke("networkDelayTest");
+}
+
+qint64 ServerPlayer::endNetworkDelayTest(){
+    return test_time.msecsTo(QDateTime::currentDateTime());
+}
+
 void ServerPlayer::startRecord(){
     recorder = new Recorder(this);
 }
@@ -245,6 +264,14 @@ QString ServerPlayer::findReasonable(const QStringList &generals, bool no_unreas
 
             if(ban_list.contains(name))continue;
         }
+        if((Config.GameMode.endsWith("p") ||
+            Config.GameMode.endsWith("pd")))
+        {
+            QStringList ban_list = Config.value("Banlist/Roles").toStringList();
+
+            if(ban_list.contains(name))continue;
+        }
+
         return name;
     }
 
@@ -406,14 +433,17 @@ bool ServerPlayer::hasNullification() const{
             if(card->isBlack() || card->objectName() == "nullification")
                 return true;
         }
-    }else if(hasSkill("wushen")){
+    }
+    if(hasSkill("wushen")){
         foreach(const Card *card, handcards){
             if(card->objectName() == "nullification" && card->getSuit() != Card::Heart)
                 return true;
         }
-    }else if(hasSkill("guhuo")){
+    }
+    if(hasSkill("guhuo")){
         return !isKongcheng();
-    }else if(hasFlag("lexue")){
+    }
+    if(hasFlag("lexue")){
         int card_id = getMark("lexue");
         const Card *card = Sanguosha->getCard(card_id);
         if(card->objectName() == "nullification"){
@@ -422,7 +452,8 @@ bool ServerPlayer::hasNullification() const{
                     return true;
             }
         }
-    }else if(hasSkill("longhun")){
+    }
+    if(hasSkill("longhun")){
         int n = qMax(1, getHp());
         int count = 0;
         foreach(const Card *card, handcards + getEquips()){
@@ -434,10 +465,25 @@ bool ServerPlayer::hasNullification() const{
         }
 
         return count >= n;
-    }else{
+    }
+    if(hasSkill("yanzheng")){
         foreach(const Card *card, handcards){
             if(card->objectName() == "nullification")
                 return true;
+        }
+
+        return getHandcardNum() > getHp() && !getEquips().isEmpty();
+    }
+
+    foreach(const Card *card, handcards){
+        if(card->objectName() == "nullification")
+            return true;
+    }
+
+    foreach(const Skill* skill, getVisibleSkillList()){
+        if(skill->inherits("LuaViewAsSkill")){
+            const LuaViewAsSkill* luaskill = qobject_cast<const LuaViewAsSkill*>(skill);
+            if(luaskill->isEnabledAtNullification(this)) return true;
         }
     }
 
@@ -506,14 +552,16 @@ void ServerPlayer::turnOver(){
     room->getThread()->trigger(TurnedOver, this);
 }
 
-void ServerPlayer::play(){
-    static QList<Phase> all_phases;
-    if(all_phases.isEmpty()){
-        all_phases << Start << Judge << Draw << Play
-                << Discard << Finish << NotActive;
+void ServerPlayer::play(QList<Player::Phase> set_phases){
+    if(!set_phases.isEmpty()){
+        if(!set_phases.contains(NotActive))
+            set_phases << NotActive;
     }
+    else
+        set_phases << Start << Judge << Draw << Play
+                << Discard << Finish << NotActive;
 
-    phases = all_phases;
+    phases = set_phases;
     while(!phases.isEmpty()){
         Phase phase = phases.takeFirst();
         setPhase(phase);
@@ -549,6 +597,14 @@ void ServerPlayer::skip(Player::Phase phase){
     room->sendLog(log);
 }
 
+void ServerPlayer::skip(){
+    phases.clear();
+
+    LogMessage log;
+    log.type = "#SkipAllPhase";
+    log.from = this;
+    room->sendLog(log);
+}
 
 void ServerPlayer::gainMark(const QString &mark, int n){
     int value = getMark(mark) + n;
@@ -656,6 +712,9 @@ int ServerPlayer::getGeneralMaxHP() const{
     return max_hp;
 }
 
+int ServerPlayer::getGeneralMaxHp() const{
+    return getGeneralMaxHP();
+}
 QString ServerPlayer::getGameMode() const{
     return room->getMode();
 }
@@ -774,11 +833,13 @@ void ServerPlayer::addToPile(const QString &pile_name, int card_id, bool open){
     room->moveCardTo(Sanguosha->getCard(card_id), this, Player::Special, open);
 }
 
-void ServerPlayer::gainAnExtraTurn(){
+void ServerPlayer::gainAnExtraTurn(ServerPlayer *clearflag){
     ServerPlayer *current = room->getCurrent();
 
     room->setCurrent(this);
     room->removeTag("Zhichi");
+    if(clearflag)
+        clearflag->clearFlags();
     room->getThread()->trigger(TurnStart, this);
     room->setCurrent(current);
 }

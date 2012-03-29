@@ -99,10 +99,12 @@ private:
     QCheckBox *scene_checkbox;	//changjing
     QCheckBox *basara_checkbox;
     QCheckBox *hegemony_checkbox;
+    QLabel *max_hp_label;
     QComboBox *max_hp_scheme_combobox;
     QCheckBox *announce_ip_checkbox;
     QComboBox *scenario_combobox;
     QComboBox *mini_scene_combobox;
+    QPushButton *mini_scene_button;
     QLineEdit *address_edit;
     QLineEdit *port_edit;
     QCheckBox *ai_enable_checkbox;
@@ -125,6 +127,7 @@ private slots:
     void updateButtonEnablility(QAbstractButton* button);
 
     void doCustomAssign();
+    void setMiniCheckBox();
 };
 
 class Scenario;

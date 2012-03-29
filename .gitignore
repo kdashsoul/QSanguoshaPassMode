@@ -13,6 +13,7 @@ doc/*.html
 swig/*.bat
 .DS_Store
 liblua5.1.dylib
+font/font.ttf
 savedata/*
 *.bat
 QSanguosha.pro.user.2.1pre1

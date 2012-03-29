@@ -57,17 +57,23 @@ AI::Relation AI::GetRelationBoss(const ServerPlayer *a, const ServerPlayer *b){
 AI::Relation AI::GetRelationHegemony(const ServerPlayer *a, const ServerPlayer *b){
     const bool aShown = a->getRoom()->getTag(a->objectName()).toStringList().isEmpty();
     const bool bShown = b->getRoom()->getTag(b->objectName()).toStringList().isEmpty();
+
     const QString aName = aShown ?
                 a->getGeneralName() :
                 a->getRoom()->getTag(a->objectName()).toStringList().first();
     const QString bName = bShown ?
                 b->getGeneralName() :
                 b->getRoom()->getTag(b->objectName()).toStringList().first();
+
     const QString aKingdom = Sanguosha->getGeneral(aName)->getKingdom();
     const QString bKingdom = Sanguosha->getGeneral(bName)->getKingdom();
+
+
     qDebug() << aKingdom << bKingdom <<aShown << bShown;
+
     return aKingdom == bKingdom ? Friend :Enemy;
 }
+
 AI::Relation AI::GetRelation(const ServerPlayer *a, const ServerPlayer *b){
     RoleMapping map, map_good, map_bad;
     if(map.isEmpty()){
@@ -214,7 +220,7 @@ bool TrustAI::useCard(const Card *card){
         return false;
 }
 
-Card::Suit TrustAI::askForSuit(){
+Card::Suit TrustAI::askForSuit(const QString &){
     return Card::AllSuits[qrand() % 4];
 }
 
@@ -235,7 +241,7 @@ bool TrustAI::askForSkillInvoke(const QString &skill_name, const QVariant &data)
     return false;
 }
 
-QString TrustAI::askForChoice(const QString &skill_name, const QString &choice, const QVariant &data){
+QString TrustAI::askForChoice(const QString &skill_name, const QString &choice){
     const Skill *skill = Sanguosha->getSkill(skill_name);
     if(skill)
         return skill->getDefaultChoice(self);
@@ -466,6 +472,25 @@ bool LuaAI::getTable(lua_State *L, QList<int> &table){
     lua_pop(L, 1);
 
     return true;
+}
+
+QString LuaAI::askForChoice(const QString &skill_name, const QString &choices){
+
+    lua_State *L = room->getLuaState();
+
+    pushCallback(L, __func__);
+    lua_pushstring(L, skill_name.toAscii());
+    lua_pushstring(L, choices.toAscii());
+
+    int error = lua_pcall(L, 3, 1, 0);
+    const char *result = lua_tostring(L, -1);
+    lua_pop(L, 1);
+    if(error){
+        room->output(result);
+        return TrustAI::askForChoice(skill_name, choices);
+    }
+
+    return result;
 }
 
 int LuaAI::askForAG(const QList<int> &card_ids, bool refusable, const QString &reason){

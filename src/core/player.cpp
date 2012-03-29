@@ -59,6 +59,9 @@ int Player::getMaxHP() const{
     return max_hp;
 }
 
+int Player::getMaxHp() const{
+    return getMaxHP();
+}
 void Player::setMaxHP(int max_hp){
     if(this->max_hp == max_hp)
         return;
@@ -68,6 +71,10 @@ void Player::setMaxHP(int max_hp){
         hp = max_hp;
 
     emit state_changed();
+}
+
+void Player::setMaxHp(int max_hp){
+    setMaxHP(max_hp);
 }
 
 int Player::getLostHp() const{
@@ -136,7 +143,7 @@ void Player::clearFlags(){
 }
 
 int Player::getAttackRange() const{
-    if(hasFlag("tianyi_success"))
+    if(hasFlag("tianyi_success") || hasFlag("jiangchi_invoke"))
         return 1000;
     int range ;
     if(weapon)
@@ -457,16 +464,15 @@ void Player::setFaceUp(bool face_up){
 }
 
 int Player::getMaxCards() const{
-    int extra = 0;
+    int extra = 0, total = 0;
     if(Config.MaxHpScheme == 2 && general2){
-        int total = general->getMaxHp() + general2->getMaxHp();
+        total = general->getMaxHp() + general2->getMaxHp();
         if(total % 2 != 0)
             extra = 1;
     }
 
     int juejing = hasSkill("juejing") ? 2 : 0;
-    int shenwei = hasSkill("shenwei") ? 2 : 0;
-    int kezhi = hasSkill("kezhi_p") ? 1 : 0;
+	int kezhi = hasSkill("kezhi_p") ? 1 : 0;
 
     int xueyi = 0;
     if(hasLordSkill("xueyi")){
@@ -477,7 +483,27 @@ int Player::getMaxCards() const{
         }
     }
 
-    return qMax(hp,0) + extra + juejing + xueyi + shenwei + kezhi;
+    int shenwei = 0;
+    if(hasSkill("shenwei"))
+        shenwei = 2;
+
+    int zongshi = 0;
+    if(hasSkill("zongshi")){
+        QSet<QString> kingdom_set;
+        if(parent()){
+            foreach(const Player *player, parent()->findChildren<const Player *>()){
+                if(player->isAlive()){
+                    kingdom_set << player->getKingdom();
+                }
+            }
+        }
+
+        zongshi = kingdom_set.size();
+    }
+
+    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi + kezhi;
+
+    return total;
 }
 
 QString Player::getKingdom() const{
@@ -711,7 +737,7 @@ bool Player::canSlashWithoutCrossbow() const{
 
     int slash_count = getSlashCount();
     int n = 1;
-    if(hasFlag("tianyi_success"))
+    if(hasFlag("tianyi_success") || hasFlag("jiangchi_invoke"))
         n++ ;
     if(hasSkill("nuhou_p"))
         n++ ;
@@ -719,31 +745,78 @@ bool Player::canSlashWithoutCrossbow() const{
 }
 
 void Player::jilei(const QString &type){
-    if(type == "basic")
-        jilei_set << Card::Basic;
-    else if(type == "equip")
-        jilei_set << Card::Equip;
-    else if(type == "trick")
-        jilei_set << Card::Trick;
-    else
+    if(type == ".")
         jilei_set.clear();
+    else if(type == "basic")
+        jilei_set << "BasicCard";
+    else if(type == "trick")
+        jilei_set << "TrickCard";
+    else if(type == "equip")
+        jilei_set << "EquipCard";
+    else
+        jilei_set << type;
 }
 
 bool Player::isJilei(const Card *card) const{
-    Card::CardType type = card->getTypeId();
-    if(type == Card::Skill){
-        if(!card->willThrow())
+    if(card->getTypeId() == Card::Skill){
+        if(!card->canJilei())
             return false;
 
         foreach(int card_id, card->getSubcards()){
             const Card *c = Sanguosha->getCard(card_id);
-            if(jilei_set.contains(c->getTypeId())&&!hasEquip(c))
-                return true;
+            foreach(QString pattern, jilei_set.toList()){
+                ExpPattern p(pattern);
+                if(p.match(this,c) && !hasEquip(c)) return true;
+            }
         }
+    }
+    else{
+        if(card->getSubcards().isEmpty())
+            foreach(QString pattern, jilei_set.toList()){
+                ExpPattern p(pattern);
+                if(p.match(this,card)) return true;
+            }
+        else{
+            foreach(int card_id, card->getSubcards()){
+                const Card *c = Sanguosha->getCard(card_id);
+                foreach(QString pattern, jilei_set.toList()){
+                    ExpPattern p(pattern);
+                    if(p.match(this,card) && !hasEquip(c)) return true;
+                }
+            }
+        }
+    }
 
-        return false;
-    }else
-        return jilei_set.contains(type)&&!hasEquip(card);
+    return false;
+}
+
+void Player::setCardLocked(const QString &name){
+    static QChar unset_symbol('-');
+    if(name.isEmpty())
+        return;
+    else if(name == ".")
+        lock_card.clear();
+    else if(name.startsWith(unset_symbol)){
+        QString copy = name;
+        copy.remove(unset_symbol);
+        lock_card.remove(copy);
+    }
+    else if(!lock_card.contains(name))
+        lock_card << name;
+}
+
+bool Player::isLocked(const Card *card) const{
+    foreach(QString card_name, lock_card){
+        if(card->inherits(card_name.toStdString().c_str())){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Player::hasCardLock(const QString &card_str) const{
+    return lock_card.contains(card_str);
 }
 
 bool Player::isCaoCao() const{
@@ -779,7 +852,7 @@ void Player::copyFrom(Player* p)
     b->judging_area     = QList<const Card *> (a->judging_area);
     b->delayed_tricks   = QList<const DelayedTrick *> (a->delayed_tricks);
     b->fixed_distance   = QHash<const Player *, int> (a->fixed_distance);
-    b->jilei_set        = QSet<Card::CardType> (a->jilei_set);
+    b->jilei_set        = QSet<QString> (a->jilei_set);
 
     b->tag              = QVariantMap(a->tag);
 
@@ -797,9 +870,13 @@ QList<const Player *> Player::getSiblings() const{
 }
 
 bool Player::isSkillEnhance(const QString skill_name,const int index) const{
-    return skills_enhance.contains(skill_name + QString::number(index));
+    return isSkillEnhance(skill_name + "_e" + QString::number(index));
 }
 
-void Player::enHanceSkill(const QString &skill_name,const int index){
-    skills_enhance << (skill_name + QString::number(index)) ;
+bool Player::isSkillEnhance(const QString &enhance_name) const{
+    return skills_enhance.contains(enhance_name);
+}
+
+void Player::enhanceSkill(const QString &enhance_name){
+    skills_enhance << enhance_name ;
 }

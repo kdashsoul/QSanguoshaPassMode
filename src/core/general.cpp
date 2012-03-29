@@ -67,12 +67,11 @@ QString General::getPixmapPath(const QString &category) const{
     if(category == "card")
         suffix = "jpg";
 
-    return QString("image/generals/%1/%2.%3").arg(category).arg(getBasicName()).arg(suffix);
+    return QString("image/generals/%1/%2.%3").arg(category).arg(objectName()).arg(suffix);
 }
 
 void General::addSkill(Skill *skill){
     skill->setParent(this);
-    skill->initMediaSource();
     skill_set << skill->objectName();
 }
 
@@ -128,6 +127,14 @@ QSet<const TriggerSkill *> General::getTriggerSkills() const{
     return skills;
 }
 
+void General::addRelateSkill(const QString &skill_name){
+    related_skills << skill_name;
+}
+
+QStringList General::getRelatedSkillNames() const{
+    return related_skills;
+}
+
 QString General::getPackage() const{
     QObject *p = parent();
     if(p)
@@ -150,15 +157,20 @@ QString General::getSkillDescription() const{
 }
 
 void General::lastWord() const{
-    QString filename = QString("audio/death/%1.ogg").arg(getBasicName().remove(QRegExp("^sp_")));
+    QString filename = QString("audio/death/%1.ogg").arg(objectName());
+    QFile file(filename);
+    if(!file.open(QIODevice::ReadOnly)){
+        QStringList origin_generals = objectName().split("_");
+        if(origin_generals.length()>1)
+            filename = QString("audio/death/%1.ogg").arg(origin_generals.at(1));
+    }
+    if(!file.open(QIODevice::ReadOnly) && objectName().endsWith("f")){
+        QString origin_general = objectName();
+        origin_general.chop(1);
+        if(Sanguosha->getGeneral(origin_general))
+            filename = QString("audio/death/%1.ogg").arg(origin_general);
+    }
     Sanguosha->playEffect(filename);
-}
-
-QString General::getBasicName() const{
-    QString name = objectName() ;
-    if(name.endsWith("_p"))
-        name.chop(2);
-    return name;
 }
 
 QSize General::BigIconSize(94, 96);

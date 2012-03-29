@@ -53,13 +53,14 @@ void Settings::init(){
         QStringList banlist;
         banlist << "nostalgia" << "yitian" << "wisdom" << "test"
                 << "disaster" << "god" << "YJCM" << "yitian_cards"
-                << "sp" << "sp_cards"
+                << "sp" << "sp_cards" << "BGM"
                 << "joy" << "joy_equip";
 
         setValue("BanPackages", banlist);
     }
 
     BanPackages = value("BanPackages").toStringList();
+    BanPackages << "Special3v3";
 
     ContestMode = value("ContestMode", false).toBool();
     FreeChoose = value("FreeChoose", false).toBool();
@@ -96,6 +97,7 @@ void Settings::init(){
     FitInView = value("FitInView", false).toBool();
     EnableHotKey = value("EnableHotKey", true).toBool();
     NeverNullifyMyTrick = value("NeverNullifyMyTrick", true).toBool();
+    EnableMinimizeDialog = value("EnableMinimizeDialog", false).toBool();
     EnableAutoTarget = value("EnableAutoTarget", false).toBool();
     NullificationCountDown = value("NullificationCountDown", 8).toInt();
     OperationTimeout = value("OperationTimeout", 15).toInt();
@@ -108,7 +110,9 @@ void Settings::init(){
 
     BackgroundBrush = value("BackgroundBrush", "backdrop/new-version.jpg").toString();
 
-    QStringList kof_ban, basara_ban, hegemony_ban, pairs_ban;
+    QStringList roles_ban, kof_ban, basara_ban, hegemony_ban, pairs_ban;
+
+    roles_ban << "zhugejin";
 
     kof_ban << "sunquan" << "huatuo" << "zhangliao" << "liubei";
 
@@ -122,27 +126,34 @@ void Settings::init(){
     }
 
     pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "+luboyan"
-                << "caocao+caochong" << "xushu+zhugeliang" << "simayi+caizhaoji"
+              << "caocao+caochong" << "xushu+zhugeliang" << "simayi+caizhaoji" << "wisjiangwei+zhanggongqi"
                 << "zhenji+zhangjiao" << "zhenji+simayi" << "huanggai+yuanshao"
-                << "huanggai+wuguotai" << "dengshizai+caoren" << "dengshizai+shenlubu"
-                << "luxun+liubei" << "luxun+wolong" << "luxun+yuji"
+                << "huanggai+wuguotai" << "dengshizai+caoren" << "dengshizai+shenlubu" << "dengshizai+bgm_diaochan"
+                << "luxun+liubei" << "luxun+wolong" << "luxun+yuji" << "luxun+daqiao"
                 << "huangyueying+wolong" << "huangyueying+yuanshao" << "huangyueying+ganning"
                 << "shuangxiong+sunce" << "shuangxiong+huanggai" << "shuangxiong+huangyueying"
                 << "dengai+guojia" << "dengai+simayi" << "dengai+zhangjiao"
                 << "dengai+shenzhugeliang" << "dengai+shensimayi"
                 << "jiangboyue+huangyueying" << "jiangboyue+wolong" << "jiangboyue+yuanshao"
-                << "jiangboyue+shuangxiong" << "jiangboyue+ganning" << "jiangboyue+luxun"
+                << "jiangboyue+shuangxiong" << "jiangboyue+ganning" << "jiangboyue+luxun" << "jiangboyue+zhanggongqi"
                 << "weiyan+huanggai" << "jiangwei+zhangjiao" << "caoren+shenlubu"
                 << "fazheng+xiahoudun" << "luxun+zhanggongqi" << "sunquan+lingtong"
                 << "sunquan+sunshangxiang" << "wuguotai+guojia" << "wuguotai+xunyu"
-                << "caizhaoji+caoren" << "caizhaoji+dengshizai" << "yuanshu+zhanghe"
+                << "caizhaoji+caoren" << "caizhaoji+dengshizai" << "yuanshu+zhanghe" << "caizhaoji+caozhi" << "caizhaoji+shenlubu"
                 << "yuanshu+lumeng" << "yuanshu+caochong" << "huatuo+guojia"
                 << "huatuo+xunyu" << "huatuo+xiahoujuan" << "huatuo+zhanggongqi"
                 << "lukang+liubei" << "lukang+wolong" << "lukang+yuji" << "jiangboyue+lukang"
                 << "lukang+zhanggongqi" << "bgm_diaochan+caoren" << "bgm_diaochan+shenlubu"
-                << "bgm_diaochan+caizhaoji";
+                << "bgm_diaochan+caizhaoji" << "caozhi+shenlubu" << "caoren+caozhi";
 
-    QStringList banlist = value("Banlist/1v1").toStringList();
+    QStringList banlist = value("Banlist/Roles").toStringList();
+    foreach(QString ban_general, roles_ban){
+        if(!banlist.contains(ban_general))
+            banlist << ban_general;
+    }
+    setValue("Banlist/Roles", banlist);
+
+    banlist = value("Banlist/1v1").toStringList();
     foreach(QString ban_general, kof_ban){
         if(!banlist.contains(ban_general))
             banlist << ban_general;

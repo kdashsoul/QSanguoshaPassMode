@@ -27,8 +27,8 @@
 Room::Room(QObject *parent, const QString &mode)
     :QThread(parent), mode(mode), current(NULL), reply_player(NULL), pile1(Sanguosha->getRandomCards()),
     draw_pile(&pile1), discard_pile(&pile2),
-    game_started(false), game_finished(false),
-    L(NULL), thread(NULL), thread_3v3(NULL), sem(new QSemaphore), provided(NULL), _virtual(false)
+      game_started(false), game_finished(false), L(NULL),
+      thread(NULL), thread_3v3(NULL), sem(new QSemaphore), provided(NULL), has_provided(false), _virtual(false)
 {
     player_count = Sanguosha->getPlayerCount(mode);
     scenario = Sanguosha->getScenario(mode);
@@ -51,6 +51,7 @@ void Room::initCallbacks(){
     callbacks["chooseGeneralCommand"] = &Room::commonCommand;
     callbacks["chooseGeneralPassCommand"] = &Room::commonCommand;
     callbacks["selectChoiceCommand"] = &Room::commonCommand;
+    callbacks["selectSkillsCommand"] = &Room::commonCommand;
     callbacks["replyYijiCommand"] = &Room::commonCommand;
     callbacks["replyGuanxingCommand"] = &Room::commonCommand;
     callbacks["replyGongxinCommand"] = &Room::commonCommand;
@@ -71,6 +72,8 @@ void Room::initCallbacks(){
     callbacks["trustCommand"] = &Room::trustCommand;
     callbacks["kickCommand"] = &Room::kickCommand;
     callbacks["surrenderCommand"] = &Room::surrenderCommand;
+
+    callbacks["networkDelayTestCommand"] = &Room::networkDelayTestCommand;
 }
 
 QString Room::createLuaState(){
@@ -161,10 +164,6 @@ void Room::outputEventStack(){
 }
 
 void Room::enterDying(ServerPlayer *player, DamageStruct *reason){
-    DyingStruct dying;
-    dying.who = player;
-    dying.damage = reason;
-
     player->setFlags("dying");
 
     QString sos_filename;
@@ -175,6 +174,33 @@ void Room::enterDying(ServerPlayer *player, DamageStruct *reason){
         sos_filename = QString("female-sos%1").arg(r);
     }
     broadcastInvoke("playAudio", sos_filename);
+    QList<ServerPlayer *> savers;
+    ServerPlayer *current = getCurrent();
+    if(current->hasSkill("wansha") && current->isAlive()){
+        playSkillEffect("wansha");
+
+        savers << current;
+
+        LogMessage log;
+        log.from = current;
+        log.arg = "wansha";
+        if(current != player){
+            savers << player;
+            log.type = "#WanshaTwo";
+            log.to << player;
+        }else{
+            log.type = "#WanshaOne";
+        }
+
+        sendLog(log);
+
+    }else
+        savers = getAllPlayers();
+
+    DyingStruct dying;
+    dying.who = player;
+    dying.damage = reason;
+    dying.savers = savers;
 
     QVariant dying_data = QVariant::fromValue(dying);
     thread->trigger(Dying, player, dying_data);
@@ -266,8 +292,9 @@ void Room::killPlayer(ServerPlayer *victim, DamageStruct *reason){
     thread->trigger(GameOverJudge, victim, data);
 
 
-    broadcastInvoke("killPlayer", victim->objectName());
     broadcastProperty(victim, "role");
+    thread->delay(300);
+    broadcastInvoke("killPlayer", victim->objectName());
 
     thread->trigger(Death, victim, data);
     victim->loseAllSkills();
@@ -408,7 +435,7 @@ void Room::gameOver(const QString &winner){
             id.replace("_mini_","");
             int stage = Config.value("MiniSceneStage",1).toInt();
             int current = id.toInt();
-            if((stage == current) && stage<20)
+            if((stage == current) && stage<21)
             {
                 Config.setValue("MiniSceneStage",current+1);
                 id = QString::number(stage+1).rightJustified(2,'0');
@@ -441,6 +468,7 @@ void Room::slashEffect(const SlashEffectStruct &effect){
     else setEmotion(effect.from, "killer");
     setEmotion(effect.to, "victim");
 
+    setTag("LastSlashEffect", data);
     bool broken = thread->trigger(SlashEffect, effect.from, data);
     if(!broken)
         thread->trigger(SlashEffected, effect.to, data);
@@ -482,6 +510,11 @@ void Room::detachSkillFromPlayer(ServerPlayer *player, const QString &skill_name
         foreach(const Skill *skill, Sanguosha->getRelatedSkills(skill_name))
             detachSkillFromPlayer(player, skill->objectName());
     }
+    LogMessage log;
+    log.type = "#LoseSkill";
+    log.from = player;
+    log.arg = skill_name;
+    sendLog(log);
 }
 
 bool Room::obtainable(const Card *card, ServerPlayer *player){
@@ -506,8 +539,9 @@ bool Room::askForSkillInvoke(ServerPlayer *player, const QString &skill_name, co
     bool invoked;
     AI *ai = player->getAI();
     if(ai){
-        thread->delay(Config.AIDelay);
         invoked = ai->askForSkillInvoke(skill_name, data);
+        if(invoked)
+            thread->delay(Config.AIDelay);
     }else{
         QString invoke_str;
         if(data.type() == QVariant::String)
@@ -532,18 +566,18 @@ bool Room::askForSkillInvoke(ServerPlayer *player, const QString &skill_name, co
     return invoked;
 }
 
-QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices, const QVariant &data){
+QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices){
     AI *ai = player->getAI();
     QString answer;
     if(ai)
-        answer= ai->askForChoice(skill_name, choices , data);
+        answer= ai->askForChoice(skill_name, choices);
     else{
         QString ask_str = QString("%1:%2").arg(skill_name).arg(choices);
         player->invoke("askForChoice", ask_str);
         getResult("selectChoiceCommand", player);
 
         if(result.isEmpty())
-            return askForChoice(player, skill_name, choices , data);
+            return askForChoice(player, skill_name, choices);
 
         if(result == "."){
             const Skill *skill = Sanguosha->getSkill(skill_name);
@@ -558,21 +592,26 @@ QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, cons
     return answer;
 }
 
-QString Room::askForSkillChoice(ServerPlayer *player, const QString &choices){
+void Room::askForSkillLearn(ServerPlayer *player){
+    QString skills = QString("rende_e1:15+rende_e2:10+rende_e3:50+jijiang_e1:15+jijiang_e2:10")
+            + "|wanghou_p:20+xiaoxiong_p:30+kuanhou_p:30+qiangyun_p:20"
+            + "|duanyan_p:25+fenjin_p:30" ;
     AI *ai = player->getAI();
-    QString answer;
     if(ai)
-        answer= "." ;
+        return ;
     else{
-        player->invoke("askForSkillChoice", choices);
-        getResult("selectChoiceCommand", player);
-
-        if(result.isEmpty())
-            result = "." ;
-
-        answer=result;
+        result = "" ;
+        player->invoke("askForSkillLearn", skills);
+        getResult("selectSkillsCommand", player);
+        if(result != "."){
+            player->getRoom()->setPlayerMark(player,"@exp",player->getMark("@exp") - 20);
+            if(result.indexOf("_e") > 0)
+                setPlayerSkillEnHance(player,result);
+            else
+                acquireSkill(player,result);
+            askForSkillLearn(player);
+        }
     }
-    return answer;
 }
 
 void Room::obtainCard(ServerPlayer *target, const Card *card){
@@ -664,7 +703,7 @@ bool Room::askForNullification(const TrickCard *trick, ServerPlayer *from, Serve
             broadcastInvoke("animate", QString("nullification:%1:%2")
                             .arg(player->objectName()).arg(to->objectName()));
 
-            QVariant decisionData = QVariant::fromValue("Nullification:"+trick->objectName()+":"+to->objectName()+":"+(positive?"true":"false"));
+            QVariant decisionData = QVariant::fromValue("Nullification:"+QString(trick->metaObject()->className())+":"+to->objectName()+":"+(positive?"true":"false"));
             thread->trigger(ChoiceMade, player, decisionData);
             setTag("NullifyingTimes",getTag("NullifyingTimes").toInt()+1);
 
@@ -685,8 +724,10 @@ bool Room::askForNullification(const TrickCard *trick, ServerPlayer *from, Serve
 }
 
 int Room::askForCardChosen(ServerPlayer *player, ServerPlayer *who, const QString &flags, const QString &reason){
-    if(flags == "h" && !who->hasFlag("dongchaee"))
-        return who->getRandomHandCardId();
+    if(!who->hasFlag("dongchaee") && who != player){
+        if(flags == "h" || (flags == "he" && !who->hasEquip()))
+            return who->getRandomHandCardId();
+    }
 
     int card_id;
 
@@ -726,14 +767,16 @@ const Card *Room::askForCard(ServerPlayer *player, const QString &pattern, const
 
     QVariant asked = pattern;
     thread->trigger(CardAsked, player, asked);
-    if(provided){
+    if(has_provided){
         card = provided;
         provided = NULL;
+        has_provided = false;
     }else if(pattern.startsWith("@") || !player->isNude()){
         AI *ai = player->getAI();
         if(ai){
-            thread->delay(Config.AIDelay);
             card = ai->askForCard(pattern, prompt, data);
+            if(card)
+                thread->delay(Config.AIDelay);
         }else{
             player->invoke("askForCard", QString("%1:%2").arg(pattern).arg(prompt));
             getResult("responseCardCommand", player);
@@ -799,8 +842,10 @@ bool Room::askForUseCard(ServerPlayer *player, const QString &pattern, const QSt
 
     AI *ai = player->getAI();
     if(ai){
-        thread->delay(Config.AIDelay);
         answer = ai->askForUseCard(pattern, prompt);
+
+        if(answer != ".")
+            thread->delay(Config.AIDelay);
     }else{
         player->invoke("askForUseCard", QString("%1:%2").arg(pattern).arg(prompt));
         getResult("useCardCommand", player);
@@ -951,6 +996,11 @@ void Room::setPlayerFlag(ServerPlayer *player, const QString &flag){
     broadcast(QString("#%1 flags %2").arg(player->objectName()).arg(flag));
 }
 
+void Room::setPlayerSkillEnHance(ServerPlayer *player, const QString &enhance_name){
+    player->enhanceSkill(enhance_name);
+    player->invoke("enhanceSkill", enhance_name);
+}
+
 void Room::setPlayerProperty(ServerPlayer *player, const char *property_name, const QVariant &value){
     player->setProperty(property_name, value);
     broadcastProperty(player, property_name);
@@ -963,6 +1013,10 @@ void Room::setPlayerProperty(ServerPlayer *player, const char *property_name, co
 void Room::setPlayerMark(ServerPlayer *player, const QString &mark, int value){
     player->setMark(mark, value);
     broadcastInvoke("setMark", QString("%1.%2=%3").arg(player->objectName()).arg(mark).arg(value));
+}
+void Room::setPlayerCardLock(ServerPlayer *player, const QString &name){
+    player->setCardLocked(name);
+    player->invoke("cardLock", name);
 }
 
 ServerPlayer *Room::addSocket(ClientSocket *socket){
@@ -1032,6 +1086,14 @@ void Room::swapPile(){
     }
 }
 
+QList<int> Room::getDiscardPile(){
+    return *discard_pile;
+}
+
+QList<int> Room::getDrawPile(){
+    return *draw_pile;
+}
+
 ServerPlayer *Room::findPlayer(const QString &general_name, bool include_dead) const{
     const QList<ServerPlayer *> &list = include_dead ? players : alive_players;
 
@@ -1051,6 +1113,15 @@ ServerPlayer *Room::findPlayer(const QString &general_name, bool include_dead) c
     }
 
     return NULL;
+}
+
+QList<ServerPlayer *>Room::findPlayersBySkillName(const QString &skill_name, bool include_dead) const{
+    QList<ServerPlayer *> list;
+    foreach(ServerPlayer *player, include_dead ? players : alive_players){
+        if(player->hasSkill(skill_name))
+            list << player;
+    }
+    return list;
 }
 
 ServerPlayer *Room::findPlayerBySkillName(const QString &skill_name, bool include_dead) const{
@@ -1114,7 +1185,7 @@ void Room::transfigure(ServerPlayer *player, const QString &new_general, bool fu
         player->setHp(player->getMaxHP());
     broadcastProperty(player, "hp");
 
-    thread->addPlayerSkills(player, invoke_start);
+    // thread->addPlayerSkills(player, invoke_start);
     resetAI(player);
 }
 
@@ -1246,25 +1317,6 @@ void Room::prepareForStart(){
                 player->setRole("rebel");
             broadcastProperty(player, "role");
         }
-    }else if(mode == "custom"){
-        QRegExp rx("(\\w+)\\s+(\\w+)\\s*(\\w+)?");
-        QFile file("etc/Custom.txt");
-        int i = 0;
-        if(file.open(QIODevice::ReadOnly)){
-            QTextStream stream(&file);
-            while(!stream.atEnd()){
-                QString line = stream.readLine();
-                if(!rx.exactMatch(line))
-                    continue;
-                QStringList texts = rx.capturedTexts();
-                QString rolest = texts.at(1);
-
-                players.at(i)->setRole(rolest);
-                broadcastProperty(players.at(i), "role");
-                i ++;
-            }
-            file.close();
-        }
     }else if(Config.value("FreeAssign", false).toBool()){
         ServerPlayer *owner = getOwner();
         if(owner && owner->getState() == "online"){
@@ -1375,7 +1427,7 @@ void Room::reportDisconnection(){
 
         bool someone_is_online = false;
         foreach(ServerPlayer *player, players){
-            if(player->getState() == "online"){
+            if(player->getState() == "online" || player->getState() == "trust"){
                 someone_is_online = true;
                 break;
             }
@@ -1455,10 +1507,10 @@ void Room::processRequest(const QString &request){
 
         (this->*callback)(player, args.at(1));
 
-//#ifndef QT_NO_DEBUG
+        #ifndef QT_NO_DEBUG
         // output client command only in debug version
         emit room_message(player->reportHeader() + request);
-//#endif
+        #endif
 
     }else
         emit room_message(tr("%1: %2 is not invokable").arg(player->reportHeader()).arg(command));
@@ -1557,6 +1609,7 @@ void Room::signup(ServerPlayer *player, const QString &screen_name, const QStrin
         QString greetingStr = tr("<font color=#EEB422>Player <b>%1</b> joined the game</font>")
                               .arg(Config.ContestMode ? tr("Contestant") : screen_name);
         speakCommand(player, greetingStr.toUtf8().toBase64());
+        player->startNetworkDelayTest();
 
         // introduce all existing player to the new joined
         foreach(ServerPlayer *p, players){
@@ -1752,28 +1805,6 @@ void Room::run(){
             names.removeOne(name);
         }
 
-        startGame();
-    }else if(mode == "custom"){
-        QRegExp rx("(\\w+)\\s+(\\w+)\\s*(\\w+)?");
-        QFile file("etc/Custom.txt");
-        int i = 0;
-        if(file.open(QIODevice::ReadOnly)){
-            QTextStream stream(&file);
-            while(!stream.atEnd()){
-                QString line = stream.readLine();
-                if(!rx.exactMatch(line))
-                    continue;
-                QStringList texts = rx.capturedTexts();
-                QString gen1 = texts.at(2);
-                QString gen2 = texts.at(3);
-
-                setPlayerProperty(players.at(i), "general", gen1);
-                if(!gen2.isEmpty())
-                    setPlayerProperty(players.at(i), "general2", gen2);
-                i ++;
-            }
-            file.close();
-        }
         startGame();
     }else{
         chooseGenerals();
@@ -1975,10 +2006,17 @@ void Room::loseHp(ServerPlayer *victim, int lose){
 }
 
 void Room::loseMaxHp(ServerPlayer *victim, int lose){
+    int hp = victim->getHp();
     victim->setMaxHP(qMax(victim->getMaxHP() - lose, 0));
 
     broadcastProperty(victim, "maxhp");
     broadcastProperty(victim, "hp");
+    LogMessage log;
+    log.type = hp - victim->getHp() == 0 ? "#LoseMaxHp" : "#LostMaxHpPlus";
+    log.from = victim;
+    log.arg = QString::number(lose);
+    log.arg2 = QString::number(hp - victim->getHp());
+    sendLog(log);
 
     if(victim->getMaxHP() == 0)
         killPlayer(victim);
@@ -2008,11 +2046,6 @@ void Room::recover(ServerPlayer *player, const RecoverStruct &recover, bool set_
     if(set_emotion){
         setEmotion(player, "recover");
     }
-}
-
-void Room::playCardEffect(const QString &card_name, bool is_male){
-    QString gender = is_male ? "M" : "F";
-    broadcastInvoke("playCardEffect", QString("%1:%2").arg(card_name).arg(gender));
 }
 
 bool Room::cardEffect(const Card *card, ServerPlayer *from, ServerPlayer *to){
@@ -2207,7 +2240,7 @@ void Room::startGame(){
         }
     }
 
-    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && mode != "custom" && !Config.EnableBasara){
+    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && !Config.EnableBasara){
         foreach(ServerPlayer *player, players)
             broadcastProperty(player, "general2");
     }
@@ -2296,6 +2329,11 @@ void Room::drawCards(ServerPlayer *player, int n){
         int card_id = drawCard();
         card_ids << card_id;
         const Card *card = Sanguosha->getCard(card_id);
+
+        QVariant data = QVariant::fromValue(card_id);
+        if(thread->trigger(CardDrawing, player, data))
+            continue;
+
         player->drawCard(card);
 
         cards_str << QString::number(card_id);
@@ -2303,6 +2341,8 @@ void Room::drawCards(ServerPlayer *player, int n){
         // update place_map & owner_map
         setCardMapping(card_id, player, Player::Hand);
     }
+    if(cards_str.isEmpty())
+        return;
 
     player->invoke("drawCards", cards_str.join("+"));
 
@@ -2539,10 +2579,7 @@ QString CardMoveStruct::toString() const{
 }
 
 void Room::playSkillEffect(const QString &skill_name, int index){
-    QString name = skill_name  ;
-    if(name.endsWith("_p"))
-        name.chop(2);
-    broadcastInvoke("playSkillEffect", QString("%1:%2").arg(name).arg(index));
+    broadcastInvoke("playSkillEffect", QString("%1:%2").arg(skill_name).arg(index));
 }
 
 void Room::broadcastInvoke(const char *method, const QString &arg, ServerPlayer *except){
@@ -2621,12 +2658,17 @@ void Room::setEmotion(ServerPlayer *target, const QString &emotion){
                     QString("%1:%2").arg(target->objectName()).arg(emotion.isEmpty() ? "." : emotion));
 }
 
+#include <QElapsedTimer>
 void Room::activate(ServerPlayer *player, CardUseStruct &card_use){
     AI *ai = player->getAI();
     if(ai){
-        thread->delay(Config.AIDelay);
+        QElapsedTimer timer;
+        timer.start();
         card_use.from = player;
         ai->activate(card_use);
+        qint64 diff = Config.AIDelay - timer.elapsed();
+        if(diff > 0)
+            thread->delay(diff);
     }else{
         broadcastInvoke("activate", player->objectName());
         getResult("useCardCommand", player);
@@ -2656,16 +2698,16 @@ void Room::activate(ServerPlayer *player, CardUseStruct &card_use){
     thread->trigger(ChoiceMade, player, data);
 }
 
-Card::Suit Room::askForSuit(ServerPlayer *player){
+Card::Suit Room::askForSuit(ServerPlayer *player, const QString& reason){
     AI *ai = player->getAI();
     if(ai)
-        return ai->askForSuit();
+        return ai->askForSuit(reason);
 
     player->invoke("askForSuit");
     getResult("chooseSuitCommand", player);
 
     if(result.isEmpty())
-        return askForSuit(player);
+        return askForSuit(player, reason);
 
     Card::Suit suit;
     if(result == ".")
@@ -2973,9 +3015,10 @@ ServerPlayer *Room::askForPlayerChosen(ServerPlayer *player, const QList<ServerP
         return targets.first();
 
     AI *ai = player->getAI();
+    ServerPlayer* choice;
     if(ai)
-        return ai->askForPlayerChosen(targets, reason);
-
+        choice = ai->askForPlayerChosen(targets, reason);
+    else{
     QStringList options;
     foreach(ServerPlayer *target, targets)
         options << target->objectName();
@@ -2989,9 +3032,15 @@ ServerPlayer *Room::askForPlayerChosen(ServerPlayer *player, const QList<ServerP
 
     QString player_name = result;
     if(player_name == ".")
-        return NULL;
+            choice = NULL;
     else
-        return findChild<ServerPlayer *>(player_name);
+            choice = findChild<ServerPlayer *>(player_name);
+    }
+    if(choice){
+        QVariant data=QString("%1:%2:%3").arg("playerChosen").arg(reason).arg(choice->objectName());
+        thread->trigger(ChoiceMade, player, data);
+    }
+    return choice;
 }
 
 void Room::askForGeneralAsync(ServerPlayer *player){
@@ -3038,7 +3087,6 @@ QString Room::askForGeneralPass(ServerPlayer *player, const QString &flag){
         else
             return result;
     }
-
     return default_choice;
 }
 
@@ -3062,6 +3110,7 @@ void Room::makeCheat(const QString &cheat_str){
     QRegExp damage_rx(":(.+)->(\\w+):([NTFRL])(\\d+)");
     QRegExp killing_rx(":KILL:(.+)->(\\w+)");
     QRegExp revive_rx(":REVIVE:(.+)");
+    QRegExp doscript_rx(":SCRIPT:(.+)");
 
     if(damage_rx.exactMatch(cheat_str))
         makeDamage(damage_rx.capturedTexts());
@@ -3069,6 +3118,14 @@ void Room::makeCheat(const QString &cheat_str){
         makeKilling(killing_rx.capturedTexts());
     }else if(revive_rx.exactMatch(cheat_str)){
         makeReviving(revive_rx.capturedTexts());
+    }else if(doscript_rx.exactMatch(cheat_str)){
+        QString script = doscript_rx.capturedTexts().value(1);
+        if(!script.isEmpty()){
+            QByteArray data = QByteArray::fromBase64(script.toAscii());
+            data = qUncompress(data);
+            script = data;
+            doScript(script);
+        }
     }
 }
 
@@ -3190,8 +3247,10 @@ void Room::takeAG(ServerPlayer *player, int card_id){
 
 void Room::provide(const Card *card){
     Q_ASSERT(provided == NULL);
+    Q_ASSERT(!has_provided);
 
     provided = card;
+    has_provided = true;
 }
 
 QList<ServerPlayer *> Room::getLieges(const QString &kingdom, ServerPlayer *lord) const{
@@ -3341,6 +3400,13 @@ void Room::selectRoleCommand(ServerPlayer *player, const QString &arg){
     sem->release();
 }
 
+void Room::networkDelayTestCommand(ServerPlayer *player, const QString &){
+    qint64 delay = player->endNetworkDelayTest();
+    QString reportStr = tr("<font color=#EEB422>The network delay of player <b>%1</b> is %2 milliseconds.</font>")
+            .arg(Config.ContestMode ? tr("Contestant") : player->screenName()).arg(QString::number(delay));
+    speakCommand(player, reportStr.toUtf8().toBase64());
+}
+
 bool Room::isVirtual()
 {
     return _virtual;
@@ -3394,6 +3460,7 @@ void Room::copyFrom(Room* rRoom)
         owner_map.insert(i, rRoom->owner_map.value(i));
 
     provided = rRoom->provided;
+    has_provided = rRoom->has_provided;
 
     tag = QVariantMap(rRoom->tag);
 

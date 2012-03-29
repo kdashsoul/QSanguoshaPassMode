@@ -56,6 +56,8 @@ public:
     void setPlayerFlag(ServerPlayer *player, const QString &flag);
     void setPlayerProperty(ServerPlayer *player, const char *property_name, const QVariant &value);
     void setPlayerMark(ServerPlayer *player, const QString &mark, int value);
+    void setPlayerCardLock(ServerPlayer *player, const QString &name);
+    void setPlayerSkillEnHance(ServerPlayer *player, const QString &enhance_name);
     void useCard(const CardUseStruct &card_use, bool add_history = true);
     void damage(const DamageStruct &data);
     void sendDamageLog(const DamageStruct &data);
@@ -63,7 +65,6 @@ public:
     void loseMaxHp(ServerPlayer *victim, int lose = 1);
     void applyDamage(ServerPlayer *victim, const DamageStruct &damage);
     void recover(ServerPlayer *player, const RecoverStruct &recover, bool set_emotion = false);
-    void playCardEffect(const QString &card_name, bool is_male);
     bool cardEffect(const Card *card, ServerPlayer *from, ServerPlayer *to);
     bool cardEffect(const CardEffectStruct &effect);
     void judge(JudgeStruct &judge_struct);
@@ -86,7 +87,10 @@ public:
     void acquireSkill(ServerPlayer *player, const QString &skill_name, bool open = true , bool trigger_skill = true);
     void adjustSeats();
     void swapPile();
+    QList<int> getDiscardPile();
+    QList<int> getDrawPile();
     int getCardFromPile(const QString &card_name);
+    QList<ServerPlayer *> findPlayersBySkillName(const QString &skill_name, bool include_dead = false) const;
     ServerPlayer *findPlayer(const QString &general_name, bool include_dead = false) const;
     ServerPlayer *findPlayerBySkillName(const QString &skill_name, bool include_dead = false) const;
     void installEquip(ServerPlayer *player, const QString &equip_name);
@@ -133,11 +137,11 @@ public:
 
     // interactive methods
     void activate(ServerPlayer *player, CardUseStruct &card_use);
-    Card::Suit askForSuit(ServerPlayer *player);
+    Card::Suit askForSuit(ServerPlayer *player, const QString &reason);
     QString askForKingdom(ServerPlayer *player);
     bool askForSkillInvoke(ServerPlayer *player, const QString &skill_name, const QVariant &data = QVariant());
-    QString askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices, const QVariant &data = QVariant());
-    QString askForSkillChoice(ServerPlayer *player, const QString &choices);
+    QString askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices);
+    void askForSkillLearn(ServerPlayer *player);
     bool askForDiscard(ServerPlayer *target, const QString &reason, int discard_num, bool optional = false, bool include_equip = false);
     const Card *askForExchange(ServerPlayer *player, const QString &reason, int discard_num);
     bool askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive);
@@ -168,6 +172,7 @@ public:
     void broadcastProperty(ServerPlayer *player, const char *property_name, const QString &value = QString());
     void broadcastInvoke(const char *method, const QString &arg = ".", ServerPlayer *except = NULL);
     void startTest(const QString &to_test);
+    void networkDelayTestCommand(ServerPlayer *player, const QString &);
 
 protected:
     virtual void run();
@@ -199,6 +204,7 @@ private:
     QMap<int, ServerPlayer*> owner_map;
 
     const Card *provided;
+    bool has_provided;
 
     QVariantMap tag;
     const Scenario *scenario;
@@ -223,6 +229,7 @@ private:
     void makeDamage(const QStringList &texts);
     void makeKilling(const QStringList &texts);
     void makeReviving(const QStringList &texts);
+    void doScript(const QString &script);
 
 private slots:
     void reportDisconnection();

@@ -18,7 +18,7 @@ ConfigDialog::ConfigDialog(QWidget *parent) :
     if(!bg_path.startsWith(":"))
         ui->bgPathLineEdit->setText(bg_path);
 
-    ui->bgMusicPathLineEdit->setText(Config.value("BackgroundMusic").toString());
+    ui->bgMusicPathLineEdit->setText(Config.value("BackgroundMusic", "audio/system/background.ogg").toString());
 
     ui->enableEffectCheckBox->setChecked(Config.EnableEffects);
     ui->enableLastWordCheckBox->setChecked(Config.EnableLastWord);
@@ -26,6 +26,7 @@ ConfigDialog::ConfigDialog(QWidget *parent) :
     ui->fitInViewCheckBox->setChecked(Config.FitInView);
     ui->circularViewCheckBox->setChecked(Config.value("CircularView", false).toBool());
     ui->noIndicatorCheckBox->setChecked(Config.value("NoIndicator", false).toBool());
+    ui->minimizecCheckBox->setChecked(Config.value("EnableMinimizeDialog", false).toBool());
 
     ui->bgmVolumeSlider->setValue(100 * Config.BGMVolume);
     ui->effectVolumeSlider->setValue(100 * Config.EffectVolume);
@@ -129,6 +130,9 @@ void ConfigDialog::saveConfig()
     Config.NeverNullifyMyTrick = ui->neverNullifyMyTrickCheckBox->isChecked();
     Config.setValue("NeverNullifyMyTrick", Config.NeverNullifyMyTrick);
 
+    Config.EnableMinimizeDialog = ui->minimizecCheckBox->isChecked();
+    Config.setValue("EnableMinimizeDialog", Config.EnableMinimizeDialog);
+
     Config.setValue("Contest/SMTPServer", ui->smtpServerLineEdit->text());
     Config.setValue("Contest/Sender", ui->senderLineEdit->text());
     Config.setValue("Contest/Password", ui->passwordLineEdit->text());
@@ -142,7 +146,7 @@ void ConfigDialog::on_browseBgMusicButton_clicked()
     QString filename = QFileDialog::getOpenFileName(this,
                                                     tr("Select a background music"),
                                                     location,
-                                                    tr("Audio files (*.wav *.mp3)"));
+                                                    tr("Audio files (*.wav *.mp3 *.ogg)"));
     if(!filename.isEmpty()){
         ui->bgMusicPathLineEdit->setText(filename);
         Config.setValue("BackgroundMusic", filename);
@@ -151,7 +155,7 @@ void ConfigDialog::on_browseBgMusicButton_clicked()
 
 void ConfigDialog::on_resetBgMusicButton_clicked()
 {
-    QString default_music = "audio/system/background.mp3";
+    QString default_music = "audio/system/background.ogg";
     Config.setValue("BackgroundMusic", default_music);
     ui->bgMusicPathLineEdit->setText(default_music);
 }

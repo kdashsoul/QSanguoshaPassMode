@@ -11,6 +11,9 @@
 #include <QCheckBox>
 #include <QSpinBox>
 
+#include <QtDeclarative/QDeclarativeView>
+#include <QtDeclarative/QDeclarativeContext>
+
 namespace Ui {
     class MainWindow;
 }
@@ -51,9 +54,9 @@ private slots:
     void onGameStart();
     void onGameOver(const QString &winner);
 
-private:
-    // role types << "lord" << "loyalist" << "renegade" << "rebel";
-    int lordCount,lordWinCount,loyalistCount,loyalistWinCount,renegadeCount,renegadeWinCount,rebelCount,rebelWinCount;
+private:    
+    QMap<QString, int> roleCount, winCount;
+
     QGroupBox *createGeneralBox();
     QGroupBox *createResultBox();
     void updateResultBox(QString role, int win);
@@ -82,6 +85,19 @@ protected:
     virtual void run();
 };
 
+class AcknowledgementScene : public QGraphicsScene
+{
+    Q_OBJECT
+public:
+    explicit AcknowledgementScene(QObject *parent = 0);
+signals:
+    void go_back();
+private:
+    QDeclarativeView *view;
+    QDeclarativeContext *ctxt;
+    QList<QObject*> tokens,equipped,loaded;
+};
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -101,10 +117,12 @@ private:
 
     void restoreFromConfig();
 
+public slots:
+    void startConnection();
+
 private slots:
     void on_actionAbout_Lua_triggered();
     void on_actionAbout_fmod_triggered();
-    void on_actionSend_lowlevel_command_triggered();
     void on_actionReplay_file_convert_triggered();
     void on_actionAI_Melee_triggered();
     void on_actionPackaging_triggered();
@@ -127,12 +145,12 @@ private slots:
     void on_actionExit_triggered();
 
     void checkVersion(const QString &server_version, const QString &server_mod);
-    void startConnection();
     void networkError(const QString &error_msg);
     void enterRoom();
     void gotoScene(QGraphicsScene *scene);
     void updateLoadingProgress(int progress);
     void gotoStartScene();
+    void sendLowLevelCommand();
     void startGameInAnotherInstance();
     void changeBackground();
     void on_actionView_ban_list_triggered();

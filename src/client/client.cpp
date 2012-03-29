@@ -7,6 +7,7 @@
 #include "nativesocket.h"
 #include "recorder.h"
 
+#include <QApplication>
 #include <QCryptographicHash>
 #include <QMessageBox>
 #include <QCheckBox>
@@ -19,6 +20,7 @@
 #include <QTextDocument>
 #include <QTextCursor>
 #include <QScrollArea>
+#include <QFormLayout>
 
 Client *ClientInstance = NULL;
 
@@ -38,6 +40,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["hallEntered"] = &Client::hallEntered;
 
     callbacks["setup"] = &Client::setup;
+    callbacks["networkDelayTest"] = &Client::networkDelayTest;
     callbacks["addPlayer"] = &Client::addPlayer;
     callbacks["removePlayer"] = &Client::removePlayer;
     callbacks["startInXs"] = &Client::startInXs;
@@ -52,6 +55,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["revivePlayer"] = &Client::revivePlayer;
     callbacks["showCard"] = &Client::showCard;
     callbacks["setMark"] = &Client::setMark;
+    callbacks["doFilter"] = &Client::doFilter;
     callbacks["log"] = &Client::log;
     callbacks["speak"] = &Client::speak;
     callbacks["acquireSkill"] = &Client::acquireSkill;
@@ -67,7 +71,9 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["setFixedDistance"] = &Client::setFixedDistance;
     callbacks["transfigure"] = &Client::transfigure;
     callbacks["jilei"] = &Client::jilei;
+    callbacks["cardLock"] = &Client::cardLock;
     callbacks["pile"] = &Client::pile;
+    callbacks["enhanceSkill"] = &Client::enhanceSkill;
 
     callbacks["updateStateItem"] = &Client::updateStateItem;
 
@@ -98,7 +104,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["askForUseCard"] = &Client::askForUseCard;
     callbacks["askForSkillInvoke"] = &Client::askForSkillInvoke;
     callbacks["askForChoice"] = &Client::askForChoice;
-    callbacks["askForSkillChoice"] = &Client::askForSkillChoice;
+    callbacks["askForSkillLearn"] = &Client::askForSkillLearn;
     callbacks["askForNullification"] = &Client::askForNullification;
     callbacks["askForCardShow"] = &Client::askForCardShow;
     callbacks["askForPindian"] = &Client::askForPindian;
@@ -178,6 +184,10 @@ void Client::signup(){
         }
         request(signup_str);
     }
+}
+
+void Client::networkDelayTest(const QString &){
+    request("networkDelayTest .");
 }
 
 void Client::request(const QString &message){
@@ -360,6 +370,11 @@ void Client::requestCard(int card_id){
     request(QString("useCard @CheatCard=%1->.").arg(card_id));
 }
 
+void Client::changeGeneral(QString name){
+    Self->tag["GeneralName"] = name;
+    request(QString("useCard @ChangeCard=.->."));
+}
+
 void Client::addRobot(){
     request("addRobot .");
 }
@@ -516,7 +531,7 @@ void Client::startGame(const QString &){
 }
 
 void Client::hpChange(const QString &change_str){
-    QRegExp rx("(.+):(-?\\d+)([FT]*)");
+    QRegExp rx("(.+):(-?\\d+)([FTL]*)");
 
     if(!rx.exactMatch(change_str))
         return;
@@ -534,11 +549,11 @@ void Client::hpChange(const QString &change_str){
     else
         nature = DamageStruct::Normal;
 
-    emit hp_changed(who, delta, nature);
+    emit hp_changed(who, delta, nature, nature_str == "L");
 }
 
 void Client::setStatus(Status status){
-    if(this->status != status){
+    if(this->status != status||status == NotActive){
         this->status = status;
         emit status_changed(status);
     }
@@ -550,6 +565,14 @@ Client::Status Client::getStatus() const{
 
 void Client::jilei(const QString &jilei_str){
     Self->jilei(jilei_str);
+}
+
+void Client::cardLock(const QString &card_str){
+    Self->setCardLocked(card_str);
+}
+
+void Client::enhanceSkill(const QString &enhance_name){
+    Self->enhanceSkill(enhance_name);
 }
 
 void Client::judgeResult(const QString &result_str){
@@ -648,7 +671,7 @@ void Client::askForCardOrUseCard(const QString &request_str){
         const Skill *skill = Sanguosha->getSkill(skill_name);
         if(skill){
             QString text = prompt_doc->toHtml();
-            text.append(tr("<br/><br/> <font color=lawngreen><b>Notice</b>: %1</font><br/>").arg(skill->getDescription()));
+            text.append(tr("<br/> <b>Notice</b>: %1<br/>").arg(skill->getDescription()));
             prompt_doc->setHtml(text);
         }
     }
@@ -684,7 +707,7 @@ void Client::askForSkillInvoke(const QString &invoke_str){
 
     const Skill *skill = Sanguosha->getSkill(skill_name);
     if(skill){
-        text.append(tr("<br/><br/> <font color=lawngreen><b>Notice</b>: %1</font><br/>").arg(skill->getDescription()));
+        text.append(tr("<br/> <b>Notice</b>: %1<br/>").arg(skill->getDescription()));
     }
 
     prompt_doc->setHtml(text);
@@ -740,59 +763,78 @@ void Client::askForChoice(const QString &ask_str){
     setStatus(ExecDialog);
 }
 
-void Client::askForSkillChoice(const QString &skills_str){
-    QRegExp rx("(.+)");
-
-    if(!rx.exactMatch(skills_str))
-        return;
-
-    QStringList words = rx.capturedTexts();
-    QStringList skill_infos = words.at(1).split("+");
-
+void Client::askForSkillLearn(const QString &skills_str){
     QDialog *dialog = new QDialog;
-    dialog->setFixedSize(400,400);
-    dialog->setWindowTitle(tr("Study skill:"));
+    dialog->setFixedSize(400,470);
+    dialog->setWindowTitle(tr("Learn skills:"));
+    dialog->setObjectName("skill_learn");
 
-    QHBoxLayout *layout = new QHBoxLayout;
+    static QStringList tab_names ;
+    if(tab_names.isEmpty())
+        tab_names << "skill_main" << "skill_feature" << "skill_common" ;
+
+    QStringList typed_skills = skills_str.split("|") ;
+
+    QVBoxLayout *layout = new QVBoxLayout;
     QTabWidget *tab_widget = new QTabWidget;
 
+    QLabel *sp_label = new QLabel ;
+    int sp = Self->getMark("@exp") ;
+    sp_label->setObjectName("sp_label");
+    sp_label->setText(tr("Your sp: %1").arg(sp));
 
-    QVBoxLayout *vLayout = new QVBoxLayout ;
+    layout->addWidget(sp_label);
 
-    QWidget *main_tab = new QWidget;
-    main_tab->setLayout(vLayout);
+    for(int i = 0 ; i < typed_skills.length() ; i++){
+        QString typed_skill = typed_skills.at(i) ;
+        QScrollArea* scroll = new QScrollArea();
+        QWidget *tab = new QWidget;
+        QFormLayout *vLayout = new QFormLayout ;
+        tab->setLayout(vLayout);
+        scroll->setWidget(tab);
+        scroll->setWidgetResizable(true);
+        QStringList skill_infos = typed_skill.split("+");
+        foreach(QString skill_info , skill_infos){
+            QCommandLinkButton *button = new QCommandLinkButton;
 
-    QWidget *feature_tab = new QWidget;
-    feature_tab->setLayout(vLayout);
+            QStringList skill_info_array = skill_info.split(":") ;
+            QString skill_name = skill_info_array.at(0) ;
+            QString skill_value = skill_info_array.at(1) ;
+            QString skill_text , skill_desc ;
+            button->setObjectName(skill_name);
+            if(i == 0){
+                QStringList skill_name_array =  skill_name.split("_e") ;
+                skill_text = Sanguosha->translate(skill_name_array[0]) + Sanguosha->translate("enhance") + skill_name_array[1]  ;
+                skill_desc = Sanguosha->translate(":" + skill_name) ;
+                if(Self->isSkillEnhance(skill_name)){
+                    button->setStyleSheet("color:green");
+                    button->setDisabled(true);
+                }else if(sp < skill_value.toInt()){
+                    button->setDisabled(true);
+                }
+            }else{
+                const Skill *skill = Sanguosha->getSkill(skill_name) ;
+                skill_text = skill->getText(false) ;
+                skill_desc = skill->getDescription() ;
+                if(Self->hasSkill(skill_name)){
+                    button->setStyleSheet("color:green");
+                    button->setDisabled(true);
+                }
+            }
 
-    QWidget *common_tab = new QWidget;
-    QScrollArea* scroll = new QScrollArea();
-    common_tab->setLayout(vLayout);
-    scroll->setWidget(common_tab);
-    scroll->setWidgetResizable(true);
+            button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
+            button->setProperty("skill_value",skill_value.toInt());
+            button->setToolTip(skill_desc);
+            button->setFont(Config.TinyFont);
 
-    foreach(QString skill_info , skill_infos){
-        QCommandLinkButton *button = new QCommandLinkButton;
-        QStringList skill_info_array = skill_info.split(":") ;
-        QString skill_name = skill_info_array.at(0) ;
-        QString skill_value = skill_info_array.at(1) ;
+            connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
+            connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
 
-        const Skill *skill = Sanguosha->getSkill(skill_name) ;
 
-        button->setObjectName(skill->objectName());
-        button->setText(QString("%1 : %2").arg(skill->getText(false)).arg(skill_value));
-        button->setToolTip(skill->getDescription());
-        button->setFont(Config.TinyFont);
-
-        connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-        connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
-
-        vLayout->addWidget(button);
+            vLayout->addWidget(button);
+        }
+        tab_widget->addTab(scroll,tab_names.at(i)) ;
     }
-
-    tab_widget->addTab(main_tab,"skill_main") ;
-    tab_widget->addTab(feature_tab,"skill_feature") ;
-    tab_widget->addTab(scroll,"skill_common") ;
 
     layout->addWidget(tab_widget);
 
@@ -804,6 +846,8 @@ void Client::askForSkillChoice(const QString &skills_str){
     Sanguosha->playAudio("pop-up");
     setStatus(ExecDialog);
 }
+
+
 
 
 void Client::playSkillEffect(const QString &play_str){
@@ -833,7 +877,7 @@ void Client::askForNullification(const QString &ask_str){
         source = getPlayer(source_name);
 
     if(Config.NeverNullifyMyTrick && source == Self){
-        if(trick_card->inherits("SingleTargetTrick")){
+        if(trick_card->inherits("SingleTargetTrick") || trick_card->objectName() == "iron_chain"){
             responseCard(NULL);
             return;
         }
@@ -1142,6 +1186,12 @@ void Client::killPlayer(const QString &player_name){
                 last_word = Sanguosha->translate(("~") +  origin_generals.at(1));
         }
 
+        if(last_word.startsWith("~") && general_name.endsWith("f")){
+            QString origin_general = general_name;
+            origin_general.chop(1);
+            if(Sanguosha->getGeneral(origin_general))
+                last_word = Sanguosha->translate(("~") + origin_general);
+        }
         skill_title = tr("%1[dead]").arg(Sanguosha->translate(general_name));
         skill_line = last_word;
 
@@ -1261,6 +1311,10 @@ void Client::setMark(const QString &mark_str){
     player->setMark(mark, value);
 }
 
+void Client::doFilter(const QString &){
+    emit do_filter();
+}
+
 void Client::chooseSuit(){
     request("chooseSuit " + sender()->objectName());
 
@@ -1367,6 +1421,7 @@ void Client::clearTurnTag(){
     switch(Self->getPhase()){
     case Player::Start:{
             Sanguosha->playAudio("your-turn");
+            QApplication::alert(QApplication::focusWidget());
             break;
     }
 
