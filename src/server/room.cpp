@@ -592,24 +592,29 @@ QString Room::askForChoice(ServerPlayer *player, const QString &skill_name, cons
     return answer;
 }
 
-void Room::askForSkillLearn(ServerPlayer *player){
-    QString skills = QString("rende_e1:15+rende_e2:10+rende_e3:50+jijiang_e1:15+jijiang_e2:10")
-            + "|wanghou_p:20+xiaoxiong_p:30+kuanhou_p:30+qiangyun_p:20"
-            + "|duanyan_p:25+fenjin_p:30" ;
+void Room::askForSkillLearn(ServerPlayer *player,const QString &tab_index){
     AI *ai = player->getAI();
     if(ai)
         return ;
     else{
         result = "" ;
-        player->invoke("askForSkillLearn", skills);
+        player->invoke("askForSkillLearn", tab_index);
         getResult("selectSkillsCommand", player);
         if(result != "."){
-            player->getRoom()->setPlayerMark(player,"@exp",player->getMark("@exp") - 20);
-            if(result.indexOf("_e") > 0)
+            player->getRoom()->setPlayerMark(player,"@exp",player->getMark("@exp") - PassMode::getSkillMap().value(result , 0));
+            QString tindex ;
+            if(result.indexOf("_e") > 0){
                 setPlayerSkillEnHance(player,result);
-            else
+                tindex = "0" ;
+            }else{
+                if(PassMode::getGeneralMap().value("common").contains(result)){
+                    tindex = "2" ;
+                }else{
+                    tindex = "1" ;
+                }
                 acquireSkill(player,result);
-            askForSkillLearn(player);
+            }
+            askForSkillLearn(player, tindex);
         }
     }
 }

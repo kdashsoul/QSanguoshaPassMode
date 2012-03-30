@@ -213,6 +213,7 @@ public:
     bool isSkillEnhance(const QString skill_name,const int index) const;
     bool isSkillEnhance(const QString &enhance_name) const;
     void enhanceSkill(const QString &enhance_name);
+    QSet<QString> getSkillEnhance() const;
 protected:
     QMap<QString, int> marks;
     QMap<QString, QList<int> > piles;

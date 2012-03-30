@@ -6,6 +6,7 @@
 #include "choosegeneraldialog.h"
 #include "nativesocket.h"
 #include "recorder.h"
+#include "pass-mode-scenario.h"
 
 #include <QApplication>
 #include <QCryptographicHash>
@@ -763,17 +764,15 @@ void Client::askForChoice(const QString &ask_str){
     setStatus(ExecDialog);
 }
 
-void Client::askForSkillLearn(const QString &skills_str){
+void Client::askForSkillLearn(const QString &tab_index){
     QDialog *dialog = new QDialog;
     dialog->setFixedSize(400,470);
     dialog->setWindowTitle(tr("Learn skills:"));
-    dialog->setObjectName("skill_learn");
 
+    int tindex = tab_index.toInt() ;
     static QStringList tab_names ;
     if(tab_names.isEmpty())
         tab_names << "skill_main" << "skill_feature" << "skill_common" ;
-
-    QStringList typed_skills = skills_str.split("|") ;
 
     QVBoxLayout *layout = new QVBoxLayout;
     QTabWidget *tab_widget = new QTabWidget;
@@ -785,53 +784,65 @@ void Client::askForSkillLearn(const QString &skills_str){
 
     layout->addWidget(sp_label);
 
-    for(int i = 0 ; i < typed_skills.length() ; i++){
-        QString typed_skill = typed_skills.at(i) ;
+    for(int i = 0 ; i < tab_names.length() ; i++){
         QScrollArea* scroll = new QScrollArea();
         QWidget *tab = new QWidget;
-        QFormLayout *vLayout = new QFormLayout ;
-        tab->setLayout(vLayout);
+        QFormLayout *formLayout = new QFormLayout ;
+        tab->setLayout(formLayout);
         scroll->setWidget(tab);
         scroll->setWidgetResizable(true);
-        QStringList skill_infos = typed_skill.split("+");
-        foreach(QString skill_info , skill_infos){
-            QCommandLinkButton *button = new QCommandLinkButton;
 
-            QStringList skill_info_array = skill_info.split(":") ;
-            QString skill_name = skill_info_array.at(0) ;
-            QString skill_value = skill_info_array.at(1) ;
-            QString skill_text , skill_desc ;
-            button->setObjectName(skill_name);
-            if(i == 0){
-                QStringList skill_name_array =  skill_name.split("_e") ;
-                skill_text = Sanguosha->translate(skill_name_array[0]) + Sanguosha->translate("enhance") + skill_name_array[1]  ;
-                skill_desc = Sanguosha->translate(":" + skill_name) ;
-                if(Self->isSkillEnhance(skill_name)){
-                    button->setStyleSheet("color:green");
-                    button->setDisabled(true);
-                }else if(sp < skill_value.toInt()){
-                    button->setDisabled(true);
-                }
-            }else{
-                const Skill *skill = Sanguosha->getSkill(skill_name) ;
-                skill_text = skill->getText(false) ;
-                skill_desc = skill->getDescription() ;
-                if(Self->hasSkill(skill_name)){
-                    button->setStyleSheet("color:green");
-                    button->setDisabled(true);
+        QString skill_name , skill_text , skill_desc ;
+        int  skill_value ;
+        if(i == 0){
+            foreach(const Skill *skill ,Self->getGeneral()->getVisibleSkills()){
+                for(int j = 1 ; j <= PassMode::getSkillMap().value(skill->objectName(),0); j++){
+                    QCommandLinkButton *button = new QCommandLinkButton;
+                    skill_name = QString("%1_e%2").arg(skill->objectName()).arg(j);
+                    button->setObjectName(skill_name);
+                    skill_text = Sanguosha->translate(skill->objectName()) + Sanguosha->translate("enhance") + QString::number(j) ;
+                    skill_value = PassMode::getSkillMap().value(skill_name);
+                    skill_desc = Sanguosha->translate(":"+skill_name) ;
+                    if(Self->isSkillEnhance(skill_name)){
+                        button->setStyleSheet("color:green");
+                        button->setDisabled(true);
+                    }
+                    button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
+                    button->setToolTip(skill_desc);
+                    button->setFont(Config.TinyFont);
+                    connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
+                    connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
+
+                    formLayout->addWidget(button);
                 }
             }
+        }else{
+            QString general_name ;
+            if(i == 1){
+                general_name = Self->getGeneral()->objectName() ;
+            }else if(i == 2){
+                general_name = "common" ;
+            }
+            if(PassMode::getGeneralMap().keys().contains(general_name)){
+                foreach(QString skill_name , PassMode::getGeneralMap().value(general_name)){
+                    QCommandLinkButton *button = new QCommandLinkButton;
+                    button->setObjectName(skill_name);
+                    skill_text = Sanguosha->translate(skill_name) ;
+                    skill_value = PassMode::getSkillMap().value(skill_name);
+                    skill_desc = Sanguosha->translate(":"+skill_name) ;
+                    if(Self->hasSkill(skill_name)){
+                        button->setStyleSheet("color:green");
+                        button->setDisabled(true);
+                    }
+                    button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
+                    button->setToolTip(skill_desc);
+                    button->setFont(Config.TinyFont);
+                    connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
+                    connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
 
-            button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
-            button->setProperty("skill_value",skill_value.toInt());
-            button->setToolTip(skill_desc);
-            button->setFont(Config.TinyFont);
-
-            connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-            connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
-
-
-            vLayout->addWidget(button);
+                    formLayout->addWidget(button);
+                }
+            }
         }
         tab_widget->addTab(scroll,tab_names.at(i)) ;
     }
@@ -841,6 +852,7 @@ void Client::askForSkillLearn(const QString &skills_str){
     dialog->setObjectName(".");
     connect(dialog, SIGNAL(rejected()), this, SLOT(selectChoice()));
     dialog->setLayout(layout);
+    tab_widget->setCurrentIndex(tindex);
 
     ask_dialog = dialog;
     Sanguosha->playAudio("pop-up");

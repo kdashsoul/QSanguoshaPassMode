@@ -880,3 +880,7 @@ bool Player::isSkillEnhance(const QString &enhance_name) const{
 void Player::enhanceSkill(const QString &enhance_name){
     skills_enhance << enhance_name ;
 }
+
+QSet<QString> Player::getSkillEnhance() const{
+    return skills_enhance;
+}

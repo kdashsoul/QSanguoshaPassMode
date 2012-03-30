@@ -31,31 +31,14 @@ public:
 struct SaveDataStruct{
     SaveDataStruct();
 
-    int size;
+    QStringList roomTags;
+    QStringList playerMarks;
 
-    int stage;
-    int exp;
-    int lord_maxhp;
-
-    int times;
-
-    QString lord;
-    QString skills;
-    QString reward_list;
+    QString general_name;
+    QStringList skills;
+    QStringList skills_enhance;
 
     bool read_success;
-
-    bool canRead() const;
-    bool checkDataFormat() const;
-
-    enum WrongType{
-        Struct_Right,
-        Ex_HP,
-        Ex_Skills,
-        Ex_Exp
-    };
-private:
-    static int default_size;
 };
 
 class PassMode: public GameRule{
@@ -66,37 +49,37 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const;
 
+    QStringList getNeedSaveRoomTagName() const;
+    QStringList getNeedSavePlayerMarkName() const;
+
     void stageStartDraw(Room *room, ServerPlayer *player = NULL) const;
     void initGameStart(ServerPlayer *player) const;
     void initNextStageStart(ServerPlayer *player) const;
-    void setLoadedStageInfo(Room *room) const;
-    void setNextStageInfo(Room *room, int stage, bool save_loaded = false) const;
-    bool goToNextStage(ServerPlayer *player, int stage) const;
+    void setNextStageInfo(Room *room,bool save_loaded = false) const;
+    bool goToNextStage(ServerPlayer *player) const;
 
-    void setTimesDifficult(Room *room) const;
     bool resetPlayerSkills(SaveDataStruct *savedata) const;
 
-    void getLearnSkillInfo(ServerPlayer *lord, QString &skills, int &min_exp) const;
-
     bool askForLoadData(Room *room) const;
-    bool askForSaveData(Room *room, int told_stage) const;
+    bool askForSaveData(Room *room) const;
     bool askForSaveData(SaveDataStruct *save) const;
     SaveDataStruct *askForReadData() const;
-    SaveDataStruct *catchSaveInfo(Room *room, int stage = -1) const;
-    SaveDataStruct::WrongType checkDataValid(SaveDataStruct *savedata) const;
+    SaveDataStruct *catchSaveInfo(Room *room) const;
 
+    static QMap<QString, int> getExpMap();
+    static QStringList getStageList() ;
+    static QMap<QString, int> getSkillMap();
+    static QMap<QString, QStringList> getGeneralMap();
     static const QString default_hero;
+
 private:
-    QList<QString> enemy_list;
-    QMap<QString, int> exp_map;
-    QMap<QString, int> skill_map;
-
-    QMap<QString, QVariant> spec_general;
-
     QMap<QString, QString> hidden_reward;
 
     static const QString version;
     static const QString savePath;
+
+    void rewardAndPunish(ServerPlayer *killer, ServerPlayer *victim) const;
+
     mutable jmp_buf env;
 };
 

@@ -261,11 +261,17 @@ public:
 class Dangxian: public TriggerSkill{
 public:
     Dangxian():TriggerSkill("dangxian"){
-        events << TurnStart;
+        events << PhaseChange;
         frequency = Compulsory;
     }
 
+    virtual int getPriority() const{
+        return 3;
+    }
+
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
+        if(player->getPhase() != Player::Start)
+            return false;
         Room *room = player->getRoom();
 
         LogMessage log;
@@ -274,12 +280,13 @@ public:
         log.arg = objectName();
         room->sendLog(log);
 
-        QList<Player::Phase> phases;
-        phases << Player::Play;
+        QList<Player::Phase> phases = player->getPhases();
+        phases.prepend(Player::Play) ;
         player->play(phases);
         return false;
     }
 };
+
 
 class Fuli: public TriggerSkill{
 public:
@@ -465,7 +472,7 @@ public:
 
         if(event == Dying){
             DyingStruct dying = data.value<DyingStruct>();
-            if(!handang || !dying.savers.contains(handang) || !room->askForSkillInvoke(handang, objectName(), data))
+            if(!handang || !dying.savers.contains(handang) || handang->isNude() || !room->askForSkillInvoke(handang, objectName(), data))
                 return false;
 
             const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + dying.who->objectName(), data);
@@ -626,8 +633,8 @@ public:
                 player->tag["Invokelihuo"] = true;
         }
         else if(player->tag.value("Invokelihuo", false).toBool()){
-                    room->loseHp(player, 1);
                     player->tag["Invokelihuo"] = false;
+                    room->loseHp(player, 1);
                 }
         return false;
     }
@@ -686,6 +693,8 @@ public:
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         ServerPlayer *chengpu = room->findPlayerBySkillName(objectName());
+        if(!chengpu)
+            return false;
         if(event == PhaseChange &&
                 chengpu->getPhase() == Player::Finish &&
                 !chengpu->isKongcheng() &&

@@ -1,0 +1,3 @@
+common tipo_p
+
+liubei wanghou_p|xiaoxiong_p|kuanhou_p|qiangyun_p
