@@ -279,8 +279,7 @@ end
 sgs.ai_skill_cardask["slash-jink"] = function(self, data, pattern, target)
 	if sgs.ai_skill_cardask.nullfilter(self, data, pattern, target) and not target:hasSkill("qianxi") then return "." end
 	--if not target then self.room:writeToConsole(debug.traceback()) end
-	local currentplayer = self.room:getCurrent()
-	if currentplayer:objectName() == self.player:objectName() then return "." end
+	if target:objectName() == self.player:objectName() then return "." end
 	if not target then return end
 	if self:isFriend(target) then
 		if target:hasSkill("rende") and self.player:hasSkill("jieming") then return "." end
@@ -1144,7 +1143,7 @@ function SmartAI:useCardIndulgence(card, use)
 	
 	local enemies = self:exclude(self.enemies, card)
 	for _, enemy in ipairs(enemies) do
-		if self:hasSkills("lijian|fanjian",enemy) and not enemy:containsTrick("indulgence") and not enemy:isKongcheng() and enemy:faceUp() then
+		if self:hasSkills("lijian|fanjian",enemy) and not enemy:containsTrick("indulgence") and not enemy:isKongcheng() and enemy:faceUp() and self:objectiveLevel(enemy) > 3 then
 			use.card = card
 			if use.to then use.to:append(enemy) end
 			return
@@ -1152,7 +1151,7 @@ function SmartAI:useCardIndulgence(card, use)
 	end
 	
 	for _, enemy in ipairs(enemies) do
-		if not enemy:containsTrick("indulgence") and not enemy:hasSkill("keji") and enemy:faceUp() then
+		if not enemy:containsTrick("indulgence") and not enemy:hasSkill("keji") and enemy:faceUp() and self:objectiveLevel(enemy) > 3 then
 			use.card = card
 			if use.to then use.to:append(enemy) end
 			return

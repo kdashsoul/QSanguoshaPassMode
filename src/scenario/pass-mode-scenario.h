@@ -3,6 +3,7 @@
 
 #include "scenario.h"
 #include "gamerule.h"
+#include "client.h"
 #include "engine.h"
 
 class PassModeScenario : public Scenario{
@@ -41,6 +42,15 @@ struct SaveDataStruct{
     bool read_success;
 };
 
+struct SkillAttrStruct{
+    SkillAttrStruct();
+    QList<int> values ;
+    int limit_times ;
+
+    int getLimitTimes() const ;
+    int getValue(const int level = 1) const;
+};
+
 class PassMode: public GameRule{
     Q_OBJECT
 
@@ -56,9 +66,9 @@ public:
     void initGameStart(ServerPlayer *player) const;
     void initNextStageStart(ServerPlayer *player) const;
     void setNextStageInfo(Room *room,bool save_loaded = false) const;
-    bool goToNextStage(ServerPlayer *player) const;
+    bool goToNextStage(Room *room) const;
 
-    bool resetPlayerSkills(SaveDataStruct *savedata) const;
+    void resetPlayer(ServerPlayer *player) const;
 
     bool askForLoadData(Room *room) const;
     bool askForSaveData(Room *room) const;
@@ -68,17 +78,14 @@ public:
 
     static QMap<QString, int> getExpMap();
     static QStringList getStageList() ;
-    static QMap<QString, int> getSkillMap();
+    static QMap<QString, SkillAttrStruct *> getSkillMap();
     static QMap<QString, QStringList> getGeneralMap();
-    static const QString default_hero;
 
 private:
     QMap<QString, QString> hidden_reward;
 
     static const QString version;
     static const QString savePath;
-
-    void rewardAndPunish(ServerPlayer *killer, ServerPlayer *victim) const;
 
     mutable jmp_buf env;
 };

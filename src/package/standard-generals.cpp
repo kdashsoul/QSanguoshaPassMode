@@ -419,11 +419,10 @@ public:
     }
 
     virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
-        if(ServerInfo.GameMode == "04_1v3"
-           && selected.length() + Self->getMark("rende") >= 2)
+        if(ServerInfo.GameMode == "04_1v3" && selected.length() + Self->getMark("rende") >= 2)
            return false;
         else
-            return !to_select->isEquipped();
+            return Self->isSkillEnhance("rende",2) || !to_select->isEquipped();
     }
 
     virtual const Card *viewAs(const QList<CardItem *> &cards) const{

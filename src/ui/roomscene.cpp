@@ -12,6 +12,7 @@
 #include "indicatoritem.h"
 #include "pixmapanimation.h"
 #include "audio.h"
+#include "pass-mode-scenario.h"
 
 #include <QPropertyAnimation>
 #include <QParallelAnimationGroup>
@@ -1416,7 +1417,12 @@ void RoomScene::addSkillButton(const Skill *skill, bool from_left){
     }
 
     button->setObjectName(skill->objectName());
-    button->setText(skill->getText());
+    int limit_times = PassMode::getSkillMap().value(skill->objectName(),new SkillAttrStruct)->getLimitTimes() ;
+    if(limit_times == 0){
+        button->setText(skill->getText());
+    }else{
+        button->setText(QString("%1 (%2)").arg(skill->getText()).arg(limit_times));
+    }
     button->setToolTip(skill->getDescription());
     button->setDisabled(skill->getFrequency() == Skill::Compulsory);
     //button->setStyleSheet(Config.value("style/button").toString());
@@ -2151,9 +2157,13 @@ void RoomScene::updateStatus(Client::Status status){
 
     foreach(QAbstractButton *button, skill_buttons){
         const ViewAsSkill *skill = button2skill.value(button, NULL);
-        if(skill)
+        if(skill){
             button->setEnabled(skill->isAvailable());
-        else
+            int limit_times = PassMode::getSkillMap().value(skill->objectName(),new SkillAttrStruct)->getLimitTimes() ;
+            if(limit_times > 0){
+                button->setText(QString("%1(%2)").arg(skill->getText()).arg(limit_times - Self->getCountInfo(skill->objectName())));
+            }
+        }else
             button->setEnabled(true);
     }
 
@@ -2256,7 +2266,7 @@ void RoomScene::updatePileButton(const QString &pile_name){
     if(pile.isEmpty())
         button->setText(Sanguosha->translate(pile_name));
     else
-        button->setText(QString("%1 (%2)").arg(Sanguosha->translate(pile_name)).arg(pile.length()));
+        button->setText(QString("%1(%2)").arg(Sanguosha->translate(pile_name)).arg(pile.length()));
 
     menu->clear();
 

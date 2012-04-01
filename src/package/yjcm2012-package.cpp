@@ -102,7 +102,6 @@ const Card *QiceCard::validate(const CardUseStruct *card_use) const{
     Room *room = card_use->from->getRoom();
     room->playSkillEffect("qice");
     Card *use_card = Sanguosha->cloneCard(user_string, Card::NoSuit, 0);
-    use_card->addSubcard(this);
     use_card->setSkillName("qice");
     foreach(int id, this->getSubcards())
         use_card->addSubcard(id);
@@ -258,31 +257,25 @@ public:
     }
 };
 
-class Dangxian: public TriggerSkill{
+class Dangxian: public PhaseChangeSkill{
 public:
-    Dangxian():TriggerSkill("dangxian"){
-        events << PhaseChange;
+    Dangxian():PhaseChangeSkill("dangxian"){
         frequency = Compulsory;
     }
 
-    virtual int getPriority() const{
-        return 3;
-    }
+    virtual bool onPhaseChange(ServerPlayer *liaohua) const{
+        Room *room = liaohua->getRoom();
+        if(liaohua->getPhase() == Player::RoundStart){
+            LogMessage log;
+            log.type = "#TriggerSkill";
+            log.from = liaohua;
+            log.arg = objectName();
+            room->sendLog(log);
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &) const{
-        if(player->getPhase() != Player::Start)
-            return false;
-        Room *room = player->getRoom();
-
-        LogMessage log;
-        log.type = "#TriggerSkill";
-        log.from = player;
-        log.arg = objectName();
-        room->sendLog(log);
-
-        QList<Player::Phase> phases = player->getPhases();
-        phases.prepend(Player::Play) ;
-        player->play(phases);
+            QList<Player::Phase> phases = liaohua->getPhases();
+            phases.prepend(Player::Play) ;
+            liaohua->play(phases);
+        }
         return false;
     }
 };

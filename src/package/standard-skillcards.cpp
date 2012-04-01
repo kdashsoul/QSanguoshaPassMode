@@ -257,6 +257,7 @@ void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer
     const Card *slash = NULL;
 
     if(liubei->isSkillEnhance("jijiang",1)){
+        room->addPlayerCountInfo(liubei,"jijiang");
         Slash *slash = new Slash(Card::NoSuit,0) ;
         CardUseStruct card_use;
         card_use.card = slash;

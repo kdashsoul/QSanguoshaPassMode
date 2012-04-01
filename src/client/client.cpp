@@ -75,6 +75,8 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["cardLock"] = &Client::cardLock;
     callbacks["pile"] = &Client::pile;
     callbacks["enhanceSkill"] = &Client::enhanceSkill;
+    callbacks["setAbility"] = &Client::setAbility;
+    callbacks["addCountInfo"] = &Client::addCountInfo;
 
     callbacks["updateStateItem"] = &Client::updateStateItem;
 
@@ -88,6 +90,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["drawCards"] = &Client::drawCards;
     callbacks["clearPile"] = &Client::clearPile;
     callbacks["setPileNumber"] = &Client::setPileNumber;
+    callbacks["setStatistics"] = &Client::setStatistics;
 
     // interactive methods
     callbacks["activate"] = &Client::activate;
@@ -576,6 +579,25 @@ void Client::enhanceSkill(const QString &enhance_name){
     Self->enhanceSkill(enhance_name);
 }
 
+void Client::setAbility(const QString &ability_str){
+    QRegExp rx("(\\w+)\\.([\\w-]+)=(\\d+)");
+
+    if(!rx.exactMatch(ability_str))
+        return;
+
+    QStringList texts = rx.capturedTexts();
+    QString who = texts.at(1);
+    QString ability_name = texts.at(2);
+    int level = texts.at(3).toInt();
+
+    ClientPlayer *player = getPlayer(who);
+    player->setAbility(ability_name, level);
+}
+
+void Client::addCountInfo(const QString &name){
+    Self->addCountInfo(name);
+}
+
 void Client::judgeResult(const QString &result_str){
     QStringList texts = result_str.split(":");
     QString who = texts.at(0);
@@ -766,7 +788,7 @@ void Client::askForChoice(const QString &ask_str){
 
 void Client::askForSkillLearn(const QString &tab_index){
     QDialog *dialog = new QDialog;
-    dialog->setFixedSize(400,470);
+    dialog->setFixedSize(400,490);
     dialog->setWindowTitle(tr("Learn skills:"));
 
     int tindex = tab_index.toInt() ;
@@ -796,12 +818,13 @@ void Client::askForSkillLearn(const QString &tab_index){
         int  skill_value ;
         if(i == 0){
             foreach(const Skill *skill ,Self->getGeneral()->getVisibleSkills()){
-                for(int j = 1 ; j <= PassMode::getSkillMap().value(skill->objectName(),0); j++){
+                SkillAttrStruct *skill_attr = PassMode::getSkillMap().value(skill->objectName(),new SkillAttrStruct) ;
+                for(int j = 1 ; j <= skill_attr->values.length() ; j++){
                     QCommandLinkButton *button = new QCommandLinkButton;
                     skill_name = QString("%1_e%2").arg(skill->objectName()).arg(j);
                     button->setObjectName(skill_name);
                     skill_text = Sanguosha->translate(skill->objectName()) + Sanguosha->translate("enhance") + QString::number(j) ;
-                    skill_value = PassMode::getSkillMap().value(skill_name);
+                    skill_value = skill_attr->getValue(j);
                     skill_desc = Sanguosha->translate(":"+skill_name) ;
                     if(Self->isSkillEnhance(skill_name)){
                         button->setStyleSheet("color:green");
@@ -828,18 +851,25 @@ void Client::askForSkillLearn(const QString &tab_index){
                     QCommandLinkButton *button = new QCommandLinkButton;
                     button->setObjectName(skill_name);
                     skill_text = Sanguosha->translate(skill_name) ;
-                    skill_value = PassMode::getSkillMap().value(skill_name);
-                    skill_desc = Sanguosha->translate(":"+skill_name) ;
-                    if(Self->hasSkill(skill_name)){
-                        button->setStyleSheet("color:green");
-                        button->setDisabled(true);
+                    skill_value = PassMode::getSkillMap().value(skill_name)->getValue() ;
+                    if(skill_name.endsWith("_o")){
+                        if(Self->hasAbility(skill_name.remove(QRegExp("_o$")))){
+                            button->setStyleSheet("color:green");
+                            button->setDisabled(true);
+                        }
+                    }else{
+                        skill_desc = Sanguosha->translate(":"+skill_name) ;
+                        button->setToolTip(skill_desc);
+                        if(Self->hasSkill(skill_name)){
+                            button->setStyleSheet("color:green");
+                            button->setDisabled(true);
+                        }
                     }
+
                     button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
-                    button->setToolTip(skill_desc);
                     button->setFont(Config.TinyFont);
                     connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
                     connect(button, SIGNAL(clicked()), this, SLOT(selectChoice()));
-
                     formLayout->addWidget(button);
                 }
             }
@@ -1095,6 +1125,26 @@ void Client::setPileNumber(const QString &pile_str){
     pile_num = pile_str.toInt();
 
     updatePileNum();
+}
+
+void Client::setStatistics(const QString &property_str){
+    QRegExp rx("(\\w+):(\\w+)");
+    if(!rx.exactMatch(property_str))
+        return;
+
+    QStringList texts = rx.capturedTexts();
+    QString property_name = texts.at(1);
+    QString value_str = texts.at(2);
+
+    StatisticsStruct *statistics = Self->getStatistics();
+    bool ok;
+    value_str.toInt(&ok);
+    if(ok)
+        statistics->setStatistics(property_name, value_str.toInt());
+    else
+        statistics->setStatistics(property_name, value_str);
+
+    Self->setStatistics(statistics);
 }
 
 void Client::updatePileNum(){

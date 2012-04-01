@@ -3,6 +3,7 @@
 
 #include "general.h"
 #include "card.h"
+#include "statistics.h"
 
 #include <QObject>
 #include <QTcpSocket>
@@ -50,7 +51,7 @@ class Player : public QObject
     Q_ENUMS(Role)
 
 public:
-    enum Phase {Start, Judge, Draw, Play, Discard, Finish, NotActive};
+    enum Phase {RoundStart, Start, Judge, Draw, Play, Discard, Finish, NotActive};
     enum Place {Hand, Equip, Judging, Special, DiscardedPile, DrawPile};
     enum Role {Lord, Loyalist, Rebel, Renegade};
 
@@ -203,6 +204,8 @@ public:
     bool isLocked(const Card *card) const;
     bool hasCardLock(const QString &card_str) const;
 
+    StatisticsStruct *getStatistics() const;
+    void setStatistics(StatisticsStruct *statistics);
     bool isCaoCao() const;
     void copyFrom(Player* p);
 
@@ -214,6 +217,15 @@ public:
     bool isSkillEnhance(const QString &enhance_name) const;
     void enhanceSkill(const QString &enhance_name);
     QSet<QString> getSkillEnhance() const;
+
+    bool hasAbility(const QString &ability_name,const int level = 1) const;
+    int getAbilityLevel(const QString &ability_name) const;
+    void setAbility(const QString &ability_name, const int level = 1);
+    QHash<QString, int> getAbilities() const;
+
+    void setCountInfo(const QString &name,const int value);
+    void addCountInfo(const QString &name,const int value = 1);
+    int getCountInfo(const QString &name) const;
 protected:
     QMap<QString, int> marks;
     QMap<QString, QList<int> > piles;
@@ -246,6 +258,10 @@ private:
     QSet<QString> jilei_set;
 	QSet<QString> lock_card;
     QSet<QString> skills_enhance;
+    QHash<QString,int> ability_map;
+    QHash<QString,int> count_info;
+	StatisticsStruct *player_statistics;
+
 signals:
     void general_changed();
     void general2_changed();

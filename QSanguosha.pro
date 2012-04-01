@@ -118,6 +118,7 @@ SOURCES += src/main.cpp \
     src/lua/lapi.c \
     src/pass/pass-package.cpp \
     swig/sanguosha_wrap.cxx \
+    src/core/statistics.cpp \
     src/package/package.cpp
 
 HEADERS += src/client/aux-skills.h \
@@ -222,6 +223,7 @@ HEADERS += src/client/aux-skills.h \
     src/lua/lcode.h \
     src/lua/lauxlib.h \
     src/lua/lapi.h \
+    src/core/statistics.h \
     src/pass/pass-package.h
 	
 FORMS += src/dialog/cardoverview.ui \

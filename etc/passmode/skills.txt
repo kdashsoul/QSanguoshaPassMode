@@ -1,7 +1,19 @@
-rende 15|10|50
-jijiang 15|10
+maxhp_o 40
+maxcards_o 25
+slashrange_o 15
+slashnum_o 25
+exp_o 80
+turndraw_o 50
+killdraw_o 10
+startdraw_o 15
 
-wanghou_p 20
+
+rende 15|10|50
+jijiang 15|10:1
+
+wanghou_p 20:5
 xiaoxiong_p 30
 kuanhou_p 30
 qiangyun_p 20
+
+

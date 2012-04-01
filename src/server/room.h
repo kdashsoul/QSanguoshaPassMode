@@ -58,6 +58,9 @@ public:
     void setPlayerMark(ServerPlayer *player, const QString &mark, int value);
     void setPlayerCardLock(ServerPlayer *player, const QString &name);
     void setPlayerSkillEnHance(ServerPlayer *player, const QString &enhance_name);
+    void setPlayerAbility(ServerPlayer *player, const QString &ablity_name,const int level=1);
+    void addPlayerCountInfo(ServerPlayer *player, const QString &name);
+	void setPlayerStatistics(ServerPlayer *player, const QString &property_name, const QVariant &value);
     void useCard(const CardUseStruct &card_use, bool add_history = true);
     void damage(const DamageStruct &data);
     void sendDamageLog(const DamageStruct &data);
@@ -155,7 +158,7 @@ public:
     const Card *askForPindian(ServerPlayer *player, ServerPlayer *from, ServerPlayer *to, const QString &reason);
     ServerPlayer *askForPlayerChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets, const QString &reason);
     QString askForGeneral(ServerPlayer *player, const QStringList &generals, QString default_choice = QString());
-    QString askForGeneralPass(ServerPlayer *player, const QString &flag="");
+    QString askForGeneralPass(ServerPlayer *player, const QString &flag="standard");
     void askForGeneralAsync(ServerPlayer *player);
     const Card *askForSinglePeach(ServerPlayer *player, ServerPlayer *dying);
 

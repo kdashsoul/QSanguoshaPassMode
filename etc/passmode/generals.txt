@@ -1,3 +1,2 @@
-common tipo_p
-
+common maxhp_o|maxcards_o|slashrange_o|slashnum_o|exp_o|turndraw_o|killdraw_o|startdraw_o
 liubei wanghou_p|xiaoxiong_p|kuanhou_p|qiangyun_p

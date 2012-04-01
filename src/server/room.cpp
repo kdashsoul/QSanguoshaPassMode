@@ -601,19 +601,23 @@ void Room::askForSkillLearn(ServerPlayer *player,const QString &tab_index){
         player->invoke("askForSkillLearn", tab_index);
         getResult("selectSkillsCommand", player);
         if(result != "."){
-            player->getRoom()->setPlayerMark(player,"@exp",player->getMark("@exp") - PassMode::getSkillMap().value(result , 0));
-            QString tindex ;
-            if(result.indexOf("_e") > 0){
-                setPlayerSkillEnHance(player,result);
+            int level = 1 ;
+            QString tindex , skill_name = result ;
+            if(result.contains(QRegExp("_e\\d+$"))){
                 tindex = "0" ;
+                skill_name = result.split("_e").at(0) ;
+                level = result.split("_e").at(1).toInt() ;
+                setPlayerSkillEnHance(player,result);
             }else{
                 if(PassMode::getGeneralMap().value("common").contains(result)){
                     tindex = "2" ;
+                    setPlayerAbility(player , result.remove(QRegExp("_o$")));
                 }else{
                     tindex = "1" ;
+                    acquireSkill(player,result);
                 }
-                acquireSkill(player,result);
             }
+            player->getRoom()->setPlayerMark(player,"@exp",player->getMark("@exp") - PassMode::getSkillMap().value(skill_name)->getValue(level));
             askForSkillLearn(player, tindex);
         }
     }
@@ -712,14 +716,6 @@ bool Room::askForNullification(const TrickCard *trick, ServerPlayer *from, Serve
             thread->trigger(ChoiceMade, player, decisionData);
             setTag("NullifyingTimes",getTag("NullifyingTimes").toInt()+1);
 
-            if(player->hasSkill("shipo_p")){
-                if(from && player != from && from->getHp() >= player->getHp() && askForSkillInvoke(player, "shipo_p" , QVariant::fromValue(from))){
-                    DamageStruct damage;
-                    damage.from = player;
-                    damage.to = from;
-                    this->damage(damage);
-                }
-            }
             return !askForNullification(trick, from, to, !positive) ;
         }else if(continable)
             goto trust;
@@ -915,19 +911,16 @@ const Card *Room::askForCardShow(ServerPlayer *player, ServerPlayer *requestor, 
         if(ai)
             card= ai->askForCardShow(requestor, reason);
         else{
-        if(player->getHandcardNum() == 1)
-            card = player->getHandcards().first();
-        else{
             player->invoke("askForCardShow", requestor->getGeneralName());
             getResult("responseCardCommand", player);
 
             if(result.isEmpty())
                 return askForCardShow(player, requestor, reason);
             else if(result == ".")
-                card= player->getRandomHandCard();
-            else card=Card::Parse(result);
-        }
+                card = player->getRandomHandCard();
+            else card = Card::Parse(result);
     }
+
     QVariant decisionData = QVariant::fromValue("cardShow:"+reason+":_"+card->toString()+"_");
     thread->trigger(ChoiceMade, player, decisionData);
     return card;
@@ -1006,6 +999,17 @@ void Room::setPlayerSkillEnHance(ServerPlayer *player, const QString &enhance_na
     player->invoke("enhanceSkill", enhance_name);
 }
 
+void Room::setPlayerAbility(ServerPlayer *player, const QString &ability_name,const int level){
+    player->setAbility(ability_name,level);
+    broadcastInvoke("setAbility", QString("%1.%2=%3").arg(player->objectName()).arg(ability_name).arg(level));
+    setPlayerProperty(player, "hp", player->getMaxHP());
+}
+
+void Room::addPlayerCountInfo(ServerPlayer *player, const QString &name){
+    player->addCountInfo(name);
+    player->invoke("addCountInfo", name);
+}
+
 void Room::setPlayerProperty(ServerPlayer *player, const char *property_name, const QVariant &value){
     player->setProperty(property_name, value);
     broadcastProperty(player, property_name);
@@ -1022,6 +1026,24 @@ void Room::setPlayerMark(ServerPlayer *player, const QString &mark, int value){
 void Room::setPlayerCardLock(ServerPlayer *player, const QString &name){
     player->setCardLocked(name);
     player->invoke("cardLock", name);
+}
+
+void Room::setPlayerStatistics(ServerPlayer *player, const QString &property_name, const QVariant &value){
+    StatisticsStruct *statistics = player->getStatistics();
+    if(!statistics->setStatistics(property_name, value))
+        return;
+
+    player->setStatistics(statistics);
+    QString prompt = property_name + ":";
+
+    bool ok;
+    int add = value.toInt(&ok);
+    if(ok)
+        prompt += QString::number(add);
+    else
+        prompt += value.toString();
+
+    player->invoke("setStatistics", prompt);
 }
 
 ServerPlayer *Room::addSocket(ClientSocket *socket){
@@ -1985,8 +2007,16 @@ void Room::useCard(const CardUseStruct &card_use, bool add_history){
         else
             key = card->metaObject()->className();
 
-        card_use.from->addHistory(key);
-        card_use.from->invoke("addHistory", key);
+        bool slash_record =
+                key.contains("Slash") &&
+                card_use.from->getSlashCount() > 0 &&
+                card_use.from->hasWeapon("crossbow");
+
+        if(!slash_record){
+            card_use.from->addHistory(key);
+            card_use.from->invoke("addHistory", key);
+        }
+
         broadcastInvoke("addHistory","pushPile");
     }
 
@@ -3082,11 +3112,12 @@ QString Room::askForGeneral(ServerPlayer *player, const QStringList &generals, Q
 }
 
 QString Room::askForGeneralPass(ServerPlayer *player, const QString &flag){
-    QString default_choice = PassMode::default_hero ;
+    const Package *stdpack = Sanguosha->findChild<const Package *>(flag);
+    QList<const General *> all_generals = stdpack->findChildren<const General *>();
+    QString default_choice = all_generals.at(qrand() % all_generals.size())->objectName() ;
     if(player->getState() == "online"){
         player->invoke("askForGeneralPass",flag);
         getResult("chooseGeneralPassCommand", player);
-
         if(result.isEmpty() || result == ".")
             return default_choice;
         else

@@ -394,7 +394,7 @@ PassChooseDialog::PassChooseDialog(QWidget *parent,const QString &flag)
     setWindowTitle(tr("Pass choose generals"));
     QTabWidget *tab_widget = new QTabWidget;
     setFixedSize(575,215);
-    const Package *stdpack = Sanguosha->findChild<const Package *>("standard");
+    const Package *stdpack = Sanguosha->findChild<const Package *>(flag);
     QList<const General *> all_generals = stdpack->findChildren<const General *>();
     QMap<QString, QList<const General*> > map;
     foreach(const General *general, all_generals){
@@ -405,7 +405,7 @@ PassChooseDialog::PassChooseDialog(QWidget *parent,const QString &flag)
 
     QStringList kingdoms = Sanguosha->getKingdoms();
     QSignalMapper *mapper = new QSignalMapper(this);
-    mapper->setMapping(this, all_generals.first()->objectName());
+    mapper->setMapping(this, ".");
     connect(this, SIGNAL(rejected()), mapper, SLOT(map()));
 
     connect(mapper, SIGNAL(mapped(QString)), ClientInstance, SLOT(chooseItem(QString)));

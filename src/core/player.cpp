@@ -10,7 +10,7 @@ Player::Player(QObject *parent)
     hp(-1), max_hp(-1), state("online"), seat(0), alive(true),
     phase(NotActive),
     weapon(NULL), armor(NULL), defensive_horse(NULL), offensive_horse(NULL),
-    face_up(true), chained(false)
+    face_up(true), chained(false), player_statistics(new StatisticsStruct())
 {
 }
 
@@ -56,7 +56,7 @@ int Player::getHp() const{
 }
 
 int Player::getMaxHP() const{
-    return max_hp;
+    return max_hp + getAbilityLevel("maxhp");
 }
 
 int Player::getMaxHp() const{
@@ -154,6 +154,7 @@ int Player::getAttackRange() const{
         range = 1;
     if(hasSkill("shenshe_p"))
         range *= 2 ;
+    range += getAbilityLevel("slashrange") ;
     return range ;
 }
 
@@ -333,6 +334,7 @@ void Player::loseAllSkills(){
 
 QString Player::getPhaseString() const{
     switch(phase){
+    case RoundStart: return "round_start";
     case Start: return "start";
     case Judge: return "judge";
     case Draw: return "draw";
@@ -348,6 +350,7 @@ QString Player::getPhaseString() const{
 void Player::setPhaseString(const QString &phase_str){
     static QMap<QString, Phase> phase_map;
     if(phase_map.isEmpty()){
+        phase_map.insert("round_start", RoundStart);
         phase_map.insert("start",Start);
         phase_map.insert("judge", Judge);
         phase_map.insert("draw", Draw);
@@ -472,7 +475,6 @@ int Player::getMaxCards() const{
     }
 
     int juejing = hasSkill("juejing") ? 2 : 0;
-	int kezhi = hasSkill("kezhi_p") ? 1 : 0;
 
     int xueyi = 0;
     if(hasLordSkill("xueyi")){
@@ -501,7 +503,8 @@ int Player::getMaxCards() const{
         zongshi = kingdom_set.size();
     }
 
-    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi + kezhi;
+    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi ;
+    total += getAbilityLevel("maxcards");
 
     return total;
 }
@@ -736,10 +739,8 @@ bool Player::canSlashWithoutCrossbow() const{
         return true;
 
     int slash_count = getSlashCount();
-    int n = 1;
+    int n = 1 + getAbilityLevel("slashnum");
     if(hasFlag("tianyi_success") || hasFlag("jiangchi_invoke"))
-        n++ ;
-    if(hasSkill("nuhou_p"))
         n++ ;
     return slash_count < n;
 }
@@ -819,6 +820,14 @@ bool Player::hasCardLock(const QString &card_str) const{
     return lock_card.contains(card_str);
 }
 
+StatisticsStruct *Player::getStatistics() const{
+    return player_statistics;
+}
+
+void Player::setStatistics(StatisticsStruct *statistics){
+    player_statistics = statistics;
+}
+
 bool Player::isCaoCao() const{
     QString general_name = getGeneralName();
     return general_name == "caocao" || general_name == "shencaocao" || general_name == "shencc";
@@ -857,6 +866,8 @@ void Player::copyFrom(Player* p)
     b->tag              = QVariantMap(a->tag);
 
     b->skills_enhance   = QSet<QString> (a->skills_enhance);
+    b->ability_map      = QHash<QString, int> (a->ability_map);
+    b->count_info       = QHash<QString, int> (a->count_info);
 }
 
 QList<const Player *> Player::getSiblings() const{
@@ -879,8 +890,39 @@ bool Player::isSkillEnhance(const QString &enhance_name) const{
 
 void Player::enhanceSkill(const QString &enhance_name){
     skills_enhance << enhance_name ;
+    skills_enhance << enhance_name.split("_e")[0] ;
 }
 
 QSet<QString> Player::getSkillEnhance() const{
     return skills_enhance;
+}
+
+bool Player::hasAbility(const QString &ability_name, const int level) const{
+    return ability_map.value(ability_name,0) >= level ;
+}
+
+int Player::getAbilityLevel(const QString &ability_name) const{
+    return ability_map.value(ability_name,0) ;
+}
+
+void Player::setAbility(const QString &ability_name, const int level){
+    ability_map[ability_name] = level ;
+}
+
+QHash<QString,int> Player::getAbilities() const{
+    return ability_map;
+}
+
+void Player::setCountInfo(const QString &name,const int value){
+    if(count_info[name] != value)
+        count_info[name] = value ;
+}
+
+void Player::addCountInfo(const QString &name,const int value){
+    int count = getCountInfo(name) ;
+    setCountInfo(name , count + value) ;
+}
+
+int Player::getCountInfo(const QString &name) const{
+    return count_info.value(name,0) ;
 }

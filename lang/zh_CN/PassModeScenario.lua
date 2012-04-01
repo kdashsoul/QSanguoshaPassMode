@@ -1,7 +1,6 @@
 local pass_t = {
     ["pass_mode"]                   = "闯关模式",
     ["pass"]                        = "闯关",
-    ["study"]                       = "请选择要学习的技能",
     ["@exp"]                        = "经验",
     ["exp"]                         = "经验值",
     ["damage"]                      = "伤害",
@@ -17,6 +16,16 @@ local pass_t = {
     ["leishi_e"]                    = "雷使",
     ["kuangdaoke_e"]                = "狂刀客",
     
+    ["maxhp_o"]                     = "体力上限 + 1",
+    ["maxcards_o"]                  = "手牌上限 + 1",
+    ["slashrange_o"]                = "攻击范围 + 1",
+    ["slashnum_o"]                  = "出杀次数 + 1",
+    ["exp_o"]                       = "经验获得 + 50%",
+    ["turndraw_o"]                  = "回合摸牌数 + 1",
+    ["killdraw_o"]                  = "击杀摸牌数 + 1",
+    ["startdraw_o"]                 = "起始摸牌数 + 2",
+
+
     ["shiqi_p"]                     = "士气",
     [":shiqi_p"]                    = "摸牌阶段开始时，你可以进行一次判定，若结果为红色你获得此牌。",
     ["qianggong_p"]                 = "强弓",
@@ -263,10 +272,6 @@ local pass_t = {
     ["cancel"]                      = "取消",
     ["save"]                        = "保存",
     ["notsave"]                     = "不保存",
-    ["wrong_skills"]       	        = "数据错误！存在不合法的技能（可能由于version不同造成）",
-    ["wrond_exp"]                   = "数据错误！不合法的经验值",
-    ["wrong_hp"]                    = "数据错误！不合法的体力上限",
-
     
     ["#TriggerDrawSkill"]           = "%from 的【%arg】效果被触发，从牌堆摸了 %arg2 张牌",
     ["#TriggerDamageUpSkill"]       = "%from 的【%arg】效果被触发，对 %to 的伤害上升至 %arg2 点",

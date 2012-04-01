@@ -558,7 +558,7 @@ void ServerPlayer::play(QList<Player::Phase> set_phases){
             set_phases << NotActive;
     }
     else
-        set_phases << Start << Judge << Draw << Play
+        set_phases << RoundStart << Start << Judge << Draw << Play
                 << Discard << Finish << NotActive;
 
     phases = set_phases;
@@ -584,7 +584,7 @@ void ServerPlayer::skip(Player::Phase phase){
 
     static QStringList phase_strings;
     if(phase_strings.isEmpty()){
-        phase_strings << "start" << "judge" << "draw"
+        phase_strings << "round_start" << "start" << "judge" << "draw"
                 << "play" << "discard" << "finish" << "not_active";
     }
 
