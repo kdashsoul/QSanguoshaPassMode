@@ -56,6 +56,8 @@ static QPointF DrawPilePos(-108, 8);
 
 RoomScene *RoomSceneInstance;
 
+#include "irregularbutton.h"
+
 RoomScene::RoomScene(QMainWindow *main_window)
     :focused(NULL), special_card(NULL), viewing_discards(false),
       main_window(main_window),game_started(false)
@@ -80,8 +82,20 @@ RoomScene::RoomScene(QMainWindow *main_window)
     }
 
     {
+        createControlButtons();
+        QGraphicsItem *button_widget = NULL;
+        if(ClientInstance->getReplayer() == NULL){
+            QString path = "image/system/button/irregular/background.png";
+            button_widget = new QGraphicsPixmapItem(QPixmap(path));
+
+            ok_button->setParentItem(button_widget);
+            cancel_button->setParentItem(button_widget);
+            discard_button->setParentItem(button_widget);
+            trust_button->setParentItem(button_widget);
+        }
+
         // create dashboard
-        dashboard = new Dashboard;
+        dashboard = new Dashboard(button_widget);
         dashboard->setObjectName("dashboard");
         //dashboard->setZValue(0.8);
         addItem(dashboard);
@@ -112,7 +126,7 @@ RoomScene::RoomScene(QMainWindow *main_window)
     role_combobox->addItem(tr("Unknown"));
     connect(Self, SIGNAL(role_changed(QString)), this, SLOT(updateRoleComboBox(QString)));
 
-    createButtons();
+    createExtraButtons();
     if(ClientInstance->getReplayer())
         createReplayControlBar();
 
@@ -391,40 +405,38 @@ RoomScene::RoomScene(QMainWindow *main_window)
     view_transform = QMatrix();
 }
 
-void RoomScene::createButtons(){
-    trust_button = dashboard->createButton("trust");
-    untrust_button = dashboard->createButton("untrust");
-    reverse_button = dashboard->createButton("reverse-select");
-    reverse_button->setEnabled(true);
+void RoomScene::createControlButtons(){
+    ok_button = new IrregularButton("ok");
+    ok_button->setPos(5, 3);
 
-    ok_button = dashboard->createButton("ok");
-    cancel_button = dashboard->createButton("cancel");
-    discard_button = dashboard->createButton("discard");
+    cancel_button = new IrregularButton("cancel");
+    cancel_button->setPos(5, 92);
 
-    dashboard->addWidget(trust_button, 10, true);
-    dashboard->addWidget(untrust_button, 10, true);
-    dashboard->addWidget(reverse_button, 100, true);
+    discard_button = new IrregularButton("discard");
+    discard_button->setPos(70, 45);
 
-    // add buttons that above the avatar area of dashbaord
-    if(Config.value("CircularView", false).toBool()){
-        dashboard->addWidget(ok_button, -245-146, false);
-        dashboard->addWidget(cancel_button, -155-146, false);
-        dashboard->addWidget(discard_button, -70-146, false);
-
-        dashboard->setWidth(main_window->width()-10);
-    }else{
-        dashboard->addWidget(ok_button, -72, false);
-        dashboard->addWidget(cancel_button, -7, false);
-        dashboard->addWidget(discard_button, 75, false);
-    }
-
-    connect(trust_button, SIGNAL(clicked()), ClientInstance, SLOT(trust()));
-    connect(untrust_button, SIGNAL(clicked()), ClientInstance, SLOT(trust()));
-    connect(reverse_button, SIGNAL(clicked()), dashboard, SLOT(reverseSelection()));
-    connect(Self, SIGNAL(state_changed()), this, SLOT(updateTrustButton()));
     connect(ok_button, SIGNAL(clicked()), this, SLOT(doOkButton()));
     connect(cancel_button, SIGNAL(clicked()), this, SLOT(doCancelButton()));
     connect(discard_button, SIGNAL(clicked()), this, SLOT(doDiscardButton()));
+
+    trust_button = new TrustButton;
+    trust_button->setPos(69, 133);
+    connect(trust_button, SIGNAL(clicked()), ClientInstance, SLOT(trust()));
+    connect(Self, SIGNAL(state_changed()), this, SLOT(updateTrustButton()));
+
+    // set them all disabled
+    ok_button->setEnabled(false);
+    cancel_button->setEnabled(false);
+    discard_button->setEnabled(false);
+    trust_button->setEnabled(false);
+}
+
+void RoomScene::createExtraButtons(){
+    reverse_button = dashboard->createButton("reverse-select");
+    reverse_button->setEnabled(true);
+
+    dashboard->addWidget(reverse_button, 100, true);
+    connect(reverse_button, SIGNAL(clicked()), dashboard, SLOT(reverseSelection()));
 
     free_discard = NULL;
 }
@@ -502,16 +514,8 @@ void ReplayerControlBar::setTime(int secs){
 }
 
 void RoomScene::createReplayControlBar(){
-    // hide all buttons
-    ok_button->hide();
-    cancel_button->hide();
-    discard_button->hide();
-    trust_button->hide();
-    untrust_button->hide();
+    // hide all buttons    
     reverse_button->hide();
-
-    trust_button->disconnect();
-    untrust_button->disconnect();
 
     new ReplayerControlBar(dashboard);
 }
@@ -1421,7 +1425,7 @@ void RoomScene::addSkillButton(const Skill *skill, bool from_left){
     if(limit_times == 0){
         button->setText(skill->getText());
     }else{
-        button->setText(QString("%1 (%2)").arg(skill->getText()).arg(limit_times));
+        button->setText(QString("%1(%2)").arg(skill->getText()).arg(limit_times));
     }
     button->setToolTip(skill->getDescription());
     button->setDisabled(skill->getFrequency() == Skill::Compulsory);
@@ -2222,9 +2226,7 @@ void RoomScene::doSkillButton(){
 void RoomScene::updateTrustButton(){
     if(!ClientInstance->getReplayer()){
         bool trusting = Self->getState() == "trust";
-        trust_button->setVisible(!trusting);
-        untrust_button->setVisible(trusting);
-
+        trust_button->update();
         dashboard->setTrust(trusting);
     }
 }
@@ -2266,7 +2268,7 @@ void RoomScene::updatePileButton(const QString &pile_name){
     if(pile.isEmpty())
         button->setText(Sanguosha->translate(pile_name));
     else
-        button->setText(QString("%1(%2)").arg(Sanguosha->translate(pile_name)).arg(pile.length()));
+        button->setText(QString("%1 (%2)").arg(Sanguosha->translate(pile_name)).arg(pile.length()));
 
     menu->clear();
 
@@ -2493,41 +2495,59 @@ void RoomScene::onGameOver(){
     dialog->resize(500, 600);
     dialog->setWindowTitle(victory ? tr("Victory") : tr("Failure"));
 
-    QGroupBox *winner_box = new QGroupBox(tr("Winner(s)"));
-    QGroupBox *loser_box = new QGroupBox(tr("Loser(s)"));
+    if(ServerInfo.GameMode != "pass_mode"){
+        QGroupBox *winner_box = new QGroupBox(tr("Winner(s)"));
+        QGroupBox *loser_box = new QGroupBox(tr("Loser(s)"));
 
-    QTableWidget *winner_table = new QTableWidget;
-    QTableWidget *loser_table = new QTableWidget;
+        QTableWidget *winner_table = new QTableWidget;
+        QTableWidget *loser_table = new QTableWidget;
 
-    QVBoxLayout *winner_layout = new QVBoxLayout;
-    winner_layout->addWidget(winner_table);
-    winner_box->setLayout(winner_layout);
+        QVBoxLayout *winner_layout = new QVBoxLayout;
+        winner_layout->addWidget(winner_table);
+        winner_box->setLayout(winner_layout);
 
-    QVBoxLayout *loser_layout = new QVBoxLayout;
-    loser_layout->addWidget(loser_table);
-    loser_box->setLayout(loser_layout);
+        QVBoxLayout *loser_layout = new QVBoxLayout;
+        loser_layout->addWidget(loser_table);
+        loser_box->setLayout(loser_layout);
 
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(winner_box);
-    layout->addWidget(loser_box);
-    dialog->setLayout(layout);
+        QVBoxLayout *layout = new QVBoxLayout;
+        layout->addWidget(winner_box);
+        layout->addWidget(loser_box);
+        dialog->setLayout(layout);
 
-    QList<const ClientPlayer *> winner_list, loser_list;
-    foreach(const ClientPlayer *player, ClientInstance->getPlayers()){
-        bool win = player->property("win").toBool();
-        if(win)
-            winner_list << player;
-        else
-            loser_list << player;
+        QList<const ClientPlayer *> winner_list, loser_list;
+        foreach(const ClientPlayer *player, ClientInstance->getPlayers()){
+            bool win = player->property("win").toBool();
+            if(win)
+                winner_list << player;
+            else
+                loser_list << player;
 
-        if(player != Self){
-            setEmotion(player->objectName(),win ? "good" : "bad",true);
+            if(player != Self){
+                setEmotion(player->objectName(),win ? "good" : "bad",true);
+            }
         }
+
+        fillTable(winner_table, winner_list);
+        fillTable(loser_table, loser_list);
+    }else{
+        QMap<QString,QString> pass_info_map ;
+        foreach (QString info, Self->property("pass_info").toStringList()) {
+            QStringList kv = info.split("=") ;
+            if(kv.length() == 2){
+                pass_info_map.insert(kv.at(0), kv.at(1));
+            }
+        }
+        QLabel *turns_label = new QLabel;
+        turns_label->setText(tr("Use turns: %1").arg(pass_info_map.value("Turns")));
+        QLabel *load_times_label = new QLabel;
+        load_times_label->setText(tr("Load times: %1").arg(pass_info_map.value("LoadTimes")));
+
+        QVBoxLayout *layout = new QVBoxLayout;
+        layout->addWidget(turns_label);
+        layout->addWidget(load_times_label);
+        dialog->setLayout(layout);
     }
-
-    fillTable(winner_table, winner_list);
-    fillTable(loser_table, loser_list);
-
     addRestartButton(dialog);
 
     dialog->exec();
@@ -3031,7 +3051,7 @@ void RoomScene::createStateItem(){
 }
 
 void RoomScene::showOwnerButtons(bool owner){
-    if(control_panel && !trust_button->isEnabled())
+    if(control_panel && !game_started)
         control_panel->setVisible(owner);
 }
 
@@ -3194,8 +3214,6 @@ void RoomScene::onGameStart(){
         reLayout();
     }
 
-    trust_button->setEnabled(true);
-    untrust_button->setEnabled(true);
     updateStatus(ClientInstance->getStatus());
 
     QList<const ClientPlayer *> players = ClientInstance->getPlayers();
@@ -3206,8 +3224,11 @@ void RoomScene::onGameStart(){
     foreach(Photo *photo, photos)
         photo->createRoleCombobox();
 
+    trust_button->setEnabled(true);
+
 
 #ifdef AUDIO_SUPPORT
+
     if(!Config.EnableBgMusic)
         return;
 
@@ -3263,9 +3284,6 @@ void RoomScene::freeze(){
     foreach(Photo *photo, photos)
         photo->setEnabled(false);
     item2player.clear();
-
-    trust_button->setEnabled(false);
-    untrust_button->setEnabled(false);
 
     chat_edit->setEnabled(false);
 
@@ -4037,10 +4055,10 @@ void RoomScene::reLayout(QMatrix matrix)
     pos.rx()+= padding_left;
     pos.ry()+= padding_top;
 
-    alignTo(trust_button,pos,"xlyb");
-    alignTo(untrust_button,pos,"xlyb");
-    pos.rx()+=trust_button->width();
-    pos.rx()+=skip;
+    //alignTo(trust_button,pos,"xlyb");
+//    alignTo(untrust_button,pos,"xlyb");
+//    pos.rx()+=trust_button->width();
+//    pos.rx()+=skip;
 
     alignTo(reverse_button,pos,"xlyb");
     pos.rx()+=reverse_button->width();
@@ -4059,17 +4077,17 @@ void RoomScene::reLayout(QMatrix matrix)
     pos.rx()-= padding_left;
     pos.ry()+=padding_top;
 
-    alignTo(discard_button,pos,"xryb");
-    pos.rx()-=discard_button->width();
-    pos.rx()-=skip;
+//    alignTo(discard_button,pos,"xryb");
+//    pos.rx()-=discard_button->width();
+//    pos.rx()-=skip;
 
-    alignTo(cancel_button,pos,"xryb");
-    pos.rx()-=cancel_button->width();
-    pos.rx()-=skip;
+//    alignTo(cancel_button,pos,"xryb");
+//    pos.rx()-=cancel_button->width();
+//    pos.rx()-=skip;
 
-    alignTo(ok_button,pos,"xryb");
-    pos.rx()-=ok_button->width();
-    pos.rx()-=skip;
+//    alignTo(ok_button,pos,"xryb");
+//    pos.rx()-=ok_button->width();
+//    pos.rx()-=skip;
     //ok_button->move(-10,-10);
 
 

@@ -23,6 +23,7 @@ SOURCES += src/main.cpp \
 	src/core/player.cpp \
 	src/core/settings.cpp \
 	src/core/skill.cpp \
+	src/core/statistics.cpp \
 	src/dialog/cardeditor.cpp \
 	src/dialog/cardoverview.cpp \
 	src/dialog/choosegeneraldialog.cpp \
@@ -31,13 +32,13 @@ SOURCES += src/main.cpp \
 	src/dialog/customassigndialog.cpp \
 	src/dialog/distanceviewdialog.cpp \
 	src/dialog/generaloverview.cpp \
-	src/dialog/generalselector.cpp \
 	src/dialog/mainwindow.cpp \
 	src/dialog/packagingeditor.cpp \
 	src/dialog/playercarddialog.cpp \
 	src/dialog/roleassigndialog.cpp \
 	src/dialog/scenario-overview.cpp \
         src/dialog/halldialog.cpp \
+	src/package/package.cpp \
         src/package/exppattern.cpp \
 	src/package/firepackage.cpp \
 	src/package/god.cpp \
@@ -62,6 +63,7 @@ SOURCES += src/main.cpp \
 	src/server/ai.cpp \
 	src/server/contestdb.cpp \
 	src/server/gamerule.cpp \
+        src/server/generalselector.cpp \
 	src/server/room.cpp \
 	src/server/roomthread.cpp \
 	src/server/roomthread1v1.cpp \
@@ -75,6 +77,7 @@ SOURCES += src/main.cpp \
 	src/ui/clientlogbox.cpp \
 	src/ui/dashboard.cpp \
 	src/ui/indicatoritem.cpp \
+	src/ui/irregularbutton.cpp \
 	src/ui/photo.cpp \
 	src/ui/pixmap.cpp \
 	src/ui/pixmapanimation.cpp \
@@ -117,9 +120,7 @@ SOURCES += src/main.cpp \
     src/lua/lauxlib.c \
     src/lua/lapi.c \
     src/pass/pass-package.cpp \
-    swig/sanguosha_wrap.cxx \
-    src/core/statistics.cpp \
-    src/package/package.cpp
+    swig/sanguosha_wrap.cxx
 
 HEADERS += src/client/aux-skills.h \
 	src/client/client.h \
@@ -134,6 +135,7 @@ HEADERS += src/client/aux-skills.h \
 	src/core/player.h \
 	src/core/settings.h \
 	src/core/skill.h \
+	src/core/statistics.h \
 	src/dialog/cardeditor.h \
 	src/dialog/cardoverview.h \
 	src/dialog/choosegeneraldialog.h \
@@ -142,7 +144,6 @@ HEADERS += src/client/aux-skills.h \
 	src/dialog/customassigndialog.h \
 	src/dialog/distanceviewdialog.h \
 	src/dialog/generaloverview.h \
-	src/dialog/generalselector.h \
 	src/dialog/halldialog.h \
 	src/dialog/mainwindow.h \
 	src/dialog/packagingeditor.h \
@@ -173,6 +174,7 @@ HEADERS += src/client/aux-skills.h \
 	src/server/ai.h \
 	src/server/contestdb.h \
 	src/server/gamerule.h \
+	src/server/generalselector.h \
 	src/server/room.h \
 	src/server/roomthread.h \
 	src/server/roomthread1v1.h \
@@ -187,6 +189,7 @@ HEADERS += src/client/aux-skills.h \
 	src/ui/clientlogbox.h \
 	src/ui/dashboard.h \
 	src/ui/indicatoritem.h \
+	src/ui/irregularbutton.h \
 	src/ui/photo.h \
 	src/ui/pixmap.h \
 	src/ui/pixmapanimation.h \
@@ -223,7 +226,6 @@ HEADERS += src/client/aux-skills.h \
     src/lua/lcode.h \
     src/lua/lauxlib.h \
     src/lua/lapi.h \
-    src/core/statistics.h \
     src/pass/pass-package.h
 	
 FORMS += src/dialog/cardoverview.ui \
@@ -247,7 +249,7 @@ win32{
     RC_FILE += resource/icon.rc
 }
 
-LIBS += -L. -lm
+LIBS += -L.
 
 CONFIG(audio){
     DEFINES += AUDIO_SUPPORT
@@ -269,5 +271,8 @@ TRANSLATIONS += sanguosha.ts
 OTHER_FILES += \
     sanguosha.qss \
     acknowledgement/main.qml \
-    acknowledgement/list.png \
-    acknowledgement/back.png
+	acknowledgement/list.png \
+	acknowledgement/back.png
+
+
+

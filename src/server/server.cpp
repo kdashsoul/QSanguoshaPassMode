@@ -97,11 +97,13 @@ QWidget *ServerDialog::createPackageTab(){
     QGroupBox *box1 = new QGroupBox(tr("General package"));
     QGroupBox *box2 = new QGroupBox(tr("Card package"));
 
-    QVBoxLayout *layout1 = new QVBoxLayout;
-    QVBoxLayout *layout2 = new QVBoxLayout;
+    QGridLayout *layout1 = new QGridLayout;
+    QGridLayout *layout2 = new QGridLayout;
     box1->setLayout(layout1);
     box2->setLayout(layout2);
 
+    int i = 0, j = 0;
+    int row = 0, column = 0;
     foreach(QString extension, extensions){
         const Package *package = Sanguosha->findChild<const Package *>(extension);
         if(package == NULL)
@@ -116,12 +118,20 @@ QWidget *ServerDialog::createPackageTab(){
 
         switch(package->getType()){
         case Package::GeneralPack: {
-                layout1->addWidget(checkbox);
+                row = i / 5;
+                column = i % 5;
+                i++;
+
+                layout1->addWidget(checkbox, row, column+1);
                 break;
             }
 
         case Package::CardPack: {
-                layout2->addWidget(checkbox);
+                row = j / 5;
+                column = j % 5;
+                j++;
+
+                layout2->addWidget(checkbox, row, column+1);
                 break;
             }
 
@@ -130,11 +140,8 @@ QWidget *ServerDialog::createPackageTab(){
         }
     }
 
-    layout1->addStretch();
-    layout2->addStretch();
-
     QWidget *widget = new QWidget;
-    QHBoxLayout *layout = new QHBoxLayout;
+    QVBoxLayout *layout = new QVBoxLayout;
     layout->addWidget(box1);
     layout->addWidget(box2);
 
@@ -492,6 +499,7 @@ QGroupBox *ServerDialog::create3v3Box(){
     QVBoxLayout *vlayout = new QVBoxLayout;
 
     standard_3v3_radiobutton = new QRadioButton(tr("Standard mode"));
+    new_3v3_radiobutton = new QRadioButton(tr("New Mode"));
     QRadioButton *extend = new QRadioButton(tr("Extension mode"));
     QPushButton *extend_edit_button = new QPushButton(tr("General selection ..."));
     extend_edit_button->setEnabled(false);
@@ -517,14 +525,18 @@ QGroupBox *ServerDialog::create3v3Box(){
     }
 
     vlayout->addWidget(standard_3v3_radiobutton);
+    vlayout->addWidget(new_3v3_radiobutton);
     vlayout->addLayout(HLay(extend, extend_edit_button));
     vlayout->addWidget(exclude_disaster_checkbox);
     vlayout->addLayout(HLay(new QLabel(tr("Role choose")), role_choose_combobox));
     box->setLayout(vlayout);
 
     bool using_extension = Config.value("3v3/UsingExtension", false).toBool();
+    bool using_new_mode = Config.value("3v3/UsingNewMode", false).toBool();
     if(using_extension)
         extend->setChecked(true);
+    else if(using_new_mode)
+        new_3v3_radiobutton->setChecked(true);
     else
         standard_3v3_radiobutton->setChecked(true);
 
@@ -903,9 +915,10 @@ bool ServerDialog::config(){
     Config.setValue("Address", Config.Address);
 
     Config.beginGroup("3v3");
-    Config.setValue("UsingExtension", ! standard_3v3_radiobutton->isChecked());
+    Config.setValue("UsingExtension", !standard_3v3_radiobutton->isChecked() && !new_3v3_radiobutton->isChecked());
     Config.setValue("RoleChoose", role_choose_combobox->itemData(role_choose_combobox->currentIndex()).toString());
     Config.setValue("ExcludeDisaster", exclude_disaster_checkbox->isChecked());
+    Config.setValue("UsingNewMode", new_3v3_radiobutton->isChecked());
     Config.endGroup();
 
     QSet<QString> ban_packages;

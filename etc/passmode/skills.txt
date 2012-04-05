@@ -2,8 +2,8 @@ maxhp_o 40
 maxcards_o 25
 slashrange_o 15
 slashnum_o 25
-exp_o 80
-turndraw_o 50
+exp_o 70
+turndraw_o 60
 killdraw_o 10
 startdraw_o 15
 

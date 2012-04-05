@@ -73,7 +73,7 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 if(! room->getAlivePlayers().empty())
                     room->gameOver("rebel");
             }else{
-                if(lord->hasSkill("fenjin_p")){
+                if(lord->hasAbility("killdraw")){
                     lord->drawCards(1);
                 }
 
@@ -83,6 +83,9 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
                 int exp = PassMode::getExpMap().value(player->getKingdom(), 0);
                 exp = qrand()%(exp + 1) + exp/2;
+                if(lord->hasAbility("exp")){
+                    exp += exp / 2 ;
+                }
 
                 int orgin_exp = lord->getMark("@exp") ;
                 lord->gainMark("@exp",exp);
@@ -112,15 +115,15 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
     return GameRule::trigger(event, player, data);
 }
 
-QStringList PassMode::getNeedSaveRoomTagName() const{
+QStringList PassMode::getNeedSaveRoomTagName(){
     static QStringList tagNames;
     if(tagNames.isEmpty())
-        tagNames << "Stage" << "Times" << "Turns" ;
+        tagNames << "Stage" << "Times" << "Turns" << "LoadTimes" ;
 
     return tagNames;
 }
 
-QStringList PassMode::getNeedSavePlayerMarkName() const{
+QStringList PassMode::getNeedSavePlayerMarkName(){
     static QStringList markNames;
     if(markNames.isEmpty())
         markNames << "@exp" ;
@@ -134,7 +137,7 @@ void PassMode::stageStartDraw(Room *room, ServerPlayer *player) const{
     int enemy_draw = 4 ;
     if(player){
         n = player->isLord() ? hero_draw : enemy_draw;
-        player->drawCards(player->hasSkill("fenjin_p") ? n + 1 : n);
+        player->drawCards(player->hasAbility("startdraw") ? n + 1 : n);
     }else{
         foreach(ServerPlayer *p, room->getPlayers()){
             stageStartDraw(room,p);
@@ -199,6 +202,7 @@ void PassMode::initGameStart(ServerPlayer *player) const{
         if(p->isLord()){
             room->setTag("Stage", 1);
             room->setTag("Times", 1);
+            room->setTag("LoadTimes", 0);
 
             QString name = room->askForGeneralPass(p,"standard");
             room->transfigure(p, name, true, true);
@@ -555,6 +559,9 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
     qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
     switch(event){
     case DrawNCards:{
+            if(player->hasAbility("turndraw")){
+                data = data.toInt() + 1 ;
+            }
             if(player->getKingdom() == "evil")
                 data = data.toInt() - 1 ;
             else if(player->getKingdom() == "god")

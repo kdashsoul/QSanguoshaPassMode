@@ -125,10 +125,19 @@ QString Player::getFlags() const{
 
 void Player::setFlags(const QString &flag){
     static QChar unset_symbol('-');
+    static QChar match_symbol('*');
     if(flag.startsWith(unset_symbol)){
         QString copy = flag;
         copy.remove(unset_symbol);
         flags.remove(copy);
+        if(copy.endsWith(match_symbol)){
+            copy.remove(match_symbol);
+            foreach (QString flag, flags) {
+                if(flag.startsWith(copy)){
+                    flags.remove(flag) ;
+                }
+            }
+        }
     }else{
         flags.insert(flag);
     }

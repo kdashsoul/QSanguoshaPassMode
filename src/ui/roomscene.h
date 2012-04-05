@@ -14,7 +14,8 @@ class Window;
 class Button;
 class CardContainer;
 class GuanxingBox;
-
+class IrregularButton;
+class TrustButton;
 class QGroupBox;
 
 #include <QGraphicsScene>
@@ -186,8 +187,8 @@ private:
     QQueue<CardItem*> piled_discards;
     QMainWindow *main_window;
     QComboBox *role_combobox;
-    QPushButton *trust_button, *untrust_button;
-    QPushButton *ok_button, *cancel_button, *discard_button;
+    IrregularButton *ok_button, *cancel_button, *discard_button;
+    TrustButton *trust_button;
     QPushButton *reverse_button, *free_discard;
     QMenu *known_cards_menu, *change_general_menu;
     Window *prompt_box;
@@ -260,7 +261,8 @@ private:
     void removeWidgetFromSkillDock(QWidget *widget);
     QList<QPointF> getPhotoPositions() const;
     void createStateItem();
-    void createButtons();
+    void createControlButtons();
+    void createExtraButtons();
     void createReplayControlBar();
 
     void fillGenerals1v1(const QStringList &names);

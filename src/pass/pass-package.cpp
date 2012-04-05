@@ -598,7 +598,7 @@ public:
             return card;
         }
 
-        CardStar c = Self->tag.value("Guhuo").value<CardStar>();
+        CardStar c = Self->tag.value("wanghou").value<CardStar>();
         if(c){
             const Card *origin = card_item->getFilteredCard() ;
             Card *card = Sanguosha->cloneCard(c->objectName(), origin->getSuit(), origin->getNumber());
@@ -687,6 +687,37 @@ public:
                 if(card->inherits("BasicCard"))
                     break;
             }
+        }
+        return false;
+    }
+};
+
+
+class WujiPass: public TriggerSkill{
+public:
+    WujiPass():TriggerSkill("wuji_p"){
+        events << CardUsed << CardFinished;
+        frequency = Compulsory;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *sunshangxiang, QVariant &data) const{
+        Room *room = sunshangxiang->getRoom();
+        LogMessage log;
+//        log.type = "#TriggerSkill";
+//        log.from = sunshangxiang;
+//        log.arg = objectName();
+        CardUseStruct use = data.value<CardUseStruct>();
+        if(!use.card || !use.card->inherits("Slash"))
+            return false;
+        if(event == CardUsed){
+            if(use.to.isEmpty())
+                return false;
+            const Weapon *weapon = use.to.first()->getWeapon() ;
+            if(weapon){
+                room->setPlayerFlag(sunshangxiang, QString("wuji_weapon:%1").arg(weapon->objectName()));
+            }
+        }else if(event == CardFinished){
+            room->setPlayerFlag(sunshangxiang, QString("-wuji_weapon:*"));
         }
         return false;
     }
@@ -3730,7 +3761,8 @@ PassPackage::PassPackage()
 
     skills << new Skill("nuhou_p") << new TipoPass << new Skill("kezhi_p") << new Skill("fenjin_p") << new QuanhengPass
            << new DuanyanPass << new XiongziPass << new QiangongPass
-           << new WanghouPass << new QiangyunPass << new XiaoxiongPass << new KuanhouPass;
+           << new WanghouPass << new QiangyunPass << new XiaoxiongPass << new KuanhouPass
+           << new WujiPass;
 
     addMetaObject<DuanyanPassCard>();
     addMetaObject<QuanhengPassCard>();

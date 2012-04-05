@@ -205,7 +205,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             RecoverStruct recover_struct = data.value<RecoverStruct>();
             int recover = recover_struct.recover;
 
-            room->setPlayerStatistics(recover_struct.who, "recover", recover);
+            room->setPlayerStatistics(player, "recover", recover);
 
             int new_hp = qMin(player->getHp() + recover, player->getMaxHP());
             room->setPlayerProperty(player, "hp", new_hp);
@@ -294,7 +294,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 DyingStruct dying = data.value<DyingStruct>();
                 room->killPlayer(player, dying.damage);
 
-                if(dying.damage->from)
+                if(dying.damage && dying.damage->from)
                     room->setPlayerStatistics(dying.damage->from, "kill", 1);
             }
 
@@ -572,7 +572,10 @@ void GameRule::rewardAndPunish(ServerPlayer *killer, ServerPlayer *victim) const
         return;
 
     if(killer->getRoom()->getMode() == "06_3v3"){
-        killer->drawCards(3);
+        if(Config.value("3v3/UsingNewMode", false).toBool())
+            killer->drawCards(2);
+        else
+            killer->drawCards(3);
     }
     else{
         if(victim->getRole() == "rebel" && killer != victim){
@@ -796,11 +799,16 @@ BasaraMode::BasaraMode(QObject *parent)
     :GameRule(parent)
 {
     setObjectName("basara_mode");
+
     events << CardLost << Predamaged;
+
     skill_mark["niepan"] = "@nirvana";
     skill_mark["smallyeyan"] = "@flame";
     skill_mark["luanwu"] = "@chaos";
+    skill_mark["laoji"] = "@laoji";
+    skill_mark["zuixiang"] = "@sleep";
 }
+
 QString BasaraMode::getMappedRole(const QString &role){
     static QMap<QString, QString> roles;
     if(roles.isEmpty()){
@@ -811,10 +819,11 @@ QString BasaraMode::getMappedRole(const QString &role){
     }
     return roles[role];
 }
-int BasaraMode::getPriority() const
-{
-    return 5;
+
+int BasaraMode::getPriority() const{
+    return 1;
 }
+
 void BasaraMode::playerShowed(ServerPlayer *player) const{
     Room *room = player->getRoom();
     QStringList names = room->getTag(player->objectName()).toStringList();
@@ -837,26 +846,30 @@ void BasaraMode::playerShowed(ServerPlayer *player) const{
         playerShowed(player);
     }
 }
+
 void BasaraMode::generalShowed(ServerPlayer *player, QString general_name) const
 {
     Room * room = player->getRoom();
     QStringList names = room->getTag(player->objectName()).toStringList();
     if(names.isEmpty())return;
+
     if(player->getGeneralName() == "anjiang")
     {
         QString transfigure_str = QString("%1:%2").arg(player->getGeneralName()).arg(general_name);
         player->invoke("transfigure", transfigure_str);
         room->setPlayerProperty(player,"general",general_name);
-    }else
-    {
+
+        foreach(QString skill_name, skill_mark.keys()){
+            if(player->hasSkill(skill_name))
+                room->setPlayerMark(player, skill_mark[skill_name], 1);
+        }
+    }
+    else{
         QString transfigure_str = QString("%1:%2").arg(player->getGeneral2Name()).arg(general_name);
         player->invoke("transfigure", transfigure_str);
         room->setPlayerProperty(player,"general2",general_name);
     }
-    foreach(QString skill_name, skill_mark.keys()){
-        if(player->hasSkill(skill_name))
-            room->setPlayerMark(player, skill_mark[skill_name], 1);
-    }
+
     room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());
     if(Config.EnableHegemony)room->setPlayerProperty(player, "role", getMappedRole(player->getGeneral()->getKingdom()));
     names.removeOne(general_name);
@@ -873,11 +886,13 @@ bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &dat
     Room *room = player->getRoom();
     player->tag["event"] = event;
     player->tag["event_data"] = data;
+
     switch(event){
     case GameStart:{
         if(player->isLord()){
             if(Config.EnableHegemony)
                 room->setTag("SkipNormalDeathProcess", true);
+
             foreach(ServerPlayer* sp, room->getAlivePlayers())
             {
                 QString transfigure_str = QString("%1:%2").arg(sp->getGeneralName()).arg("anjiang");
@@ -888,17 +903,22 @@ bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &dat
                 LogMessage log;
                 log.type = "#BasaraGeneralChosen";
                 log.arg = room->getTag(sp->objectName()).toStringList().at(0);
+
                 if(Config.Enable2ndGeneral)
                 {
+
                     transfigure_str = QString("%1:%2").arg(sp->getGeneral2Name()).arg("anjiang");
                     sp->invoke("transfigure", transfigure_str);
                     room->setPlayerProperty(sp,"general2","anjiang");
+
                     log.arg2 = room->getTag(sp->objectName()).toStringList().at(1);
                 }
+
                 sp->invoke("log",log.toString());
                 sp->tag["roles"] = room->getTag(sp->objectName()).toStringList().join("+");
             }
         }
+
         break;
     }
     case CardEffected:{
@@ -908,6 +928,7 @@ bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &dat
                 if(ces.card->inherits("TrickCard") ||
                         ces.card->inherits("Slash"))
                 playerShowed(player);
+
             const ProhibitSkill* prohibit = room->isProhibited(ces.from,ces.to,ces.card);
             if(prohibit)
             {
@@ -916,15 +937,19 @@ bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &dat
                 log.from = ces.to;
                 log.arg  = prohibit->objectName();
                 log.arg2 = ces.card->objectName();
+
                 room->sendLog(log);
+
                 return true;
             }
         }
         break;
     }
+
     case PhaseChange:{
         if(player->getPhase() == Player::Start)
             playerShowed(player);
+
         break;
     }
     case Predamaged:{
@@ -943,9 +968,9 @@ bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &dat
         }
         break;
     }
+
     case Death:{
         if(Config.EnableHegemony){
-
             DamageStar damage = data.value<DamageStar>();
             ServerPlayer *killer = damage ? damage->from : NULL;
             if(killer && killer->getKingdom() == damage->to->getKingdom()){
@@ -955,7 +980,6 @@ bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &dat
             else if(killer && killer->isAlive()){
                 killer->drawCards(3);
             }
-
         }
 
         break;

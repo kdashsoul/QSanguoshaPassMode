@@ -354,7 +354,7 @@ WeaponSkill::WeaponSkill(const QString &name)
 }
 
 bool WeaponSkill::triggerable(const ServerPlayer *target) const{
-    return target->hasWeapon(objectName());
+    return target->hasWeapon(objectName()) || target->hasFlag(QString("wuji_weapon:%1").arg(objectName()));
 }
 
 ArmorSkill::ArmorSkill(const QString &name)

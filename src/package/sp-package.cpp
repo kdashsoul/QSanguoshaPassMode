@@ -74,29 +74,47 @@ public:
 class Danlao: public TriggerSkill{
 public:
     Danlao():TriggerSkill("danlao"){
-        events << CardEffected;
+        events << CardUsed << CardEffected;
     }
 
+    virtual bool triggerable(const ServerPlayer *target) const{
+        return true;
+    }
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-        CardEffectStruct effect = data.value<CardEffectStruct>();
+        Room *room = player->getRoom();
+        if(event == CardUsed){
+            CardUseStruct use = data.value<CardUseStruct>();
+            ServerPlayer *yangxiu = room->findPlayerBySkillName(objectName());
+            if(!yangxiu || use.to.length() <= 1 ||
+                    !use.to.contains(yangxiu) ||
+                    !use.card->inherits("TrickCard") ||
+                    !room->askForSkillInvoke(yangxiu, objectName(), data))
+                return false;
 
-        if(effect.multiple && effect.card->inherits("TrickCard")){
-            Room *room = player->getRoom();
-            if(room->askForSkillInvoke(player, objectName(), data)){
+            yangxiu->tag["Danlao"] = use.card->getEffectiveId();
+
                 room->playSkillEffect(objectName());
 
-                LogMessage log;
+            LogMessage log;
+            log.type = "#DanlaoAvoid";
+            log.from = yangxiu;
+            log.arg = use.card->objectName();
+            log.arg2 = objectName();
 
-                log.type = "#DanlaoAvoid";
-                log.from = player;
-                log.arg = effect.card->objectName();
-                log.arg2 = objectName();
+            room->sendLog(log);
 
-                room->sendLog(log);
+            yangxiu->drawCards(1);
+        }
+        else{
+            if(!player->isAlive() || !player->hasSkill(objectName()))
+                return false;
 
-                player->drawCards(1);
-                return true;
-            }
+            CardEffectStruct effect = data.value<CardEffectStruct>();
+            if(player->tag["Danlao"].isNull() || player->tag["Danlao"].toInt() != effect.card->getEffectiveId())
+                return false;
+
+            player->tag["Danlao"] = QVariant(QString());
+            return true;
         }
 
         return false;
@@ -181,6 +199,7 @@ public:
                 log.type = "#YongsiBad";
                 log.from = yuanshu;
                 log.arg = QString::number(x);
+                log.arg2 = objectName();
                 room->sendLog(log);
             }
         }

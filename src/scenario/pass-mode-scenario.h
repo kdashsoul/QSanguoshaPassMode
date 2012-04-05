@@ -59,8 +59,8 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const;
 
-    QStringList getNeedSaveRoomTagName() const;
-    QStringList getNeedSavePlayerMarkName() const;
+    static QStringList getNeedSaveRoomTagName();
+    static QStringList getNeedSavePlayerMarkName();
 
     void stageStartDraw(Room *room, ServerPlayer *player = NULL) const;
     void initGameStart(ServerPlayer *player) const;

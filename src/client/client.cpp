@@ -851,7 +851,7 @@ void Client::askForSkillLearn(const QString &tab_index){
                     QCommandLinkButton *button = new QCommandLinkButton;
                     button->setObjectName(skill_name);
                     skill_text = Sanguosha->translate(skill_name) ;
-                    skill_value = PassMode::getSkillMap().value(skill_name)->getValue() ;
+                    skill_value = PassMode::getSkillMap().value(skill_name,new SkillAttrStruct)->getValue() ;
                     if(skill_name.endsWith("_o")){
                         if(Self->hasAbility(skill_name.remove(QRegExp("_o$")))){
                             button->setStyleSheet("color:green");
@@ -1199,9 +1199,14 @@ void Client::askForExchange(const QString &exchange_str){
 }
 
 void Client::gameOver(const QString &result_str){
-    QStringList texts = result_str.split(":");
+    QStringList all_info = result_str.split("|");
+    QStringList texts = all_info.at(0).split(":") ;
     QString winner = texts.at(0);
     QStringList roles = texts.at(1).split("+");
+
+    QStringList pass_info ;
+    if(ServerInfo.GameMode == "pass_mode")
+        pass_info = all_info.at(1).split(":") ;
 
     Q_ASSERT(roles.length() == players.length());
 
@@ -1223,6 +1228,7 @@ void Client::gameOver(const QString &result_str){
 
         ClientPlayer *p = const_cast<ClientPlayer *>(player);
         p->setProperty("win", win);
+        p->setProperty("pass_info",pass_info) ;
     }
 
     emit game_over();

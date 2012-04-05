@@ -524,7 +524,10 @@ end
 
 sgs.ai_chaofeng.caiwenji = -5
 
-sgs.ai_skill_invoke.huashen = true
+sgs.ai_skill_invoke.huashen = function(self)
+	return self.player:getHp() > 0
+end
+
 function sgs.ai_skill_choice.huashen(self, choices)
 	local str = choices
 	choices = str:split("+")
@@ -551,7 +554,7 @@ function sgs.ai_skill_choice.huashen(self, choices)
 			if str:match(askill) then return askill end
 		end
 	else
-		assert(self.player:getPhase() == sgs.Player_Start)
+		assert(self.player:getPhase() == sgs.Player_RoundStart)
 		if self.player:getHp() < 1 then return "buqu" end
 		if (self.player:getHandcardNum() < 20 and not self:isWeak()) or self.player:isSkipped(sgs.Player_Play) then
 			if str:match("keji") then return "keji" end

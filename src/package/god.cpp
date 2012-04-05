@@ -1056,6 +1056,7 @@ public:
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        player->setMark("JilveEvent",(int)event);
         if(event == CardUsed || event == CardResponsed){
             CardStar card = NULL;
             if(event == CardUsed)
@@ -1080,7 +1081,7 @@ public:
                 fangzhu->trigger(event, player, data);
             }
         }
-
+        player->setMark("JilveEvent",0);
         return false;
     }
 
@@ -1153,6 +1154,7 @@ public:
     }
 
     virtual int getDrawNum(ServerPlayer *player, int n) const{
+        player->getRoom()->playSkillEffect(objectName());
         return n + player->getLostHp();
     }
 };
@@ -1256,6 +1258,10 @@ public:
         }
 
         return new_card;
+    }
+
+    virtual int getEffectIndex(const ServerPlayer *, const Card *card) const{
+        return static_cast<int>(card->getSuit()) + 1;
     }
 };
 
