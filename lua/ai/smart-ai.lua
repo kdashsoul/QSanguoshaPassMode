@@ -10,7 +10,7 @@ math.randomseed(os.time())
 -- SmartAI is the base class for all other specialized AI classes
 SmartAI = class "SmartAI"
 
-version = "QSanguosha AI 20120331 (V0.8 Stable)"
+version = "QSanguosha AI 20120405 (V0.8 Stable)"
 --- this function is only function that exposed to the host program
 --- and it clones an AI instance by general name
 -- @param player The ServerPlayer object that want to create the AI object
@@ -46,6 +46,8 @@ sgs.ai_skills = 			{}
 sgs.ai_slash_weaponfilter = {}
 sgs.ai_slash_prohibit = 	{}
 sgs.ai_trick_prohibit =		{} -- obsolete
+sgs.ai_view_as = {}
+sgs.ai_zerocardview = {}
 sgs.dynamic_value = 		{
 	damage_card = 			{},
 	control_usecard = 		{},
@@ -73,8 +75,9 @@ function setInitialTables()
 	sgs.masochism_skill = 		"fankui|jieming|yiji|ganglie|enyuan|fangzhu|guixin"
 	sgs.wizard_skill = 			"guicai|guidao|jilve|tiandu"
 	sgs.wizard_harm_skill = 	"guicai|guidao|jilve"
-	sgs.priority_skill = 		"dimeng|haoshi|qingnang|jijiu|jizhi|guzheng|qixi|xiaoji|jieyin|guose"
-	sgs.exclusive_skill = 		"huilei|duanchang|enyuan|wuhun|leiji|buqu|jushou|yiji|ganglie|guixin"
+	sgs.priority_skill = 		"dimeng|haoshi|qingnang|jizhi|guzheng|qixi|jieyin|guose|duanliang"
+	sgs.save_skill = 			"jijiu|buyi|jiefan|chunlao"
+	sgs.exclusive_skill = 		"huilei|duanchang|enyuan|wuhun|buqu|yiji|ganglie|guixin|jieming|miji"
 	sgs.cardneed_skill =        "paoxiao|tianyi|xianzhen|shuangxiong|jizhi|guose|duanliang|qixi|qingnang|" ..
 								"jieyin|renjie|zhiheng|rende|jujian|guicai|guidao|jilve|longhun|wusheng|longdan"
 	sgs.drawpeach_skill =       "tuxi|qiaobian"
@@ -640,6 +643,27 @@ function SmartAI:getPriorTarget()
 	end
 	if #self.enemies == 0 then return end
 	local prior_targets = {}
+
+	for _, enemy in ipairs(self.enemies) do	
+		if not inOneGroup(enemy) and self:hasSkills(sgs.save_skill, player) then
+			table.insert(prior_targets, enemy)
+		end
+	end
+	
+	if #prior_targets > 0 then
+		self:sort(prior_targets, "threat")
+		return prior_targets[1]
+	end
+
+	for _, enemy in ipairs(self.enemies) do
+		if enemy:isLord() and not inOneGroup(enemy) and sgs.isLordInDanger() then return enemy end
+	end
+
+	self:sort(self.enemies, "defense")
+	for _, enemy in ipairs(self.enemies) do
+		if enemy:getHp() < 2 and not inOneGroup(enemy) then return enemy end
+	end
+
 	for _, enemy in ipairs(self.enemies) do	
 		if not inOneGroup(enemy) and self:hasSkills(sgs.priority_skill, player) then
 			table.insert(prior_targets, enemy)
@@ -997,16 +1021,16 @@ function sgs.updateIntentions(from, tos, intention, card)
 	end
 end
 
-function sgs.isLordHealthy(room)
-	local lord = room:getLord()
+function sgs.isLordHealthy()
+	local lord = global_room:getLord()
 	local lord_hp
 	if lord:hasSkill("benghuai") and lord:getHp() > 4 then lord_hp = 4 
 	else lord_hp = lord:getHp() end
 	return lord_hp > 3 or (lord_hp > 2 and sgs.getDefense(lord) > 3)
 end
 
-function sgs.isLordInDanger(room)
-	local lord = room:getLord()
+function sgs.isLordInDanger()
+	local lord = global_room:getLord()
 	local lord_hp
 	if lord:hasSkill("benghuai") and lord:getHp() > 4 then lord_hp = 4 
 	else lord_hp = lord:getHp() end
@@ -1016,7 +1040,7 @@ end
 function sgs.outputProcessValues(room)
 	local loyal = 0
 	local rebel = 0
-	local health = sgs.isLordHealthy(room)
+	local health = sgs.isLordHealthy()
 	local loyal_value, rebel_value = 0, 0, 0
 	local currentplayer = room:getCurrent()
 	for _, aplayer in sgs.qlist(room:getAlivePlayers()) do
@@ -1076,8 +1100,8 @@ function sgs.gameProcess(room)
 	elseif rebel_num == 0 and loyal_num> 0 then return "loyalist"
 	elseif loyal_num == 0 and rebel_num > 1 then return "rebel" end
 	local loyal_value, rebel_value = 0, 0, 0
-	local health = sgs.isLordHealthy(room)
-	local danger = sgs.isLordInDanger(room)
+	local health = sgs.isLordHealthy()
+	local danger = sgs.isLordInDanger()
 	local currentplayer = room:getCurrent()
 	for _, aplayer in sgs.qlist(room:getAlivePlayers()) do
 		--if not (aplayer:objectName() == currentplayer:objectName() and aplayer:getRole() == "renegade") then 
@@ -1105,12 +1129,12 @@ function sgs.gameProcess(room)
 	local diff = loyal_value - rebel_value
 
 	if diff >= 2 then
-	if health then return "loyalist"
-	else return "dilemma" end
+		if health then return "loyalist"
+		else return "dilemma" end
 	elseif diff >= 1 then 
-	if health then return "loyalish"
-	elseif danger then return "dilemma" 
-	else return "rebelish" end
+		if health then return "loyalish"
+		elseif danger then return "dilemma" 
+		else return "rebelish" end
 	elseif diff <= -2 then return "rebel"
 	elseif diff <= -1 then 
 		if health then return "rebelish"
@@ -1152,10 +1176,19 @@ function SmartAI:objectiveLevel(player)
 					else
 						return 0
 					end
+				elseif renegade_num > 1 then
+						if player:isLord() then
+							if not sgs.isLordHealthy() then return -1
+							else return 3 end
+						elseif sgs.evaluatePlayerRole(player) == "renegade" then
+							return 3 
+						else
+							return 5
+						end
 				else
 					if process == "loyalist" then
 						if player:isLord() then
-							if not sgs.isLordHealthy(self.room) then return -1
+							if not sgs.isLordHealthy() then return -1
 							else return 3.5 end
 						elseif sgs.evaluatePlayerRole(player) == "rebel" or
 							sgs.evaluateRoleTrends(player) == "rebel" then
@@ -1178,7 +1211,7 @@ function SmartAI:objectiveLevel(player)
 				end
 			elseif loyal_num > 0 then
 				if player:isLord() then
-					if not sgs.isLordHealthy(self.room) then return 0
+					if not sgs.isLordHealthy() then return 0
 					else return 3 end
 				elseif sgs.evaluatePlayerRole(player) == "renegade" then
 					return 3
@@ -1187,9 +1220,10 @@ function SmartAI:objectiveLevel(player)
 				end
 			else
 				if player:isLord() then
-					if not sgs.isLordHealthy(self.room) then return 3
+					if sgs.isLordInDanger then return 0
+					elseif not sgs.isLordHealthy() then return 3
 					else return 5 end
-				elseif sgs.isLordHealthy(self.room) then return 3
+				elseif sgs.isLordHealthy() then return 3
 				else
 					return 5
 				end
@@ -1211,7 +1245,7 @@ function SmartAI:objectiveLevel(player)
 			elseif sgs.evaluateRoleTrends(player) == "rebel" then return -1
 			else
 				if player:isLord() then
-					if not sgs.isLordHealthy(self.room) then  return 0
+					if not sgs.isLordHealthy() then  return 0
 						else return 3 end
 				else
 					if process == "loyalist" then return 5 else return 3 end
@@ -1286,6 +1320,7 @@ function SmartAI:isEnemy(other, another)
 end
 
 function SmartAI:getFriendsNoself(player)
+	player = player or self.player
 	if self:isFriend(self.player, player) then
 		return self.friends_noself
 	elseif self:isEnemy(self.player, player) then
@@ -1302,6 +1337,7 @@ function SmartAI:getFriendsNoself(player)
 end
 
 function SmartAI:getFriends(player)
+	player = player or self.player
 	if self:isFriend(self.player, player) then
 		return self.friends
 	elseif self:isEnemy(self.player, player) then
@@ -2092,7 +2128,13 @@ end
 
 function SmartAI:getCardNeedPlayer(cards)
 	cards = cards or sgs.QList2Table(self.player:getHandcards())
-	
+
+	self:sort(self.enemies, "hp")
+	for _,acard in ipairs(cards) do
+		if acard:inherits("Shit") and #self.enemies > 0 then
+			return acard, self.enemies[1]
+		end
+	end	
 	
 	-- special move between liubei and xunyu and huatuo
 	local cardtogivespecial = {}
@@ -2841,9 +2883,11 @@ local function prohibitUseDirectly(card, player)
 end
 
 local function zeroCardView(class_name, player)
-	if class_name == "Analeptic" then
-		if player:hasSkill("jiushi") and player:faceUp() then
-			return ("analeptic:jiushi[no_suit:0]=.")
+	local vlist = sgs.getSkillLists(player)
+	for _, askill in ipairs(vlist) do
+		local callback = sgs.ai_zerocardview[askill]
+		if type(callback) == "function" and callback(class_name, player) then
+			return callback(card, player)
 		end
 	end
 end
@@ -2858,8 +2902,6 @@ local function isCompulsoryView(card, class_name, player, card_place)
 		end
 	end
 end
-
-sgs.ai_view_as = {}
 
 local function getSkillViewCard(card, class_name, player, card_place)
 	local vlist = sgs.getSkillLists(player)

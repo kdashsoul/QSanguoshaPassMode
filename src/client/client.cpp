@@ -121,6 +121,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["askForAG"] = &Client::askForAG;
     callbacks["takeAG"] = &Client::takeAG;
     callbacks["clearAG"] = &Client::clearAG;
+    callbacks["disableAG"] = &Client::disableAG;
 
     // 3v3 mode & 1v1 mode
     callbacks["fillGenerals"] = &Client::fillGenerals;
@@ -799,12 +800,12 @@ void Client::askForSkillLearn(const QString &tab_index){
     QVBoxLayout *layout = new QVBoxLayout;
     QTabWidget *tab_widget = new QTabWidget;
 
-    QLabel *sp_label = new QLabel ;
-    int sp = Self->getMark("@exp") ;
-    sp_label->setObjectName("sp_label");
-    sp_label->setText(tr("Your sp: %1").arg(sp));
+    QLabel *exp_label = new QLabel ;
+    int exp = Self->getMark("@exp") ;
+    exp_label->setObjectName("exp_label");
+    exp_label->setText(tr("Your exp: %1").arg(exp));
 
-    layout->addWidget(sp_label);
+    layout->addWidget(exp_label);
 
     for(int i = 0 ; i < tab_names.length() ; i++){
         QScrollArea* scroll = new QScrollArea();
@@ -830,6 +831,8 @@ void Client::askForSkillLearn(const QString &tab_index){
                         button->setStyleSheet("color:green");
                         button->setDisabled(true);
                     }
+                    if(exp < skill_value)
+                        button->setDisabled(true);
                     button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
                     button->setToolTip(skill_desc);
                     button->setFont(Config.TinyFont);
@@ -865,6 +868,8 @@ void Client::askForSkillLearn(const QString &tab_index){
                             button->setDisabled(true);
                         }
                     }
+                    if(exp < skill_value)
+                        button->setDisabled(true);
 
                     button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
                     button->setFont(Config.TinyFont);
@@ -1436,6 +1441,10 @@ void Client::takeAG(const QString &take_str){
 
 void Client::clearAG(const QString &){
     emit ag_cleared();
+}
+
+void Client::disableAG(const QString &disable_str){
+    emit ag_disabled(disable_str == "true");
 }
 
 void Client::askForSinglePeach(const QString &ask_str){

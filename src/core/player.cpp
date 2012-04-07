@@ -494,6 +494,15 @@ int Player::getMaxCards() const{
         }
     }
 
+    int guwu = 0 ;
+    if(getKingdom() == "evil" || getKingdom() == "evil_god"){
+        QList<const Player *> players = getSiblings();
+        foreach(const Player *player, players){
+            if(player->isAlive() && player->hasSkill("guwu_p"))
+                guwu += 1;
+        }
+    }
+
     int shenwei = 0;
     if(hasSkill("shenwei"))
         shenwei = 2;
@@ -512,7 +521,7 @@ int Player::getMaxCards() const{
         zongshi = kingdom_set.size();
     }
 
-    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi ;
+    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi + guwu;
     total += getAbilityLevel("maxcards");
 
     return total;

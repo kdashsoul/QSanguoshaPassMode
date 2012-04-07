@@ -211,6 +211,7 @@ RoomScene::RoomScene(QMainWindow *main_window)
         connect(ClientInstance, SIGNAL(ag_filled(QList<int>)), card_container, SLOT(fillCards(QList<int>)));
         connect(ClientInstance, SIGNAL(ag_taken(const ClientPlayer*,int)), this, SLOT(takeAmazingGrace(const ClientPlayer*,int)));
         connect(ClientInstance, SIGNAL(ag_cleared()), card_container, SLOT(clear()));
+        connect(ClientInstance, SIGNAL(ag_disabled(bool)), card_container, SLOT(disableCards(bool)));
 
         if(circular)
             card_container->moveBy(-120, 0);
@@ -2540,8 +2541,14 @@ void RoomScene::onGameOver(){
         }
         QLabel *turns_label = new QLabel;
         turns_label->setText(tr("Use turns: %1").arg(pass_info_map.value("Turns")));
+        turns_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        turns_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+        turns_label->setMargin(5);
+
         QLabel *load_times_label = new QLabel;
         load_times_label->setText(tr("Load times: %1").arg(pass_info_map.value("LoadTimes")));
+        load_times_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        turns_label->setMargin(5);
 
         QVBoxLayout *layout = new QVBoxLayout;
         layout->addWidget(turns_label);
@@ -2568,7 +2575,7 @@ void RoomScene::addRestartButton(QDialog *dialog){
     }
 
     QPushButton *restart_button;
-      restart_button = new QPushButton(goto_next ? tr("Next Stage") : tr("Restart Game"));
+    restart_button = new QPushButton(goto_next ? tr("Next Stage") : tr("Restart Game"));
     QPushButton *return_button = new QPushButton(tr("Return to main menu"));
     QHBoxLayout *hlayout = new QHBoxLayout;
     hlayout->addStretch();

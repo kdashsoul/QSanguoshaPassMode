@@ -321,8 +321,7 @@ public:
         CardUseStruct use = data.value<CardUseStruct>();
         if(use.card->inherits("SavageAssault") &&
                 ((!use.card->isVirtualCard()) ||
-                 (use.card->isVirtualCard() &&
-                  use.card->getSubcards().length() == 1 &&
+                  (use.card->getSubcards().length() == 1 &&
                   Sanguosha->getCard(use.card->getSubcards().first())->inherits("SavageAssault")))){
             Room *room = player->getRoom();
             if(room->getCardPlace(use.card->getEffectiveId()) == Player::DiscardedPile){
@@ -587,14 +586,6 @@ void DimengCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
 
     DummyCard *card1 = a->wholeHandCards();
     DummyCard *card2 = b->wholeHandCards();
-
-    if(card1){
-        room->moveCardTo(card1, a, Player::Special, false);
-    }
-
-    if(card2){
-        room->moveCardTo(card2, b, Player::Special, false);
-    }
 
     if(card1){
         room->moveCardTo(card1, b, Player::Hand, false);

@@ -1,3 +1,11 @@
+function sgs.ai_zerocardview.jiushi(class_name, player)
+	if class_name == "Analeptic" then
+		if player:hasSkill("jiushi") and player:faceUp() then
+			return ("analeptic:jiushi[no_suit:0]=.")
+		end
+	end
+end
+
 function sgs.ai_skill_invoke.jiushi(self, data)
 	return not self.player:faceUp()
 end
@@ -488,7 +496,7 @@ sgs.ai_skill_use_func.XianzhenSlashCard=function(card,use,self)
 	local target = self.player:getTag("XianzhenTarget"):toPlayer()
 	if self:askForCard("slash", "@xianzhen-slash") == "." then return end
 	
-	if self:getCard("Slash") and not (target:hasSkill("kongcheng") and target:isKongcheng()) then
+	if self:getCard("Slash") and not (target:hasSkill("kongcheng") and target:isKongcheng()) and target:isAlive() then
 		use.card=card
 	end
 end

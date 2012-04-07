@@ -109,10 +109,12 @@ QWidget *ServerDialog::createPackageTab(){
         if(package == NULL)
             continue;
 
+        bool forbid_package = Config.value("ForbidPackages").toString().contains(extension);
         QCheckBox *checkbox = new QCheckBox;
         checkbox->setObjectName(extension);
         checkbox->setText(Sanguosha->translate(extension));
-        checkbox->setChecked(! ban_packages.contains(extension));
+        checkbox->setChecked(!ban_packages.contains(extension) && !forbid_package);
+        checkbox->setEnabled(!forbid_package);
 
         extension_group->addButton(checkbox);
 

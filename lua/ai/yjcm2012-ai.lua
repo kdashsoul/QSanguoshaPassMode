@@ -30,10 +30,11 @@ sgs.ai_skill_invoke.zhenlie = function(self, data)
 	return false
 end
 
-sgs.ai_skill_playerchosen.miji = function(self)
-	self:sort(self.friends,"defense")
-	for _, target in ipairs(self.friends) do
-		return target 
+sgs.ai_skill_playerchosen.miji = function(self, targets)
+	targets = sgs.QList2Table(targets)
+	self:sort(targets, "defense")
+	for _, target in ipairs(targets) do
+		if self:isFriend(target) then return target end 
 	end
 end
 
@@ -208,16 +209,25 @@ end
 sgs.ai_skill_invoke.zhuiyi = function(self, data)
 	local players = self.room:getOtherPlayers(self.player)
 	players = sgs.QList2Table(players)
-	local friendnum = 0
-	for _,player in ipairs(players) do
-		if self:isFriend(player) then friendnum = friendnum + 1 end
-	end
-	return friendnum > 0
+	local damage = data:toDamageStar()
+	local exclude = self.player
+	if damage and damage.from then exclude = damage.from end
+	
+	local friends = self:getFriendsNoself()
+	table.removeOne(friends, exclude)
+	return #friends > 0
 end
 
-sgs.ai_skill_playerchosen.zhuiyi = function(self)
-	self:sort(self.friends_noself,"defense")
-	return self.friends_noself[1]
+sgs.ai_skill_playerchosen.zhuiyi = function(self, targets)
+	if self:isFriend(self.room:getLord()) and sgs.isLordInDanger() then return self.room:getLord() end
+	
+	targets = sgs.QList2Table(targets)
+	self:sort(targets,"defense")
+	for _, friend in ipairs(self.friends_noself) do
+		if self:isFriend(friend) then
+			return friend
+		end
+	end
 end
 
 sgs.ai_view_as.lihuo = function(card, player, card_place)

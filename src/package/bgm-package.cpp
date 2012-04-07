@@ -77,7 +77,8 @@ void LihunCard::onEffect(const CardEffectStruct &effect) const{
     foreach(const Card *cd, effect.to->getHandcards()){
         dummy_card->addSubcard(cd);
     }
-    room->moveCardTo(dummy_card, effect.from, Player::Hand, false);
+    if (!effect.to->isKongcheng())
+        room->moveCardTo(dummy_card, effect.from, Player::Hand, false);
     room->setTag("LihunTarget", QVariant::fromValue(effect.to));
 }
 
@@ -314,6 +315,10 @@ public:
     Zuixiang(): TriggerSkill("zuixiang"){
         events << PhaseChange << CardEffected ;
         frequency = Limited;
+
+        type[Card::Basic] = "BasicCard";
+        type[Card::Trick] = "TrickCard";
+        type[Card::Equip] = "EquipCard";
     }
 
     void doZuixiang(ServerPlayer *player) const{
@@ -325,6 +330,7 @@ public:
             room->moveCardTo(cd, NULL, Player::Special, true);
             room->getThread()->delay();
             player->addToPile("dream", id, true);
+            room->setPlayerCardLock(player, type[cd->getTypeId()]);
         }
 
         QList<int> zuixiang = player->getPile("dream");
@@ -348,14 +354,7 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *sp_pangtong, QVariant &data) const{
         Room *room = sp_pangtong->getRoom();
-
         QList<int> zuixiang = sp_pangtong->getPile("dream");
-        static QMap<Card::CardType, QString> type;
-        if(type.isEmpty()){
-            type[Card::Basic] = "BasicCard";
-            type[Card::Trick] = "TrickCard";
-            type[Card::Equip] = "EquipCard";
-        }
 
         if(event == PhaseChange && sp_pangtong->getMark("zuixiangHasTrigger") == 0){
             if(sp_pangtong->getPhase() == Player::Start){
@@ -367,15 +366,6 @@ public:
                 }else
                     doZuixiang(sp_pangtong);
             }
-            else if(sp_pangtong->getPhase() == Player::Play){
-                if(zuixiang.isEmpty())
-                    return false;
-
-                foreach(int card_id, zuixiang){
-                    const Card *card = Sanguosha->getCard(card_id);
-                    room->setPlayerCardLock(sp_pangtong, type[card->getTypeId()]);
-                }
-            }
         }
         else if(event == CardEffected){
             if(zuixiang.isEmpty())
@@ -384,9 +374,10 @@ public:
             CardEffectStruct effect = data.value<CardEffectStruct>();
             if(sp_pangtong->hasCardLock(type[effect.card->getTypeId()])){
                 LogMessage log;
-                log.type = "#ZuiXiang";
+                log.type = effect.from ? "#ZuiXiang1" : "#Zuixiang2";
                 log.from = effect.to;
-                log.to << effect.from;
+                if(effect.from)
+                    log.to << effect.from;
                 log.arg = effect.card->objectName();
                 log.arg2 = objectName();
 
@@ -398,6 +389,9 @@ public:
         }
         return false;
     }
+
+private:
+    QMap<Card::CardType, QString> type;
 };
 
 BGMPackage::BGMPackage():Package("BGM"){

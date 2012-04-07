@@ -17,8 +17,14 @@ static const qreal ViewWidth = 1280 * 0.8;
 static const qreal ViewHeight = 800 * 0.8;
 
 Settings::Settings()
-    :QSettings("config.ini", QSettings::IniFormat),
-    Rect(-ViewWidth/2, -ViewHeight/2, ViewWidth, ViewHeight)
+
+#ifdef Q_OS_WIN32
+    :QSettings("config.ini", QSettings::IniFormat)
+#else
+    :QSettings("QSanguosha.com", "QSanguosha")
+#endif
+
+     ,Rect(-ViewWidth/2, -ViewHeight/2, ViewWidth, ViewHeight)
 {
 }
 
@@ -54,13 +60,11 @@ void Settings::init(){
         banlist << "nostalgia" << "yitian" << "wisdom" << "test"
                 << "disaster" << "god" << "YJCM" << "yitian_cards"
                 << "sp" << "sp_cards" << "BGM" << "YJCM2012" << "Special3v3"
-                << "joy" << "joy_equip";
+                << "joy" << "joy_equip" ;
 
         setValue("BanPackages", banlist);
     }
-
     BanPackages = value("BanPackages").toStringList();
-    BanPackages << "Special3v3";
 
     ContestMode = value("ContestMode", false).toBool();
     FreeChoose = value("FreeChoose", false).toBool();
@@ -125,7 +129,7 @@ void Settings::init(){
             hegemony_ban << general;
     }
 
-    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "+luboyan"
+    pairs_ban << "shencaocao" << "dongzhuo" << "zuoci" << "zhoutai" << "+luboyan" << "liaohua"
               << "caocao+caochong" << "xushu+zhugeliang" << "simayi+caizhaoji" << "wisjiangwei+zhanggongqi"
                 << "zhenji+zhangjiao" << "zhenji+simayi" << "huanggai+yuanshao"
                 << "huanggai+wuguotai" << "dengshizai+caoren" << "dengshizai+shenlubu" << "dengshizai+bgm_diaochan"
@@ -147,7 +151,8 @@ void Settings::init(){
                 << "bgm_diaochan+caizhaoji" << "caozhi+shenlubu" << "caoren+caozhi"
                 << "guanxingzhangbao+luxun" << "guanxingzhangbao+sunce" << "bgm_caoren+caoren"
                 << "bgm_caoren+caozhi" << "bgm_caoren+shenlubu" << "bgm_caoren+bgm_diaochan"
-                << "bgm_caoren+dengshizai" << "bgm_caoren+caizhaoji" ;
+                << "bgm_caoren+dengshizai" << "bgm_caoren+caizhaoji" << "bgm_pangtong+huanggai"
+                << "huanggai+guanxingzhangbao";
 
     QStringList banlist = value("Banlist/Roles").toStringList();
     foreach(QString ban_general, roles_ban){
@@ -183,4 +188,8 @@ void Settings::init(){
                 banlist << ban_general;
     }
     setValue("Banlist/Pairs", banlist);
+
+    QStringList forbid_packages;
+    forbid_packages << "Special3v3";
+    setValue("ForbidPackages", forbid_packages.join("+"));
 }

@@ -895,6 +895,7 @@ int Room::askForAG(ServerPlayer *player, const QList<int> &card_ids, bool refusa
         thread->delay(Config.AIDelay);
         card_id = ai->askForAG(card_ids, refusable, reason);
     }else{
+        player->invoke("disableAG", "false");
         player->invoke("askForAG", refusable ? "?" : ".");
         getResult("chooseAGCommand", player);
 
@@ -3265,8 +3266,10 @@ void Room::fillAG(const QList<int> &card_ids, ServerPlayer *who){
 
     if(who)
         who->invoke("fillAG", card_str.join("+"));
-    else
+    else{
         broadcastInvoke("fillAG", card_str.join("+"));
+        broadcastInvoke("disableAG", "true");
+    }
 }
 
 void Room::takeAG(ServerPlayer *player, int card_id){
@@ -3274,6 +3277,7 @@ void Room::takeAG(ServerPlayer *player, int card_id){
         player->addCard(Sanguosha->getCard(card_id), Player::Hand);
         setCardMapping(card_id, player, Player::Hand);
         broadcastInvoke("takeAG", QString("%1:%2").arg(player->objectName()).arg(card_id));
+        player->invoke("disableAG", "true");
         CardMoveStruct move;
         move.from = NULL;
         move.from_place = Player::DrawPile;

@@ -279,7 +279,6 @@ end
 sgs.ai_skill_cardask["slash-jink"] = function(self, data, pattern, target)
 	if sgs.ai_skill_cardask.nullfilter(self, data, pattern, target) and not target:hasSkill("qianxi") then return "." end
 	--if not target then self.room:writeToConsole(debug.traceback()) end
-	if target:objectName() == self.player:objectName() then return "." end
 	if not target then return end
 	if self:isFriend(target) then
 		if target:hasSkill("rende") and self.player:hasSkill("jieming") then return "." end
@@ -321,7 +320,7 @@ function SmartAI:useCardPeach(card, use)
 	if self.player:isLord() and (self.player:hasSkill("hunzi") and not self.player:hasSkill("yingzi")) 
 		and self.player:getHp() < 4 and self.player:getHp() > peaches then return end
 	for _, friend in ipairs(self.enemies) do
-		if self:hasSkills(sgs.drawpeach_skill,enemy) and self.player:getHandcardNum() < 3 then
+		if (self:hasSkills(sgs.drawpeach_skill,enemy) and self.player:getHandcardNum() < 3) or (self.player:hasSkill("buqu") and self.player:getHp() < 1) then
 			mustusepeach = true
 		end
 	end
@@ -506,7 +505,6 @@ spear_skill.getTurnUseCard=function(self,inclusive)
 
 	if #cards<(self.player:getHp()+1) then return nil end
 	if #cards<2 then return nil end
-	if self:getCard("Slash") then return nil end
 
 	self:sortByUseValue(cards,true)
 
@@ -1043,7 +1041,8 @@ function SmartAI:useCardCollateral(card, use)
 	self:sort(self.enemies,"threat")
 
 	for _, friend in ipairs(self.friends_noself) do
-		if friend:getWeapon() and self:hasSkills(sgs.lose_equip_skill, friend) then
+		if friend:getWeapon() and self:hasSkills(sgs.lose_equip_skill, friend) 
+			and not self.room:isProhibited(self.player, friend, card) then
 
 			for _, enemy in ipairs(self.enemies) do
 				if friend:canSlash(enemy) then

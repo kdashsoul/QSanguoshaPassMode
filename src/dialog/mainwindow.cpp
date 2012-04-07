@@ -314,7 +314,6 @@ void BackLoader::run()
             emit completed(static_cast<int>(process));
         }
     }
-
     emit finished();
 }
 

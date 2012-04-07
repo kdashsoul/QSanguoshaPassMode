@@ -12,7 +12,7 @@ GameRule::GameRule(QObject *parent)
 {
     setParent(parent);
 
-    events << GameStart << TurnStart << PhaseChange << CardUsed
+    events << GameStart << TurnStart << PhaseChange << CardUsed << CardFinished
             << CardEffected << HpRecover << HpLost << AskForPeachesDone
             << AskForPeaches << Death << Dying << GameOverJudge
             << SlashHit << SlashMissed << SlashEffected << SlashProceed
@@ -201,6 +201,13 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             break;
         }
 
+    case CardFinished: {
+            CardUseStruct use = data.value<CardUseStruct>();
+            use.card->setFlags(".");
+
+            break;
+    }
+
     case HpRecover:{
             RecoverStruct recover_struct = data.value<RecoverStruct>();
             int recover = recover_struct.recover;
@@ -380,7 +387,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
             QString slasher = effect.from->objectName();
-            const Card *jink = room->askForCard(effect.to, "jink", "slash-jink:" + slasher);
+            const Card *jink = room->askForCard(effect.to, "jink", "slash-jink:" + slasher, data);
             room->slashResult(effect, jink);
 
             break;
@@ -821,7 +828,7 @@ QString BasaraMode::getMappedRole(const QString &role){
 }
 
 int BasaraMode::getPriority() const{
-    return 1;
+    return 5;
 }
 
 void BasaraMode::playerShowed(ServerPlayer *player) const{
@@ -829,18 +836,23 @@ void BasaraMode::playerShowed(ServerPlayer *player) const{
     QStringList names = room->getTag(player->objectName()).toStringList();
     if(names.isEmpty())
         return;
+
     if(Config.EnableHegemony){
         QMap<QString, int> kingdom_roles;
         foreach(ServerPlayer *p, room->getOtherPlayers(player)){
             kingdom_roles[p->getKingdom()]++;
         }
+
         if(kingdom_roles[Sanguosha->getGeneral(names.first())->getKingdom()] >= 2
                 && player->getGeneralName() == "anjiang")
             return;
     }
+
     QString answer = room->askForChoice(player, "RevealGeneral", "yes+no");
     if(answer == "yes"){
+
         QString general_name = room->askForGeneral(player,names);
+
         generalShowed(player,general_name);
         if(Config.EnableHegemony)room->getThread()->trigger(GameOverJudge, player);
         playerShowed(player);
@@ -872,16 +884,20 @@ void BasaraMode::generalShowed(ServerPlayer *player, QString general_name) const
 
     room->setPlayerProperty(player, "kingdom", player->getGeneral()->getKingdom());
     if(Config.EnableHegemony)room->setPlayerProperty(player, "role", getMappedRole(player->getGeneral()->getKingdom()));
+
     names.removeOne(general_name);
     room->setTag(player->objectName(),QVariant::fromValue(names));
+
     LogMessage log;
     log.type = "#BasaraReveal";
     log.from = player;
     log.arg  = player->getGeneralName();
     log.arg2 = player->getGeneral2Name();
+
     room->sendLog(log);
     room->broadcastInvoke("playAudio","choose-item");
 }
+
 bool BasaraMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
     Room *room = player->getRoom();
     player->tag["event"] = event;

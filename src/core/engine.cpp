@@ -340,8 +340,9 @@ SkillCard *Engine::cloneSkillCard(const QString &name) const{
 }
 
 QString Engine::getVersionNumber() const{
-    return "20120122";
+    return "20120405";
 }
+
 QString Engine::getVersion() const{
     QString version_number = getVersionNumber();
     QString mod_name = getMODName();
@@ -352,7 +353,7 @@ QString Engine::getVersion() const{
 }
 
 QString Engine::getVersionName() const{
-    return tr("Chuxi");
+    return tr("Taqing");
 }
 
 QString Engine::getMODName() const{
@@ -363,7 +364,7 @@ QStringList Engine::getExtensions() const{
     QStringList extensions;
     QList<const Package *> packages = findChildren<const Package *>();
     foreach(const Package *package, packages){
-        if(package->inherits("Scenario") ||package->objectName()=="Special3v3" || package->objectName() == "pass")
+        if(package->inherits("Scenario") || package->objectName() == "pass")
             continue;
 
         extensions << package->objectName();
@@ -647,8 +648,9 @@ QList<int> Engine::getRandomCards() const{
     bool exclude_disaters = false, using_new_3v3 = false;
 
     if(Config.GameMode == "06_3v3"){
-        exclude_disaters = Config.value("3v3/ExcludeDisasters", true).toBool();
         using_new_3v3 = Config.value("3v3/UsingNewMode", false).toBool();
+        exclude_disaters = Config.value("3v3/ExcludeDisasters", true).toBool() ||
+                            using_new_3v3;
     }
 
     if(Config.GameMode == "04_1v3")
@@ -659,9 +661,11 @@ QList<int> Engine::getRandomCards() const{
         if(exclude_disaters && card->inherits("Disaster"))
             continue;
 
-        if(!ban_package.contains(card->getPackage()))
+        if(card->getPackage() == "Special3v3" && using_new_3v3){
             list << card->getId();
-        else if(card->getPackage() == "Special3v3" && using_new_3v3)
+            list.removeOne(98);
+        }
+        else if(!ban_package.contains(card->getPackage()))
             list << card->getId();
     }
 

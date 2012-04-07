@@ -461,23 +461,24 @@ void DianjiPassCard::onEffect(const CardEffectStruct &effect) const{
 
     room->judge(judge);
 
-    if(judge.isBad()){
-        DamageStruct damage;
-        damage.card = NULL;
-        damage.damage = 1;
-        damage.from = leishi;
-        damage.to = target;
-        damage.nature = DamageStruct::Thunder;
+    DamageStruct damage;
+    damage.card = NULL;
+    damage.damage = 1;
+    damage.from = leishi;
+    damage.nature = DamageStruct::Thunder;
 
-        room->damage(damage);
-    }else
-        room->setEmotion(leishi, "bad");
+    if(judge.isBad()){
+        damage.to = target;
+    }else{
+        damage.to = leishi;
+    }
+    room->damage(damage);
 }
 
 
-class LeitiPass: public TriggerSkill{
+class LeilingPass: public TriggerSkill{
 public:
-    LeitiPass():TriggerSkill("leiti_p"){
+    LeilingPass():TriggerSkill("leiling_p"){
         events << Predamaged;
     }
 
@@ -571,6 +572,34 @@ public:
         return false;
     }
 };
+
+class XiangxiaoPass:public MasochismSkill{
+public:
+    XiangxiaoPass():MasochismSkill("xiangxiao_p"){
+    }
+
+    virtual void onDamaged(ServerPlayer *wuniang, const DamageStruct &damage) const{
+        ServerPlayer *from = damage.from;
+        Room *room = wuniang->getRoom();
+        QVariant data = QVariant::fromValue(from);
+        QList<ServerPlayer *> targets ;
+        foreach (ServerPlayer *p, room->getAlivePlayers()) {
+            if(p != wuniang && p->isWounded()){
+                targets << p ;
+            }
+        }
+
+        if(!targets.empty() && room->askForSkillInvoke(wuniang, objectName() , data)){
+            ServerPlayer *frd = room->askForPlayerChosen(wuniang,targets,objectName());
+            if(frd){
+                RecoverStruct recover;
+                recover.who = frd;
+                room->recover(frd, recover);
+            }
+        }
+    }
+};
+
 
 
 class WanghouPass: public OneCardViewAsSkill{
@@ -702,10 +731,6 @@ public:
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *sunshangxiang, QVariant &data) const{
         Room *room = sunshangxiang->getRoom();
-        LogMessage log;
-//        log.type = "#TriggerSkill";
-//        log.from = sunshangxiang;
-//        log.arg = objectName();
         CardUseStruct use = data.value<CardUseStruct>();
         if(!use.card || !use.card->inherits("Slash"))
             return false;
@@ -715,6 +740,10 @@ public:
             const Weapon *weapon = use.to.first()->getWeapon() ;
             if(weapon){
                 room->setPlayerFlag(sunshangxiang, QString("wuji_weapon:%1").arg(weapon->objectName()));
+                LogMessage log;
+                log.type = "#TriggerSkill";
+                log.from = sunshangxiang;
+                log.arg = objectName();
             }
         }else if(event == CardFinished){
             room->setPlayerFlag(sunshangxiang, QString("-wuji_weapon:*"));
@@ -3752,14 +3781,17 @@ PassPackage::PassPackage()
 
     General *leishi = new General(this,"leishi_e","evil",3, true, true);
     leishi->addSkill(new DianjiPass);
-    leishi->addSkill(new LeitiPass);
+    leishi->addSkill(new LeilingPass);
 
-    General *kuangdaoke = new General(this,"kuangdaoke_e","evil",3, true, true);
-    kuangdaoke->addSkill(new LianzhanPass);
-    kuangdaoke->addSkill(new DouzhiPass);
+    General *daomo = new General(this,"daomo_e","evil",3, true, true);
+    daomo->addSkill(new LianzhanPass);
+    daomo->addSkill(new DouzhiPass);
 
+    General *wuniang = new General(this,"wuniang_e","evil",3, false, true);
+    wuniang->addSkill(new Skill("guwu_p"));
+    wuniang->addSkill(new XiangxiaoPass);
 
-    skills << new Skill("nuhou_p") << new TipoPass << new Skill("kezhi_p") << new Skill("fenjin_p") << new QuanhengPass
+    skills << new TipoPass << new QuanhengPass
            << new DuanyanPass << new XiongziPass << new QiangongPass
            << new WanghouPass << new QiangyunPass << new XiaoxiongPass << new KuanhouPass
            << new WujiPass;

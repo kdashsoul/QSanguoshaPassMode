@@ -26,6 +26,7 @@ void ServerPlayer::playCardEffect(const QString &card_name) const{
     QString gender = getGender() == General::Male ? "M" : "F";
     room->broadcastInvoke("playCardEffect", QString("%1:%2").arg(card_name).arg(gender));
 }
+
 void ServerPlayer::playCardEffect(const Card *card) const{
     if(card->isMute())
         return;

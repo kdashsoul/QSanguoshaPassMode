@@ -6,6 +6,61 @@
 #include "engine.h"
 #include "standard.h"
 #include "maneuvering.h"
+class SPMoonSpearSkill: public WeaponSkill{
+public:
+    SPMoonSpearSkill():WeaponSkill("sp_moonspear"){
+        events << CardFinished << CardResponsed;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        if(player->getPhase() != Player::NotActive)
+            return false;
+
+        CardStar card = NULL;
+        if(event == CardFinished){
+            CardUseStruct card_use = data.value<CardUseStruct>();
+            card = card_use.card;
+
+            if(card == player->tag["MoonSpearSlash"].value<CardStar>()){
+                card = NULL;
+            }
+        }else if(event == CardResponsed){
+            card = data.value<CardStar>();
+            player->tag["MoonSpearSlash"] = data;
+        }
+
+        if(card == NULL || !card->isBlack())
+            return false;
+
+        Room *room = player->getRoom();
+        if(!room->askForSkillInvoke(player, objectName(), data))
+            return false;
+        QList<ServerPlayer *> targets;
+        foreach(ServerPlayer *tmp, room->getOtherPlayers(player)){
+            if(player->inMyAttackRange(tmp))
+                targets << tmp;
+        }
+        if(targets.isEmpty()) return false;
+        ServerPlayer *target = room->askForPlayerChosen(player, targets, objectName());
+        if(!room->askForCard(target, "jink", "@moon-spear-jink")){
+            DamageStruct damage;
+            damage.from = player;
+            damage.to = target;
+            room->damage(damage);
+        }
+        return false;
+    }
+};
+
+class SPMoonSpear: public Weapon{
+public:
+    SPMoonSpear(Suit suit = Card::Diamond, int number = 12)
+        :Weapon(suit, number, 3){
+        setObjectName("sp_moonspear");
+        skill = new SPMoonSpearSkill;
+    }
+};
+
 class JileiClear: public PhaseChangeSkill{
 public:
     JileiClear():PhaseChangeSkill("#jilei-clear"){
@@ -365,6 +420,16 @@ public:
         return false;
     }
 };
+
+SPCardPackage::SPCardPackage()
+    :Package("sp_cards")
+{
+    (new SPMoonSpear)->setParent(this);
+
+    type = CardPack;
+}
+
+ADD_PACKAGE(SPCard)
 
 SPPackage::SPPackage()
     :Package("sp")

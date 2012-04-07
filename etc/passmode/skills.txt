@@ -9,9 +9,9 @@ startdraw_o 15
 
 
 rende 15|10|50
-jijiang 15|10:1
+jijiang 15|10:3
 
-wanghou_p 20:5
+wanghou_p 20
 xiaoxiong_p 30
 kuanhou_p 30
 qiangyun_p 20

@@ -249,6 +249,11 @@ win32{
     RC_FILE += resource/icon.rc
 }
 
+macx{
+    ICON = resource/icon/sgs.icns
+}
+
+
 LIBS += -L.
 
 CONFIG(audio){
@@ -269,10 +274,7 @@ CONFIG(joystick){
 TRANSLATIONS += sanguosha.ts
 
 OTHER_FILES += \
-    sanguosha.qss \
-    acknowledgement/main.qml \
+	sanguosha.qss \
+	acknowledgement/main.qml \
 	acknowledgement/list.png \
 	acknowledgement/back.png
-
-
-
