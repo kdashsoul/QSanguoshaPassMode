@@ -103,6 +103,7 @@ private:
     QComboBox *max_hp_scheme_combobox;
     QCheckBox *announce_ip_checkbox;
     QComboBox *scenario_combobox;
+    QComboBox *pass_mode_combobox;
     QComboBox *mini_scene_combobox;
     QPushButton *mini_scene_button;
     QLineEdit *address_edit;

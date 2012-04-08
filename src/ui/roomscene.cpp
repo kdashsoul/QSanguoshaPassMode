@@ -211,7 +211,7 @@ RoomScene::RoomScene(QMainWindow *main_window)
         connect(ClientInstance, SIGNAL(ag_filled(QList<int>)), card_container, SLOT(fillCards(QList<int>)));
         connect(ClientInstance, SIGNAL(ag_taken(const ClientPlayer*,int)), this, SLOT(takeAmazingGrace(const ClientPlayer*,int)));
         connect(ClientInstance, SIGNAL(ag_cleared()), card_container, SLOT(clear()));
-        connect(ClientInstance, SIGNAL(ag_disabled(bool)), card_container, SLOT(disableCards(bool)));
+        connect(ClientInstance, SIGNAL(ag_disabled(bool)), card_container, SLOT(freezeCards(bool)));
 
         if(circular)
             card_container->moveBy(-120, 0);
@@ -2496,7 +2496,7 @@ void RoomScene::onGameOver(){
     dialog->resize(500, 600);
     dialog->setWindowTitle(victory ? tr("Victory") : tr("Failure"));
 
-    if(ServerInfo.GameMode != "pass_mode"){
+    if(! ServerInfo.GameMode.contains("_pass_")){
         QGroupBox *winner_box = new QGroupBox(tr("Winner(s)"));
         QGroupBox *loser_box = new QGroupBox(tr("Loser(s)"));
 
@@ -2574,6 +2574,12 @@ void RoomScene::addRestartButton(QDialog *dialog){
             goto_next = true;
     }
 
+    if(Config.GameMode.contains("_pass_") && Self->property("win").toBool()){
+        int current = ServerInfo.GameMode.remove("_pass_").toInt(); //PassMode::getSaveData()->roomTags.value("Stage").toInt() ;
+        if(current < PassMode::maxStage)
+            goto_next = true;
+    }
+
     QPushButton *restart_button;
     restart_button = new QPushButton(goto_next ? tr("Next Stage") : tr("Restart Game"));
     QPushButton *return_button = new QPushButton(tr("Return to main menu"));
@@ -2594,6 +2600,7 @@ void RoomScene::addRestartButton(QDialog *dialog){
     connect(save_button, SIGNAL(clicked()), this, SLOT(saveReplayRecord()));
     connect(dialog, SIGNAL(accepted()), this, SIGNAL(restart()));
     connect(return_button, SIGNAL(clicked()), this, SIGNAL(return_to_start()));
+    connect(dialog, SIGNAL(rejected()), return_button, SLOT(click()));
 }
 
 void RoomScene::saveReplayRecord(){

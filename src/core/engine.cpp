@@ -7,6 +7,7 @@
 #include "lua.hpp"
 #include "banpair.h"
 #include "audio.h"
+#include "pass-mode-scenario.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -67,8 +68,11 @@ Engine::Engine()
         addPackage(name);
 
     QStringList scene_names;
-    scene_names << "PassMode"
-                << "Custom";
+    scene_names << "Custom";
+
+    for(int i=1; i<=PassMode::maxStage ; i++){
+        scene_names << QString("PassMode_%1").arg(i, 2, 10, QChar('0'));
+    }
 
     for(int i=1; i<=21; i++){
         scene_names << QString("MiniScene_%1").arg(i, 2, 10, QChar('0'));
@@ -161,7 +165,7 @@ Engine::~Engine(){
 QStringList Engine::getScenarioNames() const{
     QStringList names;
     foreach(QString name, scenarios.keys())
-        if(!name.contains("_mini_") && !name.contains("custom_scenario")) names << name;
+        if(!name.contains("_mini_") && !name.contains("custom_scenario") && !name.contains("_pass_")) names << name;
     return names;
 }
 

@@ -60,6 +60,8 @@ void Room::initCallbacks(){
     callbacks["toggleReadyCommand"] = &Room::toggleReadyCommand;
     callbacks["addRobotCommand"] = &Room::addRobotCommand;
     callbacks["fillRobotsCommand"] = &Room::fillRobotsCommand;
+    callbacks["newPassCommand"] = &Room::newPassCommand;
+    callbacks["continuePassCommand"] = &Room::continuePassCommand;
     callbacks["chooseCommand"] = &Room::chooseCommand;
     callbacks["choose2Command"] = &Room::choose2Command;
 
@@ -293,7 +295,7 @@ void Room::killPlayer(ServerPlayer *victim, DamageStruct *reason){
 
 
     broadcastProperty(victim, "role");
-    thread->delay(300);
+    thread->delay(100);
     broadcastInvoke("killPlayer", victim->objectName());
 
     thread->trigger(Death, victim, data);
@@ -389,7 +391,7 @@ void Room::gameOver(const QString &winner){
         db->saveResult(players, winner);
     }
 
-    if(ServerInfo.GameMode != "pass_mode"){
+    if(! ServerInfo.GameMode.contains("_pass_")){
         broadcastInvoke("gameOver", QString("%1:%2").arg(winner).arg(all_roles.join("+")));
     }else{
         QStringList tags ;
@@ -455,6 +457,30 @@ void Room::gameOver(const QString &winner){
         }
     }
 
+    if(mode.contains("_pass_")){
+        ServerPlayer * playerWinner = NULL;
+        QStringList winners = winner.split("+");
+        foreach(ServerPlayer * sp, players){
+            if(sp->getState() != "robot" && (winners.contains(sp->getRole()) || winners.contains(sp->objectName()))){
+                playerWinner = sp;
+                break;
+            }
+        }
+
+        if(playerWinner){
+            QString id = Config.GameMode;
+            id.replace("_pass_","");
+            int current = id.toInt();
+            if(current < PassMode::maxStage)
+                current++;
+            else
+                current = 1;
+            id = QString::number(current).rightJustified(2,'0').prepend("_pass_");
+            Config.GameMode = id;
+            setTag("Stage",current);
+            PassMode::askForSaveData(this);
+        }
+    }
 
     if(QThread::currentThread() == thread)
         thread->end();
@@ -1194,7 +1220,7 @@ void Room::resetAI(ServerPlayer *player){
 }
 
 void Room::transfigure(ServerPlayer *player, const QString &new_general, bool full_state, bool invoke_start, const QString &old_general){
-    if(getMode() != "pass_mode"){
+    if(! ServerInfo.GameMode.contains("_pass_")){
         LogMessage log;
         log.type = "#Transfigure";
         log.from = player;
@@ -1586,6 +1612,14 @@ void Room::fillRobotsCommand(ServerPlayer *player, const QString &){
     for(int i=0; i<left; i++){
         addRobotCommand(player, QString());
     }
+}
+
+void Room::newPassCommand(ServerPlayer *player, const QString &){
+    fillRobotsCommand(player,QString());
+}
+
+void Room::continuePassCommand(ServerPlayer *player, const QString &){
+    fillRobotsCommand(player,QString());
 }
 
 ServerPlayer *Room::getOwner() const{
@@ -2341,7 +2375,7 @@ void Room::startGame(){
     GameRule *game_rule;
     if(mode == "04_1v3")
         game_rule = new HulaoPassMode(this);
-    else if(mode == "pass_mode")
+    else if(mode.contains("_pass_"))
         game_rule = new PassMode(this);
     else if(Config.EnableScene)	//changjing
         game_rule = new SceneRule(this);	//changjing

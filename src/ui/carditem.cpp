@@ -14,7 +14,7 @@
 #include <QGraphicsDropShadowEffect>
 
 CardItem::CardItem(const Card *card)
-    :Pixmap(card->getPixmapPath(), false), card(card), filtered_card(card), auto_back(true)
+    :Pixmap(card->getPixmapPath(), false), card(card), filtered_card(card), auto_back(true), frozen(false)
 
 {
     Q_ASSERT(card != NULL);
@@ -38,7 +38,7 @@ CardItem::CardItem(const Card *card)
 }
 
 CardItem::CardItem(const QString &general_name)
-    :card(NULL), filtered_card(NULL), auto_back(true)
+    :card(NULL), filtered_card(NULL), auto_back(true), frozen(false)
 {
     changeGeneral(general_name);
 }
@@ -206,6 +206,14 @@ bool CardItem::isEquipped() const{
     return Self->hasEquip(card);
 }
 
+void CardItem::setFrozen(bool is_frozen){
+    frozen = is_frozen;
+}
+
+bool CardItem::isFrozen() const{
+    return frozen;
+}
+
 CardItem *CardItem::FindItem(const QList<CardItem *> &items, int card_id){
     foreach(CardItem *item, items){
         if(item->getCard()->getId() == card_id)
@@ -226,11 +234,17 @@ void CardItem::promoteZ()
 }
 
 void CardItem::mousePressEvent(QGraphicsSceneMouseEvent *){
+    if(isFrozen())
+        return;
+
     if(hasFocus())
         emit clicked();
 }
 
 void CardItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *){
+    if(isFrozen())
+        return;
+
     if(auto_back){
         if(parentItem()){
             if(y() < -80)
@@ -252,6 +266,9 @@ void CardItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event){
 }
 
 void CardItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event){
+    if(isFrozen())
+        return;
+
     if(hasFocus()){
         event->accept();
         emit double_clicked();

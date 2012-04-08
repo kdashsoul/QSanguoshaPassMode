@@ -85,6 +85,16 @@ return {
 	["#ZhichiDamaged"] = "%from 受到了伤害，本回合内【杀】和非延时锦囊都将对其无效",
 	["#ZhichiAvoid"] = "%from 的锁定技【%arg】被触发，【杀】和非延时锦囊对其无效",
 
+
+	["#zhangchunhua"] = "冷血皇后",
+	["zhangchunhua"] = "张春华",
+	["shangshi"]="伤逝",
+	[":shangshi"]="锁定技，若你已受伤,当你的手牌数小于你损失的体力值时，立即将手牌补至你损失的体力值张。",
+	["jueqing"]="绝情",
+	["#Jueqing"] = "%from 的技能【绝情】被触发，对 %to 的伤害变为了流失体力。",
+	[":jueqing"]="锁定技，你将要造成的所有伤害均改为流失体力。",
+
+
 	["designer:caozhi"] = "foxear",
 	["designer:yujin"] = "城管无畏",
 	["designer:fazheng"] = "michael_lee",
@@ -95,6 +105,7 @@ return {
 	["designer:wuguotai"] = "章鱼咬你哦",
 	["designer:gaoshun"] = "羽柴文理",
 	["designer:chengong"] = "Kaycent",
+	["designer:zhangchunhua"] = "JZHIEI",
 
 	["cv:caozhi"] = "殆尘",
 	["$jiushi1"] = "举泰山以为肉，倾东海以为酒",
@@ -137,6 +148,10 @@ return {
 	["$zhichi2"] = "若吾早知如此~",
 	["$yizhong1"] = "不先为备，何以待敌",
 	["$yizhong2"] = "稳重行军，百战不殆！",
+	["$shangshi1"] = "无情者伤人，有情者自伤",
+	["$shangshi2"] = "自损八百，可伤敌一千",
+	["$jueqing1"] = "你的死活，与我何干？",
+	["$jueqing2"] = "无来无去，不悔不怨",
 
 	["~chengong"] = "请出就戮！",
 	["~fazheng"] = "辅翼既折，蜀汉衰矣…",
@@ -146,6 +161,7 @@ return {
 	["~xusheng"] = "盛不能奋身出命，不亦辱乎…",
 	["~xushu"] = "娘……孩儿不孝……向您……请罪……",
 	["~yujin"] = "我……无颜面对丞相了……",
+	["~zhangchunhua"] = "怎能如此对我？",
 
 	-- illustrator
 	["illustrator:caozhi"] = "木美人",
@@ -158,4 +174,5 @@ return {
 	["illustrator:wuguotai"] = "zoo",
 	["illustrator:chengong"] = "黑月乱",
 	["illustrator:gaoshun"] = "鄧Sir",
+	["illustrator:zhangchunhua"] = "樱花闪乱",
 }

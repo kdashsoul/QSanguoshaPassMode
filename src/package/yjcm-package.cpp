@@ -932,6 +932,64 @@ public:
     }
 };
 
+
+class Shangshi: public TriggerSkill{
+public:
+    Shangshi():TriggerSkill("shangshi"){
+        events << Damaged << CardLost << HpLost ;
+        frequency = Frequent ;
+    }
+
+    virtual int getPriority() const{
+        return -1;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *chunhua, QVariant &data) const{
+        Room *room = chunhua->getRoom();
+        if(chunhua->getLostHp() <= chunhua->getHandcardNum())
+            return false ;
+        if(event == CardLost){
+            CardMoveStar move = data.value<CardMoveStar>();
+            if(move->from_place != Player::Hand)
+                return false ;
+        }
+        if(room->askForSkillInvoke(chunhua,objectName())){
+            room->playSkillEffect(objectName());
+            int n = chunhua->getLostHp() - chunhua->getHandcardNum() ;
+            LogMessage log;
+            log.type = "#TriggerDrawSkill";
+            log.from = chunhua;
+            log.arg = objectName();
+            log.arg2 = QString::number(n);
+            room->sendLog(log);
+            chunhua->drawCards(n);
+        }
+        return false;
+    }
+};
+
+
+class Jueqing: public TriggerSkill{
+public:
+    Jueqing():TriggerSkill("jueqing"){
+        events << Predamage;
+        frequency = Compulsory ;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *chunhua, QVariant &data) const{
+        Room *room = chunhua->getRoom();
+        room->playSkillEffect(objectName());
+        DamageStruct damage = data.value<DamageStruct>();
+        LogMessage log;
+        log.type = "#Jueqing";
+        log.from = chunhua;
+        log.to.append(damage.to);
+        room->sendLog(log);
+        room->loseHp(damage.to,damage.damage);
+        return true;
+    }
+};
+
 YJCMPackage::YJCMPackage():Package("YJCM"){
     General *caozhi = new General(this, "caozhi", "wei", 3);
     caozhi->addSkill(new Luoying);
@@ -978,6 +1036,9 @@ YJCMPackage::YJCMPackage():Package("YJCM"){
     gaoshun->addSkill(new Xianzhen);
     gaoshun->addSkill(new Jiejiu);
 
+    General *zhangchunhua = new General(this, "zhangchunhua", "wei", 3 , false);
+    zhangchunhua->addSkill(new Shangshi);
+    zhangchunhua->addSkill(new Jueqing);
     addMetaObject<JujianCard>();
     addMetaObject<MingceCard>();
     addMetaObject<GanluCard>();

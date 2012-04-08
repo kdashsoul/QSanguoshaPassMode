@@ -521,11 +521,16 @@ void MainWindow::changeBackground(){
         }
 
         scene->setBackgroundBrush(brush);
+
     }
 
     if(scene->inherits("RoomScene")){
-        RoomScene *room_scene = qobject_cast<RoomScene *>(scene);
-        room_scene->changeTextEditBackground();
+        if(ServerInfo.GameMode.contains("_pass_")){
+            ClientInstance->fillRobots();
+        }else{
+            RoomScene *room_scene = qobject_cast<RoomScene *>(scene);
+            room_scene->changeTextEditBackground();
+        }
     }else if(scene->inherits("StartScene")){
         StartScene *start_scene = qobject_cast<StartScene *>(scene);
         start_scene->setServerLogBackground();

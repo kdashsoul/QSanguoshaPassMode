@@ -188,6 +188,8 @@ public slots:
     void changeGeneral(QString name);
     void addRobot();
     void fillRobots();
+    void newPass();
+    void continuePass();
     void arrange(const QStringList &order);
     void chooseAG(int card_id);
     void replyGongxin(int card_id = -1);

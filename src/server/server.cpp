@@ -8,6 +8,7 @@
 #include "contestdb.h"
 #include "choosegeneraldialog.h"
 #include "customassigndialog.h"
+#include "pass-mode-scenario.h"
 
 #include <QInputDialog>
 #include <QMessageBox>
@@ -585,6 +586,7 @@ QGroupBox *ServerDialog::createGameModeBox(){
 
         scenario_combobox = new QComboBox;
         QStringList names = Sanguosha->getScenarioNames();
+
         foreach(QString name, names){
             QString scenario_name = Sanguosha->translate(name);
             const Scenario *scenario = Sanguosha->getScenario(name);
@@ -600,6 +602,35 @@ QGroupBox *ServerDialog::createGameModeBox(){
                 scenario_combobox->setCurrentIndex(index);
             }
         }
+
+        scenario_button->setDisabled(true);
+        scenario_combobox->setDisabled(true);
+
+        // pass mode
+        QRadioButton *pass_mode_button = new QRadioButton(tr("Pass mode"));
+        pass_mode_button->setObjectName("pass");
+        mode_group->addButton(pass_mode_button);
+
+        pass_mode_combobox = new QComboBox;
+        pass_mode_combobox->addItem(tr("New Game") , "_pass_01");
+        SaveDataStruct *save_data = PassMode::getSaveData();
+        if(save_data->read_success){
+            QString stage = save_data->roomTags["Stage"].toString();
+            QString general_name = save_data->general_name ;
+            QString text = tr("Continue [%1 %2 stage]").arg(Sanguosha->translate(general_name)).arg(stage) ;
+            pass_mode_combobox->addItem(text, QString("_pass_%1").arg(stage.rightJustified(2,'0')));
+        }
+
+        if(mode_group->checkedButton() == NULL){
+            int index = -1 ;
+            if(Config.GameMode.contains("_pass_"))
+                index = save_data->read_success ? 1 : 0;
+            if(index != -1){
+                pass_mode_button->setChecked(true);
+                pass_mode_combobox->setCurrentIndex(index);
+            }
+        }
+
         //mini scenes
         QRadioButton *mini_scenes = new QRadioButton(tr("Mini Scenes"));
         mini_scenes->setObjectName("mini");
@@ -640,6 +671,7 @@ QGroupBox *ServerDialog::createGameModeBox(){
                                           false);
 
         item_list << HLay(scenario_button, scenario_combobox);
+        item_list << HLay(pass_mode_button, pass_mode_combobox);
         item_list << HLay(mini_scenes, mini_scene_combobox);
         item_list << HLay(mini_scenes, mini_scene_button);
     }
@@ -883,7 +915,9 @@ bool ServerDialog::config(){
     QString objname = mode_group->checkedButton()->objectName();
     if(objname == "scenario")
         Config.GameMode = scenario_combobox->itemData(scenario_combobox->currentIndex()).toString();
-    else if(objname == "mini"){
+    else if(objname == "pass"){
+        Config.GameMode = pass_mode_combobox->itemData(pass_mode_combobox->currentIndex()).toString();
+    }else if(objname == "mini"){
         if(mini_scene_combobox->isEnabled())
             Config.GameMode = mini_scene_combobox->itemData(mini_scene_combobox->currentIndex()).toString();
         else
@@ -934,7 +968,6 @@ bool ServerDialog::config(){
     }
 
     Config.BanPackages = ban_packages.toList();
-    Config.BanPackages << "Special3v3";
     Config.setValue("BanPackages", Config.BanPackages);
 
     if(Config.ContestMode){

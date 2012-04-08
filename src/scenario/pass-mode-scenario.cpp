@@ -23,13 +23,141 @@ int SkillAttrStruct::getValue(const int level) const{
 }
 
 int SkillAttrStruct::getLimitTimes() const{
-    if(ServerInfo.GameMode != "pass_mode")
+    if(! ServerInfo.GameMode.contains("_pass_"))
         return 0 ;
     return limit_times ;
 }
 
 const QString PassMode::version = "ver2.0";
 const QString PassMode::savePath = "savedata/pass_mode.sav";
+const int PassMode::maxStage = 2 ;
+
+PassModeRule::PassModeRule(Scenario *scenario)
+    :ScenarioRule(scenario)
+{
+    events << GameStart << DrawNCards << Predamaged << CardUsed;
+    stage = scenario->objectName().remove("_pass_").toInt() ;
+}
+
+void PassModeRule::assign(QStringList &generals, QStringList &roles) const{
+
+    for(int i=0;i<players.length();i++){
+        QMap<QString,QString> sp =players.at(i);
+        QString name = sp["general"];
+        QString role = "rebel";
+        if(i == 0){
+            name = "sujiang" ;
+            role = "lord";
+        }
+        generals << name;
+        roles << role;
+    }
+}
+
+QStringList PassModeRule::existedGenerals() const{
+    QStringList names;
+    for(int i=0;i<players.length();i++){
+        QMap<QString,QString> sp =players.at(i);
+        QString name = sp["general"];
+        if(i == 0){
+            name = "sujiang";
+        }
+        names << name;
+    }
+    return names;
+}
+
+void PassModeRule::loadStage(QString path){
+    QFile file(path);
+    if(file.open(QIODevice::ReadOnly)){
+        players.clear();
+
+        QTextStream stream(&file);
+        while(!stream.atEnd()){
+            QString aline = stream.readLine();
+            if(aline.isEmpty()) continue;
+            addNPC(aline);
+        }
+        file.close();
+    }
+}
+
+void PassModeRule::addNPC(QString feature){
+    QMap<QString, QString> player;
+    QStringList features;
+    if(feature.contains("|"))features= feature.split("|");
+    else features = feature.split(" ");
+    foreach(QString str, features){
+        QStringList keys = str.split(":");
+        if(keys.size() < 2) continue;
+        if(keys.first().size() < 1) continue;
+        player.insert(keys.at(0),keys.at(1));
+    }
+    players << player;
+}
+
+bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+    qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
+    Room *room = player->getRoom() ;
+    switch(event){
+    case GameStart:{
+        if(room->getTag("Stage").isNull() && player->isLord()){
+            SaveDataStruct *save_data = PassMode::getSaveData();
+            room->setTag("Stage", stage);
+            QString general_name ;
+            if(stage == 1){
+                PassMode::removeSaveData();
+                room->setTag("Times", 1);
+                room->setTag("LoadTimes", 0);
+                general_name = room->askForGeneralPass(player,"standard");
+            }else{
+                general_name = save_data->general_name;
+            }
+            room->transfigure(player, general_name, true, true);
+            const General *general = Sanguosha->getGeneral(general_name) ;
+            room->setPlayerProperty(player, "kingdom", general->getKingdom());
+            if(stage == 1 ){
+                player->gainMark("@exp",50);
+            }else{
+                PassMode::loadData(room,save_data);
+            }
+            room->askForSkillLearn(player);
+
+            int n = 0;
+            int hero_draw = 6 ;
+            int enemy_draw = 4 ;
+            foreach(ServerPlayer *player, room->getPlayers()){
+                n = player->isLord() ? hero_draw : enemy_draw;
+                player->drawCards(player->hasAbility("startdraw") ? n + 1 : n);
+            }
+        }
+        break ;
+    }case DrawNCards:{
+        if(player->hasAbility("turndraw")){
+            data = data.toInt() + 1 ;
+        }
+        if(player->getKingdom() == "evil")
+            data = data.toInt() - 1 ;
+        else if(player->getKingdom() == "god")
+            data = data.toInt() + 1 ;
+        break;
+    }
+    case Predamaged:{
+        DamageStruct damage = data.value<DamageStruct>();
+        if(damage.card && damage.card->inherits("Lightning") && damage.damage == 3){
+            damage.damage--;
+            data = QVariant::fromValue(damage);
+        }
+        break;
+    }
+    case CardUsed:{
+        break;
+    }
+    default:
+        break;
+    }
+    return false;
+}
 
 PassMode::PassMode(QObject *parent)
     :GameRule(parent)
@@ -46,68 +174,60 @@ bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
     switch(event){
     case GameStart:{
-            if(setjmp(env) == Restart){
-                initNextStageStart(player);
-                return false;
-            }
+//        if(setjmp(env) == Restart){
+//            initNextStageStart(player);
+//            return false;
+//        }
 
-            if(room->getTag("Stage").isNull()){
-                if(askForLoadData(room)){
-                    setNextStageInfo(room, true);
-                    stageStartDraw(room);
-                }else{
-                    initGameStart(player);
-                }
-            }
-            return false;
-        }
+        return false ;
+    }
     case TurnStart :{
-            if(player->isLord()){
-                int turns = room->getTag("Turns").toInt() ;
-                room->setTag("Turns",++turns);
-            }
-            break;
+        if(player->isLord()){
+            int turns = room->getTag("Turns").toInt() ;
+            room->setTag("Turns",++turns);
         }
+        break;
+    }
     case Death:{
-            if(player->isLord()){
-                if(! room->getAlivePlayers().empty())
-                    room->gameOver("rebel");
-            }else{
-                if(lord->hasAbility("killdraw")){
-                    lord->drawCards(1);
-                }
+        if(player->isLord()){
+            if(! room->getAlivePlayers().empty())
+                room->gameOver("rebel");
+        }else{
+            if(lord->hasAbility("killdraw")){
+                lord->drawCards(1);
+            }
 
-                DamageStar damage = data.value<DamageStar>();
-                if((!damage || damage->from != lord))
-                    lord->drawCards(3);
+            DamageStar damage = data.value<DamageStar>();
+            if((!damage || damage->from != lord))
+                lord->drawCards(3);
 
-                int exp = PassMode::getExpMap().value(player->getKingdom(), 0);
-                exp = qrand()%(exp + 1) + exp/2;
-                if(lord->hasAbility("exp")){
-                    exp += exp / 2 ;
-                }
+            int exp = PassMode::getExpMap().value(player->getKingdom(), 0);
+            exp = qrand()%(exp + 1) + exp/2;
+            if(lord->hasAbility("exp")){
+                exp += exp / 2 ;
+            }
 
-                int orgin_exp = lord->getMark("@exp") ;
-                lord->gainMark("@exp",exp);
-                LogMessage log;
-                log.type = "#GainExp";
-                log.from = lord;
-                log.to << player;
-                log.arg = QString::number(exp);
-                log.arg2 = QString::number(orgin_exp+exp);
-                room->sendLog(log);
+            int orgin_exp = lord->getMark("@exp") ;
+            lord->gainMark("@exp",exp);
+            LogMessage log;
+            log.type = "#GainExp";
+            log.from = lord;
+            log.to << player;
+            log.arg = QString::number(exp);
+            log.arg2 = QString::number(orgin_exp+exp);
+            room->sendLog(log);
 
-                if(room->getAlivePlayers().length() == 1){
-                    if(!goToNextStage(room))
-                        break;
+            if(room->getAlivePlayers().length() == 1){
+                if(!goToNextStage(room))
+                    break;
 
-                    setNextStageInfo(room);
+                setNextStageInfo(room);
 
-                    longjmp(env, Restart);
-                    return true;
-                }
+                longjmp(env, Restart);
+                return true;
             }
         }
+    }
 
     default:
         break;
@@ -131,51 +251,42 @@ QStringList PassMode::getNeedSavePlayerMarkName(){
     return markNames;
 }
 
-void PassMode::stageStartDraw(Room *room, ServerPlayer *player) const{
+int PassMode::getStage() const{
+    return ServerInfo.GameMode.remove("_pass_").toInt() ;
+}
+
+void PassMode::stageStartDraw(Room *room) const{
     int n = 0;
     int hero_draw = 6 ;
     int enemy_draw = 4 ;
-    if(player){
+    foreach(ServerPlayer *player, room->getPlayers()){
         n = player->isLord() ? hero_draw : enemy_draw;
         player->drawCards(player->hasAbility("startdraw") ? n + 1 : n);
-    }else{
-        foreach(ServerPlayer *p, room->getPlayers()){
-            stageStartDraw(room,p);
-        }
     }
 }
 
-bool PassMode::askForLoadData(Room *room) const{
+bool PassMode::loadData(Room *room, SaveDataStruct *save_data){
     ServerPlayer *lord = room->getLord();
-    SaveDataStar save = askForReadData();
-    if(!save->read_success)
+    if(! save_data)
+        save_data = getSaveData();
+    if(!save_data->read_success)
         return false;
 
-    QString choice = room->askForChoice(lord, "savefile", "read+deletesave+cancel");
-    if(choice == "cancel")
-        return false;
-    if(choice == "deletesave"){
-        QFile::remove(savePath);
-        return false;
+    foreach (QString tag_name, save_data->roomTags.keys()) {
+        room->setTag(tag_name,save_data->roomTags.value(tag_name));
     }
-
     int i = 0 ;
-    foreach (QString tag_name, getNeedSaveRoomTagName()) {
-        room->setTag(tag_name,save->roomTags.at(i));
-        i ++ ;
-    }
-    i = 0 ;
     foreach (QString mark_name, getNeedSavePlayerMarkName()) {
-        room->setPlayerMark(lord,mark_name,save->playerMarks.at(i).toInt());
+        room->setPlayerMark(lord,mark_name,save_data->playerMarks.at(i).toInt());
         i ++ ;
     }
 
-    room->transfigure(lord, save->general_name , true);
-
-    foreach(QString skill, save->skills)
+    foreach(QString skill, save_data->skills)
         room->acquireSkill(lord, skill, true , false);
-    foreach(QString enhance, save->skills_enhance)
-        lord->enhanceSkill(enhance);
+    foreach(QString enhance, save_data->skills_enhance)
+        room->setPlayerSkillEnHance(lord,enhance);
+    foreach(QString ability, save_data->abilities)
+        room->setPlayerAbility(lord , ability);
 
     LogMessage log;
     log.type = "#LoadNextStage";
@@ -183,6 +294,14 @@ bool PassMode::askForLoadData(Room *room) const{
     log.arg = room->getTag("Stage").toString();
     log.arg2 = room->getTag("Times").toString();
     room->sendLog(log);
+    return true;
+}
+
+bool PassMode::removeSaveData(){
+    QFile file(savePath);
+    if(file.exists()){
+        file.remove();
+    }
     return true;
 }
 
@@ -200,42 +319,43 @@ void PassMode::initGameStart(ServerPlayer *player) const{
     Room *room = player->getRoom();
     foreach(ServerPlayer *p, room->getPlayers()){
         if(p->isLord()){
-            room->setTag("Stage", 1);
-            room->setTag("Times", 1);
-            room->setTag("LoadTimes", 0);
+            if(getStage() == 1){
+                room->setTag("Stage", 1);
+                room->setTag("Times", 1);
+                room->setTag("LoadTimes", 0);
 
-            QString name = room->askForGeneralPass(p,"standard");
-            room->transfigure(p, name, true, true);
-            room->setPlayerProperty(p, "maxhp", p->getMaxHP() + 1);
-            room->setPlayerProperty(p, "hp", p->getMaxHP());
-            const General *general = Sanguosha->getGeneral(name);
-            if(p->getKingdom() != general->getKingdom())
-                room->setPlayerProperty(p, "kingdom", general->getKingdom());
-            player->gainMark("@exp",50);
+                QString original = p->getGeneralName() ;
+                QString name = room->askForGeneralPass(p,"standard");
+                QString trans = QString("%1:%2").arg(original).arg(name);
+                p->invoke("transfigure",trans);
+                room->setPlayerProperty(p,"general",name);
+            }
+//            room->transfigure(p, name, true, true);
+//            room->setPlayerProperty(p, "maxhp", p->getMaxHP() + 1);
+//            room->setPlayerProperty(p, "hp", p->getMaxHP());
+//            const General *general = Sanguosha->getGeneral(name);
+//            if(p->getKingdom() != general->getKingdom())
+//                room->setPlayerProperty(p, "kingdom", general->getKingdom());
+
+            p->gainMark("@exp",50);
             room->askForSkillLearn(p);
         }else{
-            QStringList enemys = PassMode::getStageList().at(0).split(QRegExp("\\s+"));
-            QString enemy_name = enemys.at(p->getSeat()-2) ;
-            const General *general = Sanguosha->getGeneral(enemy_name + "_e") ;
-            if(! general)
-                general = Sanguosha->getGeneral(enemy_name);
-            room->transfigure(p, general->objectName(), true, true);
-            if(p->getKingdom() != general->getKingdom())
-                room->setPlayerProperty(p, "kingdom", general->getKingdom());
+//            QStringList enemys = PassMode::getStageList().at(0).split(QRegExp("\\s+"));
+//            QString enemy_name = enemys.at(p->getSeat()-2) ;
+//            const General *general = Sanguosha->getGeneral(enemy_name + "_e") ;
+//            if(! general)
+//                general = Sanguosha->getGeneral(enemy_name);
+//            room->transfigure(p, general->objectName(), true, true);
+//            if(p->getKingdom() != general->getKingdom())
+//                room->setPlayerProperty(p, "kingdom", general->getKingdom());
         }
-        stageStartDraw(room, p);
+//        stageStartDraw(room, p);
     }
 }
 
 
 bool PassMode::goToNextStage(Room *room) const{
     int stage = room->getTag("Stage").toInt();
-//    ServerPlayer *lord = room->getLord();
-//    player->throwAllCards();
-//    if(!player->faceUp())
-//        player->turnOver();
-//    if(player->isChained())
-//        room->setPlayerProperty(player, "chained", false);
     if(stage >= getStageList().length()){
         room->gameOver("lord");
         return false;
@@ -245,14 +365,14 @@ bool PassMode::goToNextStage(Room *room) const{
     return true;
 }
 
-SaveDataStruct *PassMode::catchSaveInfo(Room *room) const{
+SaveDataStruct* PassMode::catchSaveInfo(Room *room){
     ServerPlayer *lord = room->getLord();
     QStringList lord_skills;
     QSet<QString> skill_names = lord->getAcquiredSkills();
     foreach(QString skill_name, skill_names){
         const Skill *skill = Sanguosha->getSkill(skill_name);
         if(skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill")
-            || skill_name == "axe" || skill_name == "spear")
+                || skill_name == "axe" || skill_name == "spear")
             continue;
         if(skill->isVisible())
             lord_skills << skill_name;
@@ -262,10 +382,15 @@ SaveDataStruct *PassMode::catchSaveInfo(Room *room) const{
     foreach(QString enhance_name, skill_enhance){
         lord_skill_enhance << enhance_name;
     }
+    QStringList lord_abilities ;
+    QHash<QString,int> abilities = lord->getAbilities();
+    foreach(QString ability, abilities.keys()){
+        lord_abilities << ability;
+    }
 
     SaveDataStruct *save_cache = new SaveDataStruct;
     foreach(const QString tag_name, getNeedSaveRoomTagName()){
-        save_cache->roomTags << room->getTag(tag_name).toString() ;
+        save_cache->roomTags.insert(tag_name,QVariant::fromValue(room->getTag(tag_name))) ;
     }
     foreach(const QString mark_name, getNeedSavePlayerMarkName()){
         save_cache->playerMarks << QString::number(lord->getMark(mark_name)) ;
@@ -274,22 +399,24 @@ SaveDataStruct *PassMode::catchSaveInfo(Room *room) const{
     save_cache->general_name      = lord->getGeneralName();
     save_cache->skills            = lord_skills;
     save_cache->skills_enhance    = lord_skill_enhance ;
+    save_cache->abilities         = lord_abilities;
 
     return save_cache;
 }
 
-bool PassMode::askForSaveData(Room *room) const{
-    if(room->askForChoice(room->getLord(), "savefile", "save+notsave") == "notsave")
-        return false;
+bool PassMode::askForSaveData(Room *room){
+//    if(room->askForChoice(room->getLord(), "savefile", "save+notsave") == "notsave")
+//        return false;
 
     SaveDataStar save = catchSaveInfo(room);
-    return askForSaveData(save);
-}
-
-bool PassMode::askForSaveData(SaveDataStruct *save) const{
 
     QByteArray data;
-    data.append(save->roomTags.join("|").toUtf8().toBase64());
+    QString room_tags_str ;
+    foreach (QString key_name, save->roomTags.keys()) {
+        room_tags_str.append(QString("%1:%2").arg(key_name).arg(save->roomTags.value(key_name).toString())) ;
+        room_tags_str.append("|");
+    }
+    data.append(room_tags_str.toUtf8().toBase64());
     data.append(QString("\n"));
     data.append(save->playerMarks.join("|").toUtf8().toBase64());
     data.append(QString("\n"));
@@ -298,6 +425,8 @@ bool PassMode::askForSaveData(SaveDataStruct *save) const{
     data.append(save->skills.join("|").toUtf8().toBase64());
     data.append(QString("\n"));
     data.append(save->skills_enhance.join("|").toUtf8().toBase64());
+    data.append(QString("\n"));
+    data.append(save->abilities.join("|").toUtf8().toBase64());
     data.append(QString("\n"));
     data.append(version.toUtf8().toBase64());
 
@@ -375,7 +504,8 @@ void PassMode::resetPlayer(ServerPlayer *player) const{
     room->setPlayerProperty(player, "hp", player->getMaxHP());
 }
 
-SaveDataStruct *PassMode::askForReadData() const{
+
+SaveDataStruct *PassMode::getSaveData(){
     SaveDataStruct *save = new SaveDataStruct;
 
     int line_num = 1;
@@ -388,25 +518,34 @@ SaveDataStruct *PassMode::askForReadData() const{
 
             switch(line_num){
             case 1:{
-                    save->roomTags = line.split("|");
-                    break;
+                foreach(QString kv,line.split("|")){
+                    QStringList kv_list = kv.split(":") ;
+                    if(kv_list.length() != 2)
+                        continue ;
+                    save->roomTags.insert(kv_list.at(0),kv_list.at(1));
                 }
+                break;
+            }
             case 2:{
-                    save->playerMarks = line.split("|");
-                    break;
-                }
+                save->playerMarks = line.split("|");
+                break;
+            }
             case 3:{
-                    save->general_name = line ;
-                    break;
-                }
+                save->general_name = line ;
+                break;
+            }
             case 4:{
-                    save->skills = line.split("|") ;
-                    break;
-                }
+                save->skills = line.split("|") ;
+                break;
+            }
             case 5:{
-                    save->skills_enhance = line.split("|") ;
-                    break;
-                }
+                save->skills_enhance = line.split("|") ;
+                break;
+            }
+            case 6:{
+                save->abilities = line.split("|") ;
+                break;
+            }
             default:
                 break;
             }
@@ -414,8 +553,6 @@ SaveDataStruct *PassMode::askForReadData() const{
         }
         file.close();
         save->read_success = true;
-    }else{
-        save->read_success = false;
     }
     return save;
 }
@@ -513,89 +650,26 @@ QMap<QString, QStringList> PassMode::getGeneralMap(){
     return general_map;
 }
 
-bool PassModeScenario::exposeRoles() const{
-    return true;
-}
-
-void PassModeScenario::assign(QStringList &generals, QStringList &roles) const{
-    generals << lord << loyalists << rebels << renegades;
-
-    foreach(QString general, generals){
-        if(general == lord)
-            roles << "lord";
-        else if(loyalists.contains(general))
-            roles << "loyalist";
-        else if(rebels.contains(general))
-            roles << "rebel";
-        else
-            roles << "renegade";
-    }
-}
-
-int PassModeScenario::getPlayerCount() const{
-    return 4;
-}
-
-void PassModeScenario::getRoles(char *roles) const{
-    strcpy(roles, "ZFFF");
-}
-
 void PassModeScenario::onTagSet(Room *room, const QString &key) const{
     // dummy
 }
 
-bool PassModeScenario::generalSelection() const{
-    return false;
-}
-
-PassModeRule::PassModeRule(Scenario *scenario)
-    :ScenarioRule(scenario)
-{
-    events << GameOverJudge << DrawNCards << Predamaged << CardUsed;
-
-}
-
-bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-    qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
-    switch(event){
-    case DrawNCards:{
-            if(player->hasAbility("turndraw")){
-                data = data.toInt() + 1 ;
-            }
-            if(player->getKingdom() == "evil")
-                data = data.toInt() - 1 ;
-            else if(player->getKingdom() == "god")
-                data = data.toInt() + 1 ;
-
-            break;
-        }
-    case Predamaged:{
-            DamageStruct damage = data.value<DamageStruct>();
-            if(damage.card && damage.card->inherits("Lightning") && damage.damage == 3){
-                damage.damage--;
-                data = QVariant::fromValue(damage);
-            }
-            break;
-        }
-    case CardUsed:{
-            break;
-        }
-    case GameOverJudge:{
-            return true ;
-            break;
-        }
-    default:
-        break;
-    }
-    return false;
-}
-
-PassModeScenario::PassModeScenario()
-        :Scenario("pass_mode")
+PassModeScenario::PassModeScenario(const QString &name)
+    :Scenario(QString("_pass_%1").arg(name))
 {
     rule = new PassModeRule(this);
-    lord = "lubu";
-    rebels << "guanyu" << "liubei" << "zhangfei";
+    setupStage(name);
 }
 
-ADD_SCENARIO(PassMode)
+void PassModeScenario::setupStage(QString name) const{
+    name.prepend("etc/passmode/");
+    name.append(".txt");
+
+    PassModeRule* pass_rule = qobject_cast<PassModeRule*>(this->getRule());
+    pass_rule->loadStage(name);
+}
+
+#define ADD_PASS_SCENARIO(name) static ScenarioAdder PassModeScenario##name##ScenarioAdder(QString("PassMode_") + #name, new PassModeScenario(#name));
+
+ADD_PASS_SCENARIO(01)
+ADD_PASS_SCENARIO(02)

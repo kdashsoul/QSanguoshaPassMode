@@ -77,15 +77,7 @@ public:
 	LuaFunction callback;
 };
 
-// for some AI use
-class Shit:public BasicCard{
-public:
-	Shit(Card::Suit suit, int number);
-	virtual QString getSubtype() const;
-	virtual void onMove(const CardMoveStruct &move) const;
 
-	static bool HasShit(const Card *card);
-};
 
 %{
 

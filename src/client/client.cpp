@@ -388,6 +388,14 @@ void Client::fillRobots(){
     request("fillRobots .");
 }
 
+void Client::newPass(){
+    request("newPass .");
+}
+
+void Client::continuePass(){
+    request("continuePass .");
+}
+
 void Client::arrange(const QStringList &order){
     Q_ASSERT(order.length() == 3);
 
@@ -1210,7 +1218,7 @@ void Client::gameOver(const QString &result_str){
     QStringList roles = texts.at(1).split("+");
 
     QStringList pass_info ;
-    if(ServerInfo.GameMode == "pass_mode")
+    if(ServerInfo.GameMode.contains("_pass_"))
         pass_info = all_info.at(1).split(":") ;
 
     Q_ASSERT(roles.length() == players.length());
