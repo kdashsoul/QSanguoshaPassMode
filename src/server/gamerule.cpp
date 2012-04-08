@@ -173,7 +173,8 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 setGameProcess(room);
 
             room->setTag("FirstRound", true);
-            player->drawCards(4, false);
+            if(! room->getTag("DrawnCard").toBool())
+                player->drawCards(4, false);
 
             break;
         }

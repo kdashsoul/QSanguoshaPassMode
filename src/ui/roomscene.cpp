@@ -2539,21 +2539,97 @@ void RoomScene::onGameOver(){
                 pass_info_map.insert(kv.at(0), kv.at(1));
             }
         }
+        QMap<QString,QString> exp_info_map ;
+        foreach (QString info, Self->property("exp_info").toStringList()) {
+            QStringList kv = info.split("=") ;
+            if(kv.length() == 2){
+                exp_info_map.insert(kv.at(0), kv.at(1));
+            }
+        }
+        QLabel *stage_label = new QLabel;
+        stage_label->setText(tr("Pass stage: %1").arg(pass_info_map.value("Stage")));
+        stage_label->setFont(Config.TinyFont);
+        stage_label->setStyleSheet("color:red");
+        stage_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        stage_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+
         QLabel *turns_label = new QLabel;
         turns_label->setText(tr("Use turns: %1").arg(pass_info_map.value("Turns")));
         turns_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
         turns_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
-        turns_label->setMargin(5);
 
         QLabel *load_times_label = new QLabel;
         load_times_label->setText(tr("Load times: %1").arg(pass_info_map.value("LoadTimes")));
         load_times_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-        turns_label->setMargin(5);
+
+        QGroupBox *result_box = new QGroupBox(tr("Result info"));
+        QVBoxLayout *result_layout = new QVBoxLayout;
+        QHBoxLayout *up_layout = new QHBoxLayout;
+        QHBoxLayout *down_layout = new QHBoxLayout;
+        QLabel *general_lable = new QLabel;
+        general_lable->setPixmap(Self->getGeneral()->getPixmapPath("card"));
+        general_lable->setAlignment(Qt::AlignTop);
+
+        QVBoxLayout *exps_layout = new QVBoxLayout;
+        QLabel *exp_enemy_label = new QLabel;
+        exp_enemy_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        exp_enemy_label->setText(tr("Kills list"));
+        exp_enemy_label->setFont(Config.TinyFont);
+        exp_enemy_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+        exps_layout->addWidget(exp_enemy_label);
+        foreach(QString ememy_name , exp_info_map.keys()){
+            QLabel *exp_label = new QLabel;
+            exp_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+            exp_label->setText(QString("%1 : %2").arg(Sanguosha->translate(ememy_name)).arg(exp_info_map.value(ememy_name)));
+            exp_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+            exps_layout->addWidget(exp_label);
+        }
+
+        QLabel *exp_reward_label = new QLabel;
+        exp_reward_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        exp_reward_label->setText(tr("Reward list"));
+        exp_reward_label->setFont(Config.TinyFont);
+        exp_reward_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+        exps_layout->addWidget(exp_reward_label);
+        QLabel *reward_label = new QLabel;
+        reward_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        reward_label->setText(QString("%1 : %2").arg(Sanguosha->translate("NoDamage")).arg("16")) ;
+        exps_layout->addWidget(reward_label);
+
+        QLabel *exp_label = new QLabel;
+        exp_label->setAlignment(Qt::AlignRight|Qt::AlignBottom);
+        exp_label->setText(QString("%1 : %2").arg(Sanguosha->translate("exp")).arg(Self->getMark("@exp"))) ;
+        exp_label->setFont(Config.TinyFont);
+        exp_label->setStyleSheet("color:green");
+        exps_layout->addWidget(exp_label);
+
+//        QVBoxLayout *abilities_layout = new QVBoxLayout;
+//        foreach (QString ability, PassMode::getGeneralMap().value("common")) {
+//            QLabel *ability_label = new QLabel;
+//            ability_label->setText(Sanguosha->translate(ability));
+//            if(Self->hasAbility(ability)){
+//                ability_label->setStyleSheet("color:green");
+//            }else{
+//                ability_label->setStyleSheet("color:gray");
+//            }
+//            abilities_layout->addWidget(ability_label);
+//        }
+//        down_layout->addLayout(abilities_layout);
+
+
+        up_layout->addWidget(general_lable);
+        up_layout->addLayout(exps_layout);
+        result_layout->addLayout(up_layout);
+        result_layout->addLayout(down_layout);
+        result_box->setLayout(result_layout);
 
         QVBoxLayout *layout = new QVBoxLayout;
+        layout->addWidget(stage_label);
         layout->addWidget(turns_label);
         layout->addWidget(load_times_label);
+        layout->addWidget(result_box);
         dialog->setLayout(layout);
+
     }
     addRestartButton(dialog);
 

@@ -7,7 +7,6 @@ local pass_t = {
     ["enhance"]                     = "强化",
 
     ["evil"]                        = "黑暗",
-    ["evil_god"]                    = "邪神",
     ["shizu_e"]                     = "士卒",
     ["gongshou_e"]                  = "弓手",
     ["jianshi_e"]                   = "剑侍",
@@ -273,6 +272,7 @@ local pass_t = {
 	
 	
 
+	["NoDamage"]                    = "无伤奖励",
 
 	["savefile"]                    = "存档",
 	["read"]                        = "读取存档",

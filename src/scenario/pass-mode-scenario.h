@@ -39,6 +39,9 @@ public:
     void addNPC(QString feature);
     void assign(QStringList &generals, QStringList &roles) const;
     QStringList existedGenerals() const;
+    void initGameStart(Room *room) const;
+    QString getPlayerProp(ServerPlayer *player,QString prop_name,QString default_value = "") const;
+    QMap<QString, QString> getPlayerProps(ServerPlayer *player) const;
 private:
     QList< QMap<QString, QString> > players;
     int stage ;
@@ -56,22 +59,12 @@ public:
     static QStringList getNeedSavePlayerMarkName();
     int getStage() const;
 
-    void stageStartDraw(Room *room) const;
-    void initGameStart(ServerPlayer *player) const;
-    void initNextStageStart(ServerPlayer *player) const;
-    void setNextStageInfo(Room *room,bool save_loaded = false) const;
-    bool goToNextStage(Room *room) const;
-
-    void resetPlayer(ServerPlayer *player) const;
-
     static bool removeSaveData();
     static bool loadData(Room *room,SaveDataStruct *save_data = NULL);
-    static bool askForSaveData(Room *room);
+    static bool saveData(Room *room);
     static SaveDataStruct *getSaveData();
     static SaveDataStruct* catchSaveInfo(Room *room);
 
-    static QMap<QString, int> getExpMap();
-    static QStringList getStageList() ;
     static QMap<QString, SkillAttrStruct *> getSkillMap();
     static QMap<QString, QStringList> getGeneralMap();
     static const int maxStage;

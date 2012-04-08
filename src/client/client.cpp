@@ -803,7 +803,7 @@ void Client::askForSkillLearn(const QString &tab_index){
     int tindex = tab_index.toInt() ;
     static QStringList tab_names ;
     if(tab_names.isEmpty())
-        tab_names << "skill_main" << "skill_feature" << "skill_common" ;
+        tab_names << tr("skill_main") << tr("skill_feature") << tr("skill_common") ;
 
     QVBoxLayout *layout = new QVBoxLayout;
     QTabWidget *tab_widget = new QTabWidget;
@@ -1217,9 +1217,11 @@ void Client::gameOver(const QString &result_str){
     QString winner = texts.at(0);
     QStringList roles = texts.at(1).split("+");
 
-    QStringList pass_info ;
-    if(ServerInfo.GameMode.contains("_pass_"))
+    QStringList pass_info , exp_info;
+    if(ServerInfo.GameMode.contains("_pass_")){
         pass_info = all_info.at(1).split(":") ;
+        exp_info = all_info.at(2).split(":") ;
+    }
 
     Q_ASSERT(roles.length() == players.length());
 
@@ -1242,6 +1244,7 @@ void Client::gameOver(const QString &result_str){
         ClientPlayer *p = const_cast<ClientPlayer *>(player);
         p->setProperty("win", win);
         p->setProperty("pass_info",pass_info) ;
+        p->setProperty("exp_info",exp_info) ;
     }
 
     emit game_over();

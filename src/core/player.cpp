@@ -45,7 +45,7 @@ void Player::setReady(bool ready){
 }
 
 void Player::setHp(int hp){
-    if(hp <= max_hp && this->hp != hp){
+    if(hp <= getMaxHp() && this->hp != hp){
         this->hp = hp;
         emit state_changed();
     }
@@ -67,8 +67,8 @@ void Player::setMaxHP(int max_hp){
         return;
 
     this->max_hp = max_hp;
-    if(hp > max_hp)
-        hp = max_hp;
+    if(hp > getMaxHp())
+        hp = getMaxHp();
 
     emit state_changed();
 }
@@ -495,7 +495,7 @@ int Player::getMaxCards() const{
     }
 
     int guwu = 0 ;
-    if(getKingdom() == "evil" || getKingdom() == "evil_god"){
+    if(getKingdom() == "evil"){
         QList<const Player *> players = getSiblings();
         foreach(const Player *player, players){
             if(player->isAlive() && player->hasSkill("guwu_p"))

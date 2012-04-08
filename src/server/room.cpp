@@ -398,8 +398,22 @@ void Room::gameOver(const QString &winner){
         foreach (QString tag_name, PassMode::getNeedSaveRoomTagName()) {
             tags << QString("%1=%2").arg(tag_name).arg(getTag(tag_name).toString()) ;
         }
-        broadcastInvoke("gameOver", QString("%1:%2|%3").arg(winner).arg(all_roles.join("+"))
-                        .arg(tags.join(":")));
+
+        PassModeRule *rule = qobject_cast<PassModeRule*>(getScenario()->getRule());
+        QStringList exps ;
+        int gain_exp = 0;
+        foreach(ServerPlayer *player, getPlayers()){
+            if(player->getRole() == "rebel" && player->isDead()){
+                int exp = rule->getPlayerProp(player, "exp").toInt() ;
+                exps << QString("%1=%2").arg(player->getGeneralName()).arg(exp) ;
+                gain_exp += exp;
+            }
+        }
+        ServerPlayer *lord = getLord() ;
+        setPlayerMark(lord,"@exp",lord->getMark("@exp") + gain_exp);
+
+        broadcastInvoke("gameOver", QString("%1:%2|%3|%4").arg(winner).arg(all_roles.join("+"))
+                        .arg(tags.join(":")).arg(exps.join(":")));
     }
 
     // save records
@@ -471,14 +485,16 @@ void Room::gameOver(const QString &winner){
             QString id = Config.GameMode;
             id.replace("_pass_","");
             int current = id.toInt();
-            if(current < PassMode::maxStage)
+            if(current < PassMode::maxStage){
                 current++;
-            else
-                current = 1;
+                setTag("Stage",current);
+                PassMode::saveData(this);
+            }else{
+                current = 1 ;
+                PassMode::removeSaveData() ;
+            }
             id = QString::number(current).rightJustified(2,'0').prepend("_pass_");
             Config.GameMode = id;
-            setTag("Stage",current);
-            PassMode::askForSaveData(this);
         }
     }
 
@@ -1251,6 +1267,28 @@ void Room::transfigure(ServerPlayer *player, const QString &new_general, bool fu
     // thread->addPlayerSkills(player, invoke_start);
     resetAI(player);
 }
+
+void Room::transfigurePass(ServerPlayer *player, const QString &new_general, int maxhp_plus){
+    QString transfigure_str = QString("%1:%2").arg(player->getGeneralName()).arg(new_general);
+    player->invoke("transfigure", transfigure_str);
+
+    setPlayerProperty(player, "general", new_general);
+    broadcastProperty(player,"general");
+
+    const General *general = Sanguosha->getGeneral(new_general) ;
+    setPlayerProperty(player, "kingdom", general->getKingdom());
+
+    thread->addPlayerSkills(player, true);
+
+    player->setMaxHP(player->getGeneralMaxHP() + maxhp_plus);
+    broadcastProperty(player, "maxhp");
+
+    player->setHp(player->getMaxHP());
+
+    broadcastProperty(player, "hp");
+    resetAI(player);
+}
+
 
 lua_State *Room::getLuaState() const{
     return L;
