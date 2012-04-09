@@ -61,7 +61,7 @@ public:
 
     static bool removeSaveData();
     static bool loadData(Room *room,SaveDataStruct *save_data = NULL);
-    static bool saveData(Room *room);
+    static bool saveData(Room *room,SaveDataStruct *save_data = NULL);
     static SaveDataStruct *getSaveData();
     static SaveDataStruct* catchSaveInfo(Room *room);
 

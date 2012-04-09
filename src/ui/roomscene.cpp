@@ -2546,90 +2546,83 @@ void RoomScene::onGameOver(){
                 exp_info_map.insert(kv.at(0), kv.at(1));
             }
         }
+        QString result ;
+        if(victory){
+            int current = ServerInfo.GameMode.remove("_pass_").toInt();
+            result = current < PassMode::maxStage ? "pass" : "win" ;
+        }else{
+            result = "fail" ;
+        }
+
+        dialog->setFixedSize(400,600);
+        QLabel *image_lable = new QLabel;
+        image_lable->setPixmap(QPixmap(QString("image/system/pass/%1.jpg").arg(result)));
+        image_lable->setAlignment(Qt::AlignTop);
+
         QLabel *stage_label = new QLabel;
-        stage_label->setText(tr("Pass stage: %1").arg(pass_info_map.value("Stage")));
+        stage_label->setText(tr("Stage %1 %2").arg(pass_info_map.value("Stage")).arg(victory ? tr("pass") : tr("fail")));
         stage_label->setFont(Config.TinyFont);
-        stage_label->setStyleSheet("color:red");
+        stage_label->setStyleSheet(victory ? "color:green" : "color:red");
         stage_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
         stage_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
 
         QLabel *turns_label = new QLabel;
-        turns_label->setText(tr("Use turns: %1").arg(pass_info_map.value("Turns")));
+        turns_label->setText(tr("Use turns: <font color='green'>%1</font>  Load times: <font color='green'>%2</font>").arg(pass_info_map.value("Turns")).arg(pass_info_map.value("LoadTimes")));
         turns_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
         turns_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
 
-        QLabel *load_times_label = new QLabel;
-        load_times_label->setText(tr("Load times: %1").arg(pass_info_map.value("LoadTimes")));
-        load_times_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        QLabel *msg_label = new QLabel;
+        QString msg = "";
+        if(result == "fail"){
+            msg = tr("Sometimes you win and sometimes you don't. <br/> please try again.") ;
+        }else if(result == "win"){
+            msg = tr("Congratulations! you have passed all the stages. <br/> Your score: <font color='red'>%1</font> , rank : <font color='red'>%2</font>.") ;
+        }
+        msg_label->setText(msg);
+        msg_label->setFont(Config.SmallFont);
+        msg_label->setWordWrap(true);
+        msg_label->setAlignment(Qt::AlignHCenter|Qt::AlignVCenter);
 
-        QGroupBox *result_box = new QGroupBox(tr("Result info"));
-        QVBoxLayout *result_layout = new QVBoxLayout;
-        QHBoxLayout *up_layout = new QHBoxLayout;
-        QHBoxLayout *down_layout = new QHBoxLayout;
-        QLabel *general_lable = new QLabel;
-        general_lable->setPixmap(Self->getGeneral()->getPixmapPath("card"));
-        general_lable->setAlignment(Qt::AlignTop);
-
-        QVBoxLayout *exps_layout = new QVBoxLayout;
-        QLabel *exp_enemy_label = new QLabel;
-        exp_enemy_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-        exp_enemy_label->setText(tr("Kills list"));
-        exp_enemy_label->setFont(Config.TinyFont);
-        exp_enemy_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
-        exps_layout->addWidget(exp_enemy_label);
+        QHBoxLayout *pass_info_layout = new QHBoxLayout;
+        QGroupBox *exp_box = new QGroupBox(tr("Exp info"));
+        QVBoxLayout *exp_layout = new QVBoxLayout;
+        int exp_sum = 0 ;
         foreach(QString ememy_name , exp_info_map.keys()){
+            int exp = exp_info_map.value(ememy_name).toInt() ;
+            exp_sum += exp ;
             QLabel *exp_label = new QLabel;
             exp_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-            exp_label->setText(QString("%1 : %2").arg(Sanguosha->translate(ememy_name)).arg(exp_info_map.value(ememy_name)));
+            exp_label->setText(QString("%1 +%2").arg(Sanguosha->translate(ememy_name)).arg(exp));
             exp_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
-            exps_layout->addWidget(exp_label);
+            exp_layout->addWidget(exp_label);
         }
+        QLabel *now_exp_label = new QLabel;
+        now_exp_label->setAlignment(Qt::AlignHCenter|Qt::AlignBottom);
+        now_exp_label->setText(QString("Your exp : <font color='green'>%1</font>(+%2)").arg(Self->getMark("@exp")).arg(exp_sum));
+        exp_layout->addWidget(now_exp_label);
 
-        QLabel *exp_reward_label = new QLabel;
-        exp_reward_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-        exp_reward_label->setText(tr("Reward list"));
-        exp_reward_label->setFont(Config.TinyFont);
-        exp_reward_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
-        exps_layout->addWidget(exp_reward_label);
-        QLabel *reward_label = new QLabel;
-        reward_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-        reward_label->setText(QString("%1 : %2").arg(Sanguosha->translate("NoDamage")).arg("16")) ;
-        exps_layout->addWidget(reward_label);
+        exp_box->setLayout(exp_layout);
+        pass_info_layout->addWidget(exp_box);
 
-        QLabel *exp_label = new QLabel;
-        exp_label->setAlignment(Qt::AlignRight|Qt::AlignBottom);
-        exp_label->setText(QString("%1 : %2").arg(Sanguosha->translate("exp")).arg(Self->getMark("@exp"))) ;
-        exp_label->setFont(Config.TinyFont);
-        exp_label->setStyleSheet("color:green");
-        exps_layout->addWidget(exp_label);
-
-//        QVBoxLayout *abilities_layout = new QVBoxLayout;
-//        foreach (QString ability, PassMode::getGeneralMap().value("common")) {
-//            QLabel *ability_label = new QLabel;
-//            ability_label->setText(Sanguosha->translate(ability));
-//            if(Self->hasAbility(ability)){
-//                ability_label->setStyleSheet("color:green");
-//            }else{
-//                ability_label->setStyleSheet("color:gray");
-//            }
-//            abilities_layout->addWidget(ability_label);
-//        }
-//        down_layout->addLayout(abilities_layout);
-
-
-        up_layout->addWidget(general_lable);
-        up_layout->addLayout(exps_layout);
-        result_layout->addLayout(up_layout);
-        result_layout->addLayout(down_layout);
-        result_box->setLayout(result_layout);
+        QGroupBox *score_box = new QGroupBox(tr("Score info"));
+        QVBoxLayout *score_layout = new QVBoxLayout;
+        QLabel *score_label = new QLabel;
+        score_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
+        score_label->setText(QString("%1 %2").arg(Sanguosha->translate("NoDamage")).arg("16")) ;
+        score_layout->addWidget(score_label);
+        score_box->setLayout(score_layout);
+        pass_info_layout->addWidget(score_box);
 
         QVBoxLayout *layout = new QVBoxLayout;
+        layout->addWidget(image_lable);
         layout->addWidget(stage_label);
         layout->addWidget(turns_label);
-        layout->addWidget(load_times_label);
-        layout->addWidget(result_box);
+        if(result == "fail" || result == "win"){
+            layout->addWidget(msg_label);
+        }else if(result == "pass"){
+            layout->addLayout(pass_info_layout);
+        }
         dialog->setLayout(layout);
-
     }
     addRestartButton(dialog);
 
@@ -2639,7 +2632,7 @@ void RoomScene::onGameOver(){
 void RoomScene::addRestartButton(QDialog *dialog){
     dialog->resize(main_window->width()/2, dialog->height());
 
-    bool goto_next =false;
+    bool goto_next =false , is_pass = false ;
     if(Config.GameMode.contains("_mini_") && Self->property("win").toBool())
     {
         QString id = Config.GameMode;
@@ -2650,14 +2643,21 @@ void RoomScene::addRestartButton(QDialog *dialog){
             goto_next = true;
     }
 
-    if(Config.GameMode.contains("_pass_") && Self->property("win").toBool()){
-        int current = ServerInfo.GameMode.remove("_pass_").toInt(); //PassMode::getSaveData()->roomTags.value("Stage").toInt() ;
-        if(current < PassMode::maxStage)
-            goto_next = true;
+    if(Config.GameMode.contains("_pass_")){
+        if(Self->property("win").toBool()){
+            int current = ServerInfo.GameMode.remove("_pass_").toInt();
+            if(current < PassMode::maxStage)
+                goto_next = true;
+        }
+        is_pass = true ;
     }
 
     QPushButton *restart_button;
-    restart_button = new QPushButton(goto_next ? tr("Next Stage") : tr("Restart Game"));
+    if(is_pass){
+        restart_button = new QPushButton(goto_next ? tr("Next Pass") : tr("Continue Pass"));
+    }else{
+        restart_button = new QPushButton(goto_next ? tr("Next Stage") : tr("Restart Game"));
+    }
     QPushButton *return_button = new QPushButton(tr("Return to main menu"));
     QHBoxLayout *hlayout = new QHBoxLayout;
     hlayout->addStretch();
@@ -3223,10 +3223,10 @@ void KOFOrderBox::killPlayer(const QString &general_name){
     }
 }
 
-#ifdef Q_OS_WIN32
+#ifdef CHAT_VOICE
 
-SpeakThread::SpeakThread(QObject *parent)
-    :QThread(parent), voice_obj(NULL)
+SpeakThread::SpeakThread()
+    :voice_obj(NULL)
 {
 
 }
@@ -3260,10 +3260,10 @@ void SpeakThread::speak(const QString &text){
 #endif
 
 void RoomScene::onGameStart(){
-#ifdef Q_OS_WIN32
+#ifdef CHAT_VOICE
 
     if(Config.value("EnableVoice", false).toBool()){
-        SpeakThread *thread = new SpeakThread(this);
+        SpeakThread *thread = new SpeakThread;
         connect(ClientInstance, SIGNAL(text_spoken(QString)), thread, SLOT(speak(QString)));
         connect(this, SIGNAL(destroyed()), thread, SLOT(finish()));
 

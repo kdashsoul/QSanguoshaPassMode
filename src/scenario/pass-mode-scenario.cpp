@@ -73,8 +73,9 @@ void PassModeRule::initGameStart(Room *room) const {
         QString str = props["maxhp"];
         if(str == NULL)
             str=QString::number(player->getGeneralMaxHP());
-        room->setPlayerProperty(player,"maxhp",str.toInt());
-
+        if(! player->isLord()){
+            room->setPlayerProperty(player,"maxhp",str.toInt());
+        }
         str = props["hpadj"];
         if(str != NULL)
             room->setPlayerProperty(player,"maxhp",player->getMaxHP()+str.toInt());
@@ -93,6 +94,58 @@ void PassModeRule::initGameStart(Room *room) const {
             if(!ok)room->installEquip(player,equip);
             else room->moveCardTo(Sanguosha->getCard(equip.toInt()),player,Player::Equip);
         }
+        str = props.value("judge","");
+        if(str != NULL){
+            QStringList judges = str.split(",");
+            foreach(QString judge,judges){
+                room->moveCardTo(Sanguosha->getCard(judge.toInt()),player,Player::Judging);
+            }
+        }
+        str = props.value("hand","");
+        if(str !=NULL){
+            QStringList hands = str.split(",");
+            foreach(QString hand,hands){
+                room->obtainCard(player,hand.toInt());
+            }
+        }
+
+        QVariant v;
+        foreach(const TriggerSkill *skill, player->getTriggerSkills()){
+            if(!skill->inherits("SPConvertSkill"))
+                room->getThread()->addTriggerSkill(skill);
+            else continue;
+            if(skill->getTriggerEvents().contains(GameStart))
+                skill->trigger(GameStart, player, v);
+        }
+
+        QString skills = props.value("acquireSkills","");
+        if(skills != NULL){
+            foreach(QString skill_name, skills.split(","))
+                room->acquireSkill(player, skill_name);
+        }
+
+        if(props["chained"] != NULL){
+            player->setChained(true);
+            room->broadcastProperty(player, "chained");
+        }
+        if(props["turned"] == "true"){
+            if(player->faceUp())
+                player->turnOver();
+        }
+
+        if(props["kingdom"] != NULL){
+            room->setPlayerProperty(player, "kingdom", props["kingdom"]);
+        }
+
+        if(props["marks"] != NULL){
+            QStringList marks = props["marks"].split(",");
+            foreach(QString qs,marks){
+                QStringList keys = qs.split("*");
+                str = keys.at(1);
+                room->setPlayerMark(player, keys.at(0), str.toInt());
+            }
+        }
+
         int n, hero_draw = 6 , enemy_draw = 4 ;
         QString draw_conf = props["draw"] ;
         if(draw_conf == NULL){
@@ -341,26 +394,27 @@ SaveDataStruct* PassMode::catchSaveInfo(Room *room){
     return save_cache;
 }
 
-bool PassMode::saveData(Room *room){
-    SaveDataStar save = catchSaveInfo(room);
+bool PassMode::saveData(Room *room, SaveDataStruct *save_data){
+    if(! save_data)
+        save_data = catchSaveInfo(room);
 
     QByteArray data;
     QString room_tags_str ;
-    foreach (QString key_name, save->roomTags.keys()) {
-        room_tags_str.append(QString("%1:%2").arg(key_name).arg(save->roomTags.value(key_name).toString())) ;
+    foreach (QString key_name, save_data->roomTags.keys()) {
+        room_tags_str.append(QString("%1:%2").arg(key_name).arg(save_data->roomTags.value(key_name).toString())) ;
         room_tags_str.append("|");
     }
     data.append(room_tags_str.toUtf8().toBase64());
     data.append(QString("\n"));
-    data.append(save->playerMarks.join("|").toUtf8().toBase64());
+    data.append(save_data->playerMarks.join("|").toUtf8().toBase64());
     data.append(QString("\n"));
-    data.append(save->general_name.toUtf8().toBase64());
+    data.append(save_data->general_name.toUtf8().toBase64());
     data.append(QString("\n"));
-    data.append(save->skills.join("|").toUtf8().toBase64());
+    data.append(save_data->skills.join("|").toUtf8().toBase64());
     data.append(QString("\n"));
-    data.append(save->skills_enhance.join("|").toUtf8().toBase64());
+    data.append(save_data->skills_enhance.join("|").toUtf8().toBase64());
     data.append(QString("\n"));
-    data.append(save->abilities.join("|").toUtf8().toBase64());
+    data.append(save_data->abilities.join("|").toUtf8().toBase64());
     data.append(QString("\n"));
     data.append(version.toUtf8().toBase64());
 

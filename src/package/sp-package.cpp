@@ -135,6 +135,7 @@ public:
     virtual bool triggerable(const ServerPlayer *target) const{
         return true;
     }
+
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         if(event == CardUsed){
@@ -142,7 +143,7 @@ public:
             ServerPlayer *yangxiu = room->findPlayerBySkillName(objectName());
             if(!yangxiu || use.to.length() <= 1 ||
                     !use.to.contains(yangxiu) ||
-                    !use.card->inherits("TrickCard") ||
+                    !use.card->inherits("TrickCard") || use.card->inherits("Collateral") ||
                     !room->askForSkillInvoke(yangxiu, objectName(), data))
                 return false;
 
