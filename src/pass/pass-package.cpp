@@ -212,6 +212,7 @@ public:
                 judge.good = true;
                 judge.reason = objectName();
                 judge.who = shizu;
+                judge.time_consuming = true;
 
                 room->judge(judge);
             }
@@ -653,25 +654,21 @@ public:
         Room *room = player->getRoom();
         JudgeStar judge = data.value<JudgeStar>();
 
-        player->tag["Judge"] = data;
-
         if(judge->who == player && room->askForSkillInvoke(player,objectName(),data)){
             room->throwCard(judge->card);
 
             judge->card = Sanguosha->getCard(room->drawCard()) ;
             room->moveCardTo(judge->card, NULL, Player::Special);
+            room->sendJudgeResult(judge);
             room->getThread()->delay();
 
-//            LogMessage log;
-//            log.type = "$ChangedJudge";
-//            log.from = player;
-//            log.to << judge->who;
-//            log.card_str = card->getEffectIdString();
-//            room->sendLog(log);
-
-            room->sendJudgeResult(judge);
+            LogMessage log;
+            log.type = "$ChangedJudge";
+            log.from = player;
+            log.to << judge->who;
+            log.card_str = judge->card->getEffectIdString();
+            room->sendLog(log);
         }
-
         return false;
     }
 };
@@ -721,6 +718,51 @@ public:
     }
 };
 
+class CaiqingPass: public TriggerSkill{
+public:
+    CaiqingPass():TriggerSkill("caiqing_p"){
+        events << CardLost << PhaseChange;
+        frequency = Frequent;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        if(event == PhaseChange){
+            if(player->getPhase() == Player::Finish){
+                if(player->isWounded() && player->getMark("caiqing_p") > 0 && player->askForSkillInvoke(objectName(), data)){
+                    RecoverStruct recover;
+                    recover.who = player;
+                    room->recover(player, recover);
+                }
+            }else if(player->getPhase() == Player::RoundStart){
+                player->setMark("caiqing_p", 0);
+            }
+            return false;
+        }
+        if(player->getPhase() == Player::Discard){
+            CardMoveStar move = data.value<CardMoveStar>();
+            if(move->to_place == Player::DiscardedPile){
+                player->addMark("caiqing_p");
+            }
+        }
+        return false;
+    }
+};
+
+class DuoyiPass: public TriggerSkill{
+public:
+    DuoyiPass():TriggerSkill("duoyi_p"){
+        events << SlashMissed;
+        frequency = Compulsory;
+    }
+
+    virtual bool trigger(TriggerEvent, ServerPlayer *player, QVariant &) const{
+        Room *room = player->getRoom();
+        room->setPlayerFlag(player,"duoyi_p");
+        return false;
+    }
+};
+
 
 class WujiPass: public TriggerSkill{
 public:
@@ -753,43 +795,6 @@ public:
 };
 
 
-
-
-
-
-
-
-
-
-
-class JianxiongPass:public MasochismSkill{
-public:
-    JianxiongPass():MasochismSkill("jianxiong_p"){
-        frequency = Frequent;
-    }
-
-    virtual void onDamaged(ServerPlayer *caocao, const DamageStruct &damage) const{
-        Room *room = caocao->getRoom();
-        const Card *card = damage.card;
-        if(damage.card){
-            QVariant data = QVariant::fromValue(card);
-            QString choice = "draw" ;
-            if(room->askForSkillInvoke(caocao, objectName() , data)){
-                caocao->gainMark("@jianxiong_p",damage.damage);
-                if(room->obtainable(card, caocao)){
-                    QVariant data = QVariant::fromValue(card);
-                    choice = room->askForChoice(caocao,objectName(),"gain+draw");
-                }
-                room->playSkillEffect(objectName());
-                if(choice == "gain"){
-                    caocao->obtainCard(card);
-                }else{
-                    caocao->drawCards(1);
-                }
-            }
-        }
-    }
-};
 
 class XietianPass: public TriggerSkill{
 public:
@@ -3794,6 +3799,7 @@ PassPackage::PassPackage()
     skills << new TipoPass << new QuanhengPass
            << new DuanyanPass << new XiongziPass << new QiangongPass
            << new WanghouPass << new QiangyunPass << new XiaoxiongPass << new KuanhouPass
+           << new CaiqingPass << new DuoyiPass
            << new WujiPass;
 
     addMetaObject<DuanyanPassCard>();

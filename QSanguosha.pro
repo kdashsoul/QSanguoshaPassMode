@@ -288,4 +288,19 @@ OTHER_FILES += \
 	sanguosha.qss \
 	acknowledgement/main.qml \
 	acknowledgement/list.png \
-	acknowledgement/back.png
+	acknowledgement/back.png \
+    etc/passmode/skills.txt \
+    etc/passmode/generals.txt \
+    etc/passmode/02.txt \
+    etc/passmode/01.txt \
+    etc/passmode/skills.txt \
+    etc/passmode/generals.txt \
+    etc/passmode/02.txt \
+    etc/passmode/01.txt \
+    lang/zh_CN/PassModeScenario.lua
+
+
+
+
+
+

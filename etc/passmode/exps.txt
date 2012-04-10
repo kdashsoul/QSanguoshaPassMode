@@ -1,6 +1,0 @@
-evil 4
-wei 8
-shu 8
-wu 8
-qun 8
-god 16

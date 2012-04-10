@@ -2394,6 +2394,7 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
             Sanguosha->playAudio("hplost");
             return;
         }
+
         QString damage_effect;
         switch(delta){
         case -1: {

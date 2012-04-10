@@ -23,7 +23,20 @@ public:
         QVariant data = QVariant::fromValue(card);
         if(room->askForSkillInvoke(caocao, "jianxiong", data)){
             room->playSkillEffect(objectName());
-            caocao->obtainCard(card);
+            if(caocao->isSkillEnhance("jianxiong",1)){
+                QVariant data = QVariant::fromValue(card);
+                QString choice = room->askForChoice(caocao,objectName(),"gain+draw",data);
+                if(choice == "gain"){
+                    caocao->drawCards(1);
+                }else{
+                    caocao->obtainCard(card);
+                }
+            }else{
+                caocao->obtainCard(card);
+            }
+            if(caocao->isSkillEnhance("jianxiong",2) && caocao->getHp() == 1){
+                caocao->drawCards(2);
+            }
         }
     }
 };

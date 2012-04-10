@@ -144,7 +144,7 @@ public:
     Card::Suit askForSuit(ServerPlayer *player, const QString &reason);
     QString askForKingdom(ServerPlayer *player);
     bool askForSkillInvoke(ServerPlayer *player, const QString &skill_name, const QVariant &data = QVariant());
-    QString askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices);
+    QString askForChoice(ServerPlayer *player, const QString &skill_name, const QString &choices, const QVariant &data = QVariant());
     void askForSkillLearn(ServerPlayer *player,const QString &tab_index = "0");
     bool askForDiscard(ServerPlayer *target, const QString &reason, int discard_num, bool optional = false, bool include_equip = false);
     const Card *askForExchange(ServerPlayer *player, const QString &reason, int discard_num);

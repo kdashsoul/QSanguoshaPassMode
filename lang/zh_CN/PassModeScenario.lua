@@ -270,16 +270,18 @@ local pass_t = {
 	["qiangyun_p"]                 	= "强运" ,
 	[":qiangyun_p"]                 = "可进行两次判定。" ,
 	
-	
+	["baqi_p"]                    	= "霸气",
+	[":baqi_p"]                   	= "对自己一次造成2点或以上伤害的角色强制进入弃牌阶段。",
+	["caiqing_p"]                   = "才情",
+	[":caiqing_p"]                  = "弃牌阶段所弃牌数量不小于2张时，回复1点体力。",
+	["duoyi_p"]                    	= "多疑",
+	[":duoyi_p"]                   	= "使用的杀被闪抵消时，可以额外使用1张杀。",
 
-	["NoDamage"]                    = "无伤奖励",
+	["wuji_p"]                    	= "武姬",
+	[":wuji_p"]                   	= "使用杀时视为装备了目标的武器。",
 
-	["savefile"]                    = "存档",
-	["read"]                        = "读取存档",
-	["deletesave"]                  = "删除存档",
-	["cancel"]                      = "取消",
-	["save"]                        = "保存",
-	["notsave"]                     = "不保存",
+	["NoDamage"]                    = "毫发无伤",
+
     
     ["#TriggerDrawSkill"]           = "%from 的【%arg】效果被触发，从牌堆摸了 %arg2 张牌",
     ["#TriggerDamageUpSkill"]       = "%from 的【%arg】效果被触发，对 %to 的伤害上升至 %arg2 点",
@@ -310,10 +312,7 @@ local pass_t = {
     ["#WeimuPass"]                  = "%from 使用了【帷幕.改】技能，弃置1张手牌无效了【%arg】的效果并摸了1张牌。",
     ["#GainExp"]                    = "%from 成功击败了 %to，获得了 %arg 点经验值 ，当前经验值为 %arg2",
     
-    ["#NextStage"]                  = "%from 击败了所有敌人，来到了第【%arg】关",
-    
     ["#LoadNextStage"]              = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",
-    ["#ResetPlayer"]                = "<font color='red'><b>进入了2周目，所有技能重置，并获得初始的50点经验值</b></font>",
 }
 
 for k, v in pairs(pass_t) do
