@@ -209,6 +209,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
                 PassMode::removeSaveData();
                 room->setTag("Times", 1);
                 room->setTag("LoadTimes", 0);
+                room->setTag("Score", 0);
                 general_name = room->askForGeneralPass(player,"standard");
             }else{
                 general_name = save_data->general_name;
@@ -221,6 +222,8 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             }else{
                 PassMode::loadData(room,save_data);
             }
+            room->setTag("Turns",0);
+
             room->askForSkillLearn(player);
             initGameStart(player->getRoom());
         }
@@ -286,7 +289,7 @@ PassMode::PassMode()
 QStringList PassMode::getNeedSaveRoomTagName(){
     static QStringList tagNames;
     if(tagNames.isEmpty())
-        tagNames << "Stage" << "Times" << "Turns" << "LoadTimes" ;
+        tagNames << "Stage" << "Times" << "Turns" << "UseTurns" << "LoadTimes" ;
 
     return tagNames;
 }
@@ -294,7 +297,7 @@ QStringList PassMode::getNeedSaveRoomTagName(){
 QStringList PassMode::getNeedSavePlayerMarkName(){
     static QStringList markNames;
     if(markNames.isEmpty())
-        markNames << "@exp" ;
+        markNames << "@exp" << "@score" ;
 
     return markNames;
 }

@@ -973,7 +973,7 @@ void RoomScene::timerEvent(QTimerEvent *event){
 
     int timeout = ServerInfo.OperationTimeout;
     if(ClientInstance->getStatus() == Client::AskForGuanxing)
-        timeout = 20;
+        timeout = Config.S_GUANXING_TIMEOUT;
 
     int step = 100 / double(timeout * 5);
     int new_value = progress_bar->value() + step;
@@ -2567,7 +2567,10 @@ void RoomScene::onGameOver(){
         stage_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
 
         QLabel *turns_label = new QLabel;
-        turns_label->setText(tr("Use turns: <font color='green'>%1</font>  Load times: <font color='green'>%2</font>").arg(pass_info_map.value("Turns")).arg(pass_info_map.value("LoadTimes")));
+        turns_label->setText(tr("Use turns: <font color='green'>%1</font>(+%2)  Load times: <font color='green'>%3</font>")
+                             .arg(pass_info_map.value("UseTurns"))
+                             .arg(pass_info_map.value("Turns"))
+                             .arg(pass_info_map.value("LoadTimes")));
         turns_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
         turns_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
 
@@ -2592,7 +2595,7 @@ void RoomScene::onGameOver(){
             exp_sum += exp ;
             QLabel *exp_label = new QLabel;
             exp_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
-            exp_label->setText(QString("%1 +%2").arg(Sanguosha->translate(ememy_name)).arg(exp));
+            exp_label->setText(QString("%1 %2").arg(Sanguosha->translate(ememy_name)).arg(exp));
             exp_label->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
             exp_layout->addWidget(exp_label);
         }
@@ -2604,12 +2607,19 @@ void RoomScene::onGameOver(){
         exp_box->setLayout(exp_layout);
         pass_info_layout->addWidget(exp_box);
 
+        int score_sum = 0 ;
         QGroupBox *score_box = new QGroupBox(tr("Score info"));
         QVBoxLayout *score_layout = new QVBoxLayout;
         QLabel *score_label = new QLabel;
         score_label->setAlignment(Qt::AlignHCenter|Qt::AlignTop);
         score_label->setText(QString("%1 %2").arg(Sanguosha->translate("NoDamage")).arg("16")) ;
         score_layout->addWidget(score_label);
+
+        QLabel *now_score_label = new QLabel;
+        now_score_label->setAlignment(Qt::AlignHCenter|Qt::AlignBottom);
+        now_score_label->setText(QString("Your score : <font color='green'>%1</font>(+%2)").arg(Self->getMark("@score")).arg(score_sum));
+        score_layout->addWidget(now_score_label);
+
         score_box->setLayout(score_layout);
         pass_info_layout->addWidget(score_box);
 
