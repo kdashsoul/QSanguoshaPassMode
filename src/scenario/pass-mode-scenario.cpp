@@ -28,14 +28,10 @@ int SkillAttrStruct::getLimitTimes() const{
     return limit_times ;
 }
 
-const QString PassMode::version = "ver2.0";
-const QString PassMode::savePath = "savedata/pass_mode.sav";
-const int PassMode::maxStage = 2 ;
-
 PassModeRule::PassModeRule(Scenario *scenario)
     :ScenarioRule(scenario)
 {
-    events << GameStart << DrawNCards << Predamaged << CardUsed << Death ;
+    events << GameStart << TurnStart << DrawNCards << Predamaged << CardUsed << Death ;
     stage = scenario->objectName().remove("_pass_").toInt() ;
 }
 
@@ -229,6 +225,16 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             initGameStart(player->getRoom());
         }
         break ;
+    }case TurnStart:{
+        ServerPlayer* starter = room->getTag("Starter").value<PlayerStar>() ;
+        if(starter == NULL){
+            starter = room->getLord();
+        }
+        if(player == starter){
+            int turns = room->getTag("Turns").toInt() ;
+            room->setTag("Turns", ++turns );
+        }
+        break;
     }case DrawNCards:{
         if(player->hasAbility("turndraw")){
             data = data.toInt() + 1 ;
@@ -267,32 +273,14 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
     return false;
 }
 
-PassMode::PassMode(QObject *parent)
-    :GameRule(parent)
+
+
+const QString PassMode::version = "2.0";
+const QString PassMode::savePath = "savedata/pass_mode.sav";
+const int PassMode::maxStage = 2 ;
+
+PassMode::PassMode()
 {
-    setObjectName("pass_mode_rule");
-}
-
-bool PassMode::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-    Room *room = player->getRoom();
-    qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
-
-    switch(event){
-    case TurnStart :{
-        ServerPlayer* starter = room->getTag("Starter").value<PlayerStar>() ;
-        if(starter == NULL){
-            starter = room->getLord();
-        }
-        if(player == starter){
-            int turns = room->getTag("Turns").toInt() ;
-            room->setTag("Turns", ++turns );
-        }
-        break;
-    }
-    default:
-        break;
-    }
-    return GameRule::trigger(event, player, data);
 }
 
 QStringList PassMode::getNeedSaveRoomTagName(){

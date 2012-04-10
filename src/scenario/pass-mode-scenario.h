@@ -47,13 +47,9 @@ private:
     int stage ;
 };
 
-class PassMode: public GameRule{
-    Q_OBJECT
-
+class PassMode{
 public:
-    PassMode(QObject *parent);
-
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const;
+    PassMode();
 
     static QStringList getNeedSaveRoomTagName();
     static QStringList getNeedSavePlayerMarkName();
@@ -69,12 +65,9 @@ public:
     static QMap<QString, QStringList> getGeneralMap();
     static const int maxStage;
 private:
-    QMap<QString, QString> hidden_reward;
-
     static const QString version;
     static const QString savePath;
 
-    mutable jmp_buf env;
 };
 
 class PassModeScenario : public Scenario{
