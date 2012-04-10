@@ -256,18 +256,6 @@ void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer
     QList<ServerPlayer *> lieges = room->getLieges("shu", liubei);
     const Card *slash = NULL;
 
-    if(liubei->isSkillEnhance("jijiang",1)){
-        room->addPlayerCountInfo(liubei,"jijiang");
-        Slash *slash = new Slash(Card::NoSuit,0) ;
-        slash->setSkillName("jijiang");
-        CardUseStruct card_use;
-        card_use.card = slash;
-        card_use.from = liubei;
-        card_use.to << targets.first();
-        room->useCard(card_use);
-        return;
-    }
-
     QVariant tohelp = QVariant::fromValue((PlayerStar)liubei);
     foreach(ServerPlayer *liege, lieges){
         slash = room->askForCard(liege, "slash", "@jijiang-slash:" + liubei->objectName(), tohelp);
@@ -280,6 +268,18 @@ void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer
             room->useCard(card_use);
             return;
         }
+    }
+
+    if(liubei->isSkillEnhance("jijiang",1)){
+        room->addPlayerCountInfo(liubei,"jijiang");
+        Slash *slash = new Slash(Card::NoSuit,0) ;
+        slash->setSkillName("jijiang");
+        CardUseStruct card_use;
+        card_use.card = slash;
+        card_use.from = liubei;
+        card_use.to << targets.first();
+        room->useCard(card_use);
+        return;
     }
 }
 

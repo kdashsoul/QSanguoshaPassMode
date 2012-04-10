@@ -286,6 +286,8 @@ local pass_t = {
     ["#TriggerDrawSkill"]           = "%from 的【%arg】效果被触发，从牌堆摸了 %arg2 张牌",
     ["#TriggerDamageUpSkill"]       = "%from 的【%arg】效果被触发，对 %to 的伤害上升至 %arg2 点",
     ["#TriggerDamageDownSkill"]     = "%from 的【%arg】效果被触发，受到的伤害下降至 %arg2 点",
+
+    ["#ForceEndSkill"]     = "%from 的【%arg】效果被触发，%to 中止了出牌阶段。",
     
     ["#DuanYanPassChooseType"]      = "%from 选择了 %arg ，随机展示 %to 手中的1张牌",
     ["#QiangongPassThrow"]          = "%from 的【谦恭】效果被触发，弃置了1张牌以防止【%arg】的效果",
@@ -310,8 +312,7 @@ local pass_t = {
     ["#MafeiPass"]                  = "由于 %from 受到 %to 的伤害，技能【麻沸】效果被触发，%to 须在回合结束阶段弃置一张手牌",
     ["#BuguaPass"]                  = "%from 使用了【卜卦】技能，将1张手牌与牌堆顶的牌交换",
     ["#WeimuPass"]                  = "%from 使用了【帷幕.改】技能，弃置1张手牌无效了【%arg】的效果并摸了1张牌。",
-    ["#GainExp"]                    = "%from 成功击败了 %to，获得了 %arg 点经验值 ，当前经验值为 %arg2",
-    
+
     ["#LoadNextStage"]              = "读档成功！%from 来到了 <b>%arg2</b> 周目的第【%arg】关",
 }
 

@@ -23,9 +23,14 @@ int SkillAttrStruct::getValue(const int level) const{
 }
 
 int SkillAttrStruct::getLimitTimes() const{
-    if(! ServerInfo.GameMode.contains("_pass_"))
+    if(! ServerInfo.GameMode.contains("_pass_") || !Self->isSkillEnhance(skill_name))
         return 0 ;
-    return limit_times ;
+    int plus = 0 ;
+    foreach (int level, limit_plus.keys()) {
+        if(Self->isSkillEnhance(skill_name,level))
+            plus += limit_plus.value(level) ;
+    }
+    return limit_times + plus ;
 }
 
 PassModeRule::PassModeRule(Scenario *scenario)
@@ -218,7 +223,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             room->transfigurePass(player, general_name, 1);
 
             if(stage == 1 ){
-                player->gainMark("@exp",50);
+                player->gainMark("@exp",500);
             }else{
                 PassMode::loadData(room,save_data);
             }
@@ -474,7 +479,7 @@ SaveDataStruct *PassMode::getSaveData(){
 QMap<QString, SkillAttrStruct*> PassMode::getSkillMap(){
     static QMap<QString, SkillAttrStruct*> skill_map;
     if(skill_map.isEmpty()){
-        QRegExp rx("(\\w+)\\s+([\\d|:]+)");
+        QRegExp rx("(\\w+)\\s+([\\d|:\\+]+)");
         QFile file("etc/passmode/skills.txt");
         if(file.open(QIODevice::ReadOnly)){
             QTextStream stream(&file);
@@ -486,9 +491,16 @@ QMap<QString, SkillAttrStruct*> PassMode::getSkillMap(){
                 QString skill_name = texts.at(1);
                 QStringList skill_attr_str = texts.at(2).split(":");
                 QString skill_value = skill_attr_str.at(0) ;
-                SkillAttrStruct *skill_attr = new SkillAttrStruct;;
+                SkillAttrStruct *skill_attr = new SkillAttrStruct;
+                skill_attr->skill_name = skill_name ;
                 if(skill_attr_str.length() > 1){
                     skill_attr->limit_times = skill_attr_str.at(1).toInt() ;
+                }
+                if(skill_attr_str.length() > 2){
+                    QStringList limit_plus_str = skill_attr_str.at(2).split("+") ;
+                    if(limit_plus_str.length() == 2){
+                        skill_attr->limit_plus.insert(limit_plus_str.at(0).toInt(),limit_plus_str.at(1).toInt()) ;
+                    }
                 }
                 foreach(QString value , skill_value.split("|")){
                     skill_attr->values << value.toInt() ;
@@ -500,7 +512,6 @@ QMap<QString, SkillAttrStruct*> PassMode::getSkillMap(){
     }
     return skill_map;
 }
-
 
 QMap<QString, QStringList> PassMode::getGeneralMap(){
     static QMap<QString, QStringList> general_map;
@@ -520,6 +531,14 @@ QMap<QString, QStringList> PassMode::getGeneralMap(){
         file.close();
     }
     return general_map;
+}
+
+bool PassMode::canUseEnhancedSkill(const QString &skill_name){
+    int limit_times = getSkillMap().value(skill_name, new SkillAttrStruct)->getLimitTimes() ;
+    if(limit_times != 0 && Self->getCountInfo(skill_name) >= limit_times){
+        return false ;
+    }
+    return true ;
 }
 
 void PassModeScenario::onTagSet(Room *room, const QString &key) const{

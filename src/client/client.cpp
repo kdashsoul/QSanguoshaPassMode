@@ -586,6 +586,7 @@ void Client::cardLock(const QString &card_str){
 
 void Client::enhanceSkill(const QString &enhance_name){
     Self->enhanceSkill(enhance_name);
+    setStatus(NotActive);
 }
 
 void Client::setAbility(const QString &ability_str){
@@ -605,6 +606,7 @@ void Client::setAbility(const QString &ability_str){
 
 void Client::addCountInfo(const QString &name){
     Self->addCountInfo(name);
+    setStatus(NotActive);
 }
 
 void Client::judgeResult(const QString &result_str){

@@ -207,6 +207,7 @@ private:
 
     QList<QAbstractButton *> skill_buttons;
     QMap<QAbstractButton *, const ViewAsSkill *> button2skill;
+    QMap<QAbstractButton *, const TriggerSkill *> button2skill2;
 
     ResponseSkill *response_skill;
     DiscardSkill *discard_skill;

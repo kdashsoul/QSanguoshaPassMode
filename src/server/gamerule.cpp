@@ -72,6 +72,9 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
                 room->activate(player, card_use);
                 if(card_use.isValid()){
                     room->useCard(card_use);
+                    if(player->hasFlag("force_end_play")){
+                        break ;
+                    }
                 }else
                     break;
             }
@@ -119,6 +122,7 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
             }
 
             player->clearFlags();
+            player->clearHistory();
 
             return;
         }

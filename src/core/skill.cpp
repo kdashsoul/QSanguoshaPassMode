@@ -129,12 +129,12 @@ ViewAsSkill::ViewAsSkill(const QString &name)
 }
 
 bool ViewAsSkill::isAvailable() const{
-    if(Self->isSkillEnhance(objectName())){
-        int limit_times = PassMode::getSkillMap().value(objectName(), new SkillAttrStruct)->getLimitTimes() ;
-        if(limit_times != 0 && Self->getCountInfo(objectName()) >= limit_times){
-            return false ;
-        }
-    }
+//    if(Self->isSkillEnhance(objectName())){
+//        int limit_times = PassMode::getSkillMap().value(objectName(), new SkillAttrStruct)->getLimitTimes() ;
+//        if(limit_times != 0 && Self->getCountInfo(objectName()) >= limit_times){
+//            return false ;
+//        }
+//    }
     switch(ClientInstance->getStatus()){
     case Client::Playing: return isEnabledAtPlay(Self);
     case Client::Responsing: return isEnabledAtResponse(Self, ClientInstance->getPattern());

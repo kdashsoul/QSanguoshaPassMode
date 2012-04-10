@@ -22,8 +22,11 @@ struct SaveDataStruct{
 
 struct SkillAttrStruct{
     SkillAttrStruct();
+
+    QString skill_name ;
     QList<int> values ;
     int limit_times ;
+    QMap<int,int> limit_plus ;
 
     int getLimitTimes() const ;
     int getValue(const int level = 1) const;
@@ -60,6 +63,7 @@ public:
     static bool saveData(Room *room,SaveDataStruct *save_data = NULL);
     static SaveDataStruct *getSaveData();
     static SaveDataStruct* catchSaveInfo(Room *room);
+    static bool canUseEnhancedSkill(const QString &skill_name);
 
     static QMap<QString, SkillAttrStruct *> getSkillMap();
     static QMap<QString, QStringList> getGeneralMap();

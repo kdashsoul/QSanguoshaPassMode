@@ -948,6 +948,9 @@ bool Room::askForUseCard(ServerPlayer *player, const QString &pattern, const QSt
 }
 
 int Room::askForAG(ServerPlayer *player, const QList<int> &card_ids, bool refusable, const QString &reason){
+    
+    Q_ASSERT(card_ids.length()>0);
+    
     if(card_ids.length() == 1 && !refusable)
         return card_ids.first();
 
@@ -2653,9 +2656,11 @@ void Room::doMove(const CardMoveStruct &move, const QSet<ServerPlayer *> &scope)
     if(move.from){
         if(move.from_place == Player::Special){
             QString pile_name = move.from->getPileName(move.card_id);
-            Q_ASSERT(!pile_name.isEmpty());
+            
+            //@todo: if (pile_name.isEmpty());
+            
             QString pile_str = QString("%1:%2-%3")
-                               .arg(move.from->objectName()).arg(pile_name).arg(move.card_id);
+                    .arg(move.from->objectName()).arg(pile_name).arg(move.card_id);
 
             if(move.open)
                 broadcastInvoke("pile", pile_str);
@@ -2681,9 +2686,11 @@ void Room::doMove(const CardMoveStruct &move, const QSet<ServerPlayer *> &scope)
 
         if(move.to_place == Player::Special){
             QString pile_name = move.to->getPileName(move.card_id);
-            Q_ASSERT(!pile_name.isEmpty());
+            
+            //@todo: if (pile_name.isEmpty());
+            
             QString pile_str = QString("%1:%2+%3")
-                               .arg(move.to->objectName()).arg(pile_name).arg(move.card_id);
+                    .arg(move.to->objectName()).arg(pile_name).arg(move.card_id);
 
             if(move.open)
                 broadcastInvoke("pile", pile_str);
@@ -2771,7 +2778,11 @@ void Room::getResult(const QString &reply_func, ServerPlayer *reply_player, cons
         reply_player->acquireLock(ServerPlayer::SEMA_COMMAND);
     else if (!reply_player->tryAcquireLock(ServerPlayer::SEMA_COMMAND, getCommandTimeout(reply_func))) 
         result = defaultValue;
-    else if (reply_player->getState() != "online")
+    
+    //@todo: ylin - release all locks when the client disconnects, perhaps writing it
+    //into destructor of ServerPlayer
+    //The lock might be acquired because the client disconnects
+    if (reply_player->getState() != "online")
         result = defaultValue;
 
     if(game_finished)

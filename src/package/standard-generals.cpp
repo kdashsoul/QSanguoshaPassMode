@@ -8,6 +8,7 @@
 #include "room.h"
 #include "standard-skillcards.h"
 #include "ai.h"
+#include "pass-mode-scenario.h"
 
 class Jianxiong:public MasochismSkill{
 public:
@@ -27,9 +28,9 @@ public:
                 QVariant data = QVariant::fromValue(card);
                 QString choice = room->askForChoice(caocao,objectName(),"gain+draw",data);
                 if(choice == "gain"){
-                    caocao->drawCards(1);
-                }else{
                     caocao->obtainCard(card);
+                }else{
+                    caocao->drawCards(1);
                 }
             }else{
                 caocao->obtainCard(card);
@@ -57,9 +58,11 @@ public:
         if(pattern != "jink")
             return false;
 
+        bool can_use_enhanced_skill = caocao->isSkillEnhance("hujia",1) && PassMode::canUseEnhancedSkill("hujia") ;
+
         Room *room = caocao->getRoom();
         QList<ServerPlayer *> lieges = room->getLieges("wei", caocao);
-        if(lieges.isEmpty())
+        if(lieges.isEmpty() && !can_use_enhanced_skill)
             return false;
 
         if(!room->askForSkillInvoke(caocao, objectName()))
@@ -75,6 +78,13 @@ public:
             }
         }
 
+        if(can_use_enhanced_skill){
+            room->addPlayerCountInfo(caocao,"hujia");
+            Jink *jink = new Jink(Card::NoSuit,0) ;
+            jink->setSkillName("hujia");
+            room->provide(jink);
+            return true;
+        }
         return false;
     }
 };

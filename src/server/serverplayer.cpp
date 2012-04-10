@@ -352,9 +352,10 @@ void ServerPlayer::removeCard(const Card *card, Place place){
     case Special:{
             int card_id = card->getEffectiveId();
             QString pile_name = getPileName(card_id);
-            Q_ASSERT(!pile_name.isEmpty());
-
-            piles[pile_name].removeOne(card_id);
+            
+            //@todo: sanity check required
+            if (!pile_name.isEmpty())
+                piles[pile_name].removeOne(card_id);
 
             break;
         }
@@ -841,6 +842,18 @@ void ServerPlayer::marshal(ServerPlayer *player) const{
         if(value > 0)
             player->invoke("addHistory", QString("%1#%2").arg(item).arg(value));
     }
+}
+
+void ServerPlayer::addToPile(const QString &pile_name, const Card *card, bool open){
+    if(card->isVirtualCard()){
+        QList<int> cards_id = card->getSubcards();
+        foreach(int card_id, cards_id)
+            piles[pile_name] << card_id;
+    }
+    else
+        piles[pile_name] << card->getEffectiveId();
+
+    room->moveCardTo(card, this, Player::Special, open);
 }
 
 void ServerPlayer::addToPile(const QString &pile_name, int card_id, bool open){

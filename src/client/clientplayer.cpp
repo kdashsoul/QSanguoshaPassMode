@@ -110,6 +110,7 @@ void ClientPlayer::changePile(const QString &name, bool add, int card_id){
     else
         piles[name].removeOne(card_id);
 
+    if(!name.startsWith("#"))
     emit pile_changed(name);
 }
 

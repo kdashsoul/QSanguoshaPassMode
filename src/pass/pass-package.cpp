@@ -718,6 +718,29 @@ public:
     }
 };
 
+class BadaoPass:public MasochismSkill{
+public:
+    BadaoPass():MasochismSkill("badao_p"){
+        frequency = Compulsory ;
+    }
+
+    virtual void onDamaged(ServerPlayer *caocao, const DamageStruct &damage) const{
+        ServerPlayer *from = damage.from;
+        Room *room = caocao->getRoom();
+        if(damage.damage < 2)
+            return ;
+        if(!from || !from->isAlive() || from->getPhase() != Player::Play || from == caocao)
+            return ;
+        LogMessage log;
+        log.type = "#ForceEndSkill";
+        log.from = caocao;
+        log.to << from;
+        log.arg = objectName() ;
+        room->sendLog(log);
+        room->setPlayerFlag(from,"force_end_play");
+    }
+};
+
 class CaiqingPass: public TriggerSkill{
 public:
     CaiqingPass():TriggerSkill("caiqing_p"){
@@ -762,6 +785,8 @@ public:
         return false;
     }
 };
+
+
 
 
 class WujiPass: public TriggerSkill{
@@ -828,48 +853,6 @@ public:
             caocao->getRoom()->sendLog(log);
         }
         return false;
-    }
-};
-
-class BadaoPass:public OneCardViewAsSkill{
-public:
-    BadaoPass():OneCardViewAsSkill("badao_p"){
-    }
-
-    virtual bool viewFilter(const CardItem *to_select) const{
-        return !to_select->isEquipped();
-    }
-
-    virtual bool isEnabledAtPlay(const Player *player) const{
-        return player->getMark("@jianxiong_p") >= 3 ;
-    }
-
-    virtual const Card *viewAs(CardItem *card_item) const{
-        Card *card ;
-        const Card *sub_card = card_item->getFilteredCard() ;
-        if(sub_card->isRed()){
-            card = new ArcheryAttack(sub_card->getSuit(), sub_card->getNumber());
-        }else{
-            card = new SavageAssault(sub_card->getSuit(), sub_card->getNumber());
-        }
-        card->addSubcard(sub_card);
-        card->setSkillName(objectName());
-        return card;
-    }
-};
-
-class BadaoPassCost: public TriggerSkill{
-public:
-    BadaoPassCost():TriggerSkill("#badao_p_cost"){
-        events << CardUsed;
-    }
-
-    virtual bool trigger(TriggerEvent , ServerPlayer *caocao, QVariant &data) const{
-        CardUseStruct use = data.value<CardUseStruct>();
-        if(use.card->getSkillName() == "badao_p"){
-            caocao->loseMark("@jianxiong_p",3);
-        }
-        return false ;
     }
 };
 
@@ -3799,7 +3782,7 @@ PassPackage::PassPackage()
     skills << new TipoPass << new QuanhengPass
            << new DuanyanPass << new XiongziPass << new QiangongPass
            << new WanghouPass << new QiangyunPass << new XiaoxiongPass << new KuanhouPass
-           << new CaiqingPass << new DuoyiPass
+           << new BadaoPass << new CaiqingPass << new DuoyiPass
            << new WujiPass;
 
     addMetaObject<DuanyanPassCard>();

@@ -903,6 +903,9 @@ bool Player::isSkillEnhance(const QString skill_name,const int index) const{
 }
 
 bool Player::isSkillEnhance(const QString &enhance_name) const{
+    if(enhance_name == NULL){
+        return false ;
+    }
     return skills_enhance.contains(enhance_name);
 }
 

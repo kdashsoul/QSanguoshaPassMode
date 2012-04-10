@@ -11,11 +11,15 @@ startdraw_o 15
 rende 15|10|50
 jijiang 15|10:3
 
+jianxiong 20|30
+hujia 40|10:2:2+1
+
 wanghou_p 20
 xiaoxiong_p 30
 kuanhou_p 30
 qiangyun_p 20
 
+badao_p 30
 caiqing_p 30
 duoyi_p 20
 
