@@ -533,7 +533,9 @@ QMap<QString, QStringList> PassMode::getGeneralMap(){
     return general_map;
 }
 
-bool PassMode::canUseEnhancedSkill(const QString &skill_name){
+bool PassMode::canUseEnhancedSkill(ServerPlayer *player, const QString &skill_name,int index){
+    if(! player->isSkillEnhance(skill_name,index))
+        return false ;
     int limit_times = getSkillMap().value(skill_name, new SkillAttrStruct)->getLimitTimes() ;
     if(limit_times != 0 && Self->getCountInfo(skill_name) >= limit_times){
         return false ;

@@ -899,7 +899,8 @@ QList<const Player *> Player::getSiblings() const{
 }
 
 bool Player::isSkillEnhance(const QString skill_name,const int index) const{
-    return isSkillEnhance(skill_name + "_e" + QString::number(index));
+    QString index_str = index == 0 ? "" : QString::number(index) ;
+    return isSkillEnhance(skill_name + "_e" + index_str);
 }
 
 bool Player::isSkillEnhance(const QString &enhance_name) const{

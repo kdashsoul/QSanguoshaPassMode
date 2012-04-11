@@ -58,7 +58,7 @@ public:
         if(pattern != "jink")
             return false;
 
-        bool can_use_enhanced_skill = caocao->isSkillEnhance("hujia",1) && PassMode::canUseEnhancedSkill("hujia") ;
+        bool can_use_enhanced_skill = PassMode::canUseEnhancedSkill(caocao,"hujia",1) ;
 
         Room *room = caocao->getRoom();
         QList<ServerPlayer *> lieges = room->getLieges("wei", caocao);
@@ -755,8 +755,12 @@ public:
 
     }
 
-    virtual bool viewFilter(const QList<CardItem *> &, const CardItem *) const{
-        return true;
+    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
+        if(Self->hasUsed("ZhihengCard") && selected.length() > 0){
+            const Card *card = selected.first()->getFilteredCard();
+            return to_select->getFilteredCard()->getColor() == card->getColor();
+        }
+        return true ;
     }
 
     virtual const Card *viewAs(const QList<CardItem *> &cards) const{
@@ -770,7 +774,8 @@ public:
     }
 
     virtual bool isEnabledAtPlay(const Player *player) const{
-        return ! player->hasUsed("ZhihengCard");
+        int times = player->usedTimes("ZhihengCard") ;
+        return times == 0 || (player->isSkillEnhance("zhiheng",1) && times == 1);
     }
 };
 
@@ -800,8 +805,13 @@ public:
 
         case CardEffected: {
                 CardEffectStruct effect = data.value<CardEffectStruct>();
+                bool can_use_flag = sunquan != effect.from ;
+                if(! can_use_flag && PassMode::canUseEnhancedSkill(sunquan,"jiuyuan",1)){
+                    can_use_flag = true ;
+                    room->addPlayerCountInfo(sunquan,"jiuyuan");
+                }
                 if(effect.card->inherits("Peach") && effect.from->getKingdom() == "wu"
-                   && sunquan != effect.from && sunquan->hasFlag("dying"))
+                        && can_use_flag && sunquan->hasFlag("dying"))
                 {
                     int index = effect.from->getGeneral()->isMale() ? 2 : 3;
                     room->playSkillEffect("jiuyuan", index);
@@ -818,7 +828,7 @@ public:
                     recover.who = effect.from;
                     room->recover(sunquan, recover);
 
-                    room->getThread()->delay(2000);
+                    // room->getThread()->delay(2000);
                 }
 
                 break;

@@ -63,7 +63,7 @@ public:
     static bool saveData(Room *room,SaveDataStruct *save_data = NULL);
     static SaveDataStruct *getSaveData();
     static SaveDataStruct* catchSaveInfo(Room *room);
-    static bool canUseEnhancedSkill(const QString &skill_name);
+    static bool canUseEnhancedSkill(ServerPlayer *player, const QString &skill_name, int index);
 
     static QMap<QString, SkillAttrStruct *> getSkillMap();
     static QMap<QString, QStringList> getGeneralMap();

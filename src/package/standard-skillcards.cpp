@@ -13,8 +13,25 @@ ZhihengCard::ZhihengCard(){
 
 void ZhihengCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
     room->throwCard(this);
-    if(source->isAlive())
-        room->drawCards(source, subcards.length());
+    if(source->isAlive()){
+        int n = subcards.length() ;
+        if(source->isSkillEnhance("zhiheng",2)){
+            bool all_same = true;
+            int number = 0 ;
+            foreach(int subcard, subcards){
+                const Card *card = Sanguosha->getCard(subcard);
+                if(number != 0 && number != card->getNumber()){
+                    all_same = false ;
+                    break ;
+                }
+                number = card->getNumber() ;
+            }
+            if(all_same && n > 1){
+                n = n * 2 - 1 ;
+            }
+        }
+        room->drawCards(source, n);
+    }
 }
 
 

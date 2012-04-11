@@ -22,22 +22,13 @@ public:
     virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };
 
-class RendePassCard:public SkillCard{
+class QuanmouPassCard: public SkillCard{
     Q_OBJECT
 
 public:
-    Q_INVOKABLE RendePassCard();
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
-};
+    Q_INVOKABLE QuanmouPassCard();
 
-class JijiangPassCard: public SkillCard{
-    Q_OBJECT
-
-public:
-    Q_INVOKABLE JijiangPassCard();
-
-    virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
+    virtual void onEffect(const CardEffectStruct &effect) const;
 };
 
 class TuodaoPassCard: public SkillCard{
@@ -111,14 +102,6 @@ public:
     Q_INVOKABLE FangzhuPassCard();
     virtual bool targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const;
     virtual void onEffect(const CardEffectStruct &effect) const;
-};
-
-class ZhihengPassCard:public SkillCard{
-    Q_OBJECT
-
-public:
-    Q_INVOKABLE ZhihengPassCard();
-    virtual void use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const;
 };
 
 class FanjianPassCard: public SkillCard{

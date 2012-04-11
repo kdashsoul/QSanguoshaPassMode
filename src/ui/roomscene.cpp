@@ -1393,10 +1393,7 @@ void RoomScene::addSkillButton(const Skill *skill, bool from_left){
                 if(view_as_skill){
                     button2skill.insert(button, view_as_skill);
                     connect(button, SIGNAL(clicked()), this, SLOT(doSkillButton()));
-                }else{
-                    button2skill2.insert(button, trigger_skill);
                 }
-
                 break;
         }
 
@@ -1416,6 +1413,7 @@ void RoomScene::addSkillButton(const Skill *skill, bool from_left){
     }else{
         button = new QPushButton;
     }
+    button2skill_all.insert(button, skill);
 
     QDialog *dialog = skill->getDialog();
     if(dialog){
@@ -2163,21 +2161,18 @@ void RoomScene::updateStatus(Client::Status status){
 
     foreach(QAbstractButton *button, skill_buttons){
         const ViewAsSkill *skill = button2skill.value(button, NULL);
-        const TriggerSkill *skill2 = button2skill2.value(button, NULL);
+        const Skill *skill2 = button2skill_all.value(button, NULL);
         if(skill){
             button->setEnabled(skill->isAvailable());
-            int limit_times = PassMode::getSkillMap().value(skill->objectName(),new SkillAttrStruct)->getLimitTimes() ;
-            if(limit_times > 0){
-                button->setText(QString("%1(%2)").arg(skill->getText()).arg(limit_times - Self->getCountInfo(skill->objectName())));
-            }
-        }else if(skill2){
+        }else
+            button->setEnabled(true);
+        if(skill2){
             int limit_times = PassMode::getSkillMap().value(skill2->objectName(),new SkillAttrStruct)->getLimitTimes() ;
             int current_times = limit_times - Self->getCountInfo(skill2->objectName()) ;
             if(limit_times > 0){
                 button->setText(QString("%1(%2)").arg(skill2->getText()).arg(current_times));
             }
-        }else
-            button->setEnabled(true);
+        }
     }
 
     if(status != Client::NotActive){

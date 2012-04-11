@@ -14,14 +14,21 @@ jijiang 15|10:3
 jianxiong 20|30
 hujia 40|10:2:2+1
 
+zhiheng 40|25
+jiuyuan 20:1
+
+
+zhaolie_p 40
 wanghou_p 20
 xiaoxiong_p 30
-kuanhou_p 30
 qiangyun_p 20
 
 badao_p 30
 caiqing_p 30
 duoyi_p 20
+
+honglang_p 50
+quanmou_p 20
 
 wuji_p 20
 
