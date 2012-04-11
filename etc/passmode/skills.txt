@@ -1,6 +1,6 @@
 maxhp_o 40
 maxcards_o 25
-slashrange_o 15
+attackrange_o 15
 slashnum_o 25
 exp_o 70
 turndraw_o 60
@@ -22,6 +22,11 @@ zhaolie_p 40
 wanghou_p 20
 xiaoxiong_p 30
 qiangyun_p 20
+
+junshen_p 70
+hujiang_p 25
+aogu_p 15
+zhongyi_p 30
 
 badao_p 30
 caiqing_p 30

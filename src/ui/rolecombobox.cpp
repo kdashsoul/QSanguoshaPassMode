@@ -48,7 +48,7 @@ void RoleCombobox::setupItems(){
     int i;
     for(i=0; i<items.length(); i++){
         qreal x = 85;
-        qreal y = 15 + i*height;
+        qreal y = 15 + 37 + i*height;
 
         RoleComboboxItem *item = items.at(i);
         item->setPos(x, y);

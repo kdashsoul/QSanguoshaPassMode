@@ -1,6 +1,7 @@
-common maxhp_o|maxcards_o|slashrange_o|slashnum_o|exp_o|turndraw_o|killdraw_o|startdraw_o
+common maxhp_o|maxcards_o|attackrange_o|slashnum_o|exp_o|turndraw_o|killdraw_o|startdraw_o
 
-liubei zhaolie_p|wanghou_p|xiaoxiong_p|qiangyun_p
+liubei zhaolie_p|wanghou_p|xiaoxiong_p|qiangyun_p|shenshe_p
+guanyu junshen_p|hujiang_p|aogu_p|zhongyi_p
 caocao badao_p|wanghou_p|caiqing_p|duoyi_p
 sunquan honglang_p|wanghou_p|quanmou_p
 sunshangxiang wuji_p

@@ -627,6 +627,45 @@ public:
     }
 };
 
+class JunshenPass:public TriggerSkill{
+public:
+    JunshenPass():TriggerSkill("junshen_p"){
+        events << PhaseChange << FinishJudge;
+        frequency = Frequent;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *guanyu, QVariant &data) const{
+        if(event == PhaseChange && guanyu->getPhase() == Player::Start){
+            Room *room = guanyu->getRoom();
+            while(guanyu->askForSkillInvoke("junshen_p")){
+                room->playSkillEffect(objectName());
+
+                JudgeStruct judge;
+                judge.pattern = QRegExp("(.*):(heart|diamond):(.*)");
+                judge.good = true;
+                judge.reason = objectName();
+                judge.who = guanyu;
+                judge.time_consuming = true;
+
+                room->judge(judge);
+                if(judge.isBad())
+                    break;
+            }
+
+        }else if(event == FinishJudge){
+            JudgeStar judge = data.value<JudgeStar>();
+            if(judge->reason == objectName()){
+                if(judge->card->isRed()){
+                    guanyu->obtainCard(judge->card);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+};
+
+
 class BadaoPass:public MasochismSkill{
 public:
     BadaoPass():MasochismSkill("badao_p"){
@@ -756,6 +795,124 @@ public:
     }
 };
 
+HujiangPassCard::HujiangPassCard(){
+    once = true;
+    will_throw = false;
+    target_fixed = true ;
+}
+
+void HujiangPassCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
+    room->showCard(source, getEffectiveId());
+    const Card *card = Sanguosha->getCard(getSubcards().first()) ;
+    QString a = QString("hujiang_p_%1").arg(card->isRed() ? "red" : "black") ;
+    room->setPlayerFlag(source, QString("hujiang_p_%1").arg(card->isRed() ? "red" : "black"));
+}
+
+class HujiangPass: public OneCardViewAsSkill{
+public:
+    HujiangPass():OneCardViewAsSkill("hujiang_p"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return ! player->hasUsed("HujiangPassCard") || player->hasFlag("hujiang_p_red");
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        return ! to_select->isEquipped() ;
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        if(Self->hasFlag("hujiang_p_red")){
+            const Card *card = card_item->getCard();
+            Card *slash = new Slash(card->getSuit(), card->getNumber());
+            slash->addSubcard(card->getId());
+            slash->setSkillName(objectName());
+            return slash;
+        }else{
+            HujiangPassCard *card = new HujiangPassCard;
+            card->addSubcard(card_item->getFilteredCard());
+            return card;
+        }
+    }
+};
+
+class HujiangPassBuff: public TriggerSkill{
+public:
+    HujiangPassBuff():TriggerSkill("#hujiang_p"){
+        events << SlashHit << CardUsed;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        if(event == SlashHit && player->hasFlag("hujiang_p_black")){
+            player->drawCards(1);
+            room->setPlayerFlag(player,"-hujiang_p_black");
+        }else if(event == CardUsed){
+            CardUseStruct use = data.value<CardUseStruct>();
+            if(use.card->getSkillName() == "hujiang_p"){
+                room->setPlayerFlag(player,"-hujiang_p_red");
+            }
+        }
+        return false;
+    }
+};
+
+
+class AoguPass: public TriggerSkill{
+public:
+    AoguPass():TriggerSkill("aogu_p"){
+        events << Predamaged;
+    }
+    virtual int getPriority() const{
+        return -1;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        DamageStruct damage = data.value<DamageStruct>();
+        if(damage.damage > 1 && player->getEquips().isEmpty()){
+            damage.damage = 1;
+            data = QVariant::fromValue(damage);
+        }
+        return false;
+    }
+};
+
+class ZhongyiPass: public TriggerSkill{
+public:
+    ZhongyiPass():TriggerSkill("zhongyi_p"){
+        frequency = Frequent;
+        events << CardLost << PhaseChange;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        // Room *room = player->getRoom();
+        if(event == PhaseChange){
+            if(player->getPhase() == Player::Finish){
+                if(player->getMark("zhongyi_p") >= 2 && player->askForSkillInvoke(objectName(), data)){
+                    QList<Player::Phase> phases = player->getPhases();
+                    phases.prepend(Player::Play) ;
+                    player->play(phases);
+                }
+            }else if(player->getPhase() == Player::RoundStart){
+                player->setMark("zhongyi_p", 0);
+            }
+            return false;
+        }
+        if(player->getPhase() == Player::Discard){
+            CardMoveStar move = data.value<CardMoveStar>();
+            const Card *card = Sanguosha->getCard(move->card_id) ;
+            if(move->to_place == Player::DiscardedPile){
+                if(card->isRed()){
+                    player->addMark("zhongyi_p");
+                }
+            }
+        }
+        return false;
+    }
+};
+
+
 class CaiqingPass: public TriggerSkill{
 public:
     CaiqingPass():TriggerSkill("caiqing_p"){
@@ -767,7 +924,7 @@ public:
         Room *room = player->getRoom();
         if(event == PhaseChange){
             if(player->getPhase() == Player::Finish){
-                if(player->isWounded() && player->getMark("caiqing_p") > 0 && player->askForSkillInvoke(objectName(), data)){
+                if(player->isWounded() && player->getMark("caiqing_p") >= 2 && player->askForSkillInvoke(objectName(), data)){
                     RecoverStruct recover;
                     recover.who = player;
                     room->recover(player, recover);
@@ -3607,17 +3764,23 @@ PassPackage::PassPackage()
     wuniang->addSkill(new XiangxiaoPass);
 
     skills << new TipoPass << new QuanhengPass
-           << new DuanyanPass << new XiongziPass << new QiangongPass
-           << new WanghouPass << new QiangyunPass << new XiaoxiongPass << new ZhaoliePass
-           << new BadaoPass << new CaiqingPass << new DuoyiPass
-           << new HonglangPass << new QuanmouPass
-           << new WujiPass;
+           << new DuanyanPass << new XiongziPass << new QiangongPass << new HonglangPass
+           << new ZhaoliePass << new JunshenPass << new BadaoPass << new WujiPass
+           << new WanghouPass << new QiangyunPass << new XiaoxiongPass
+           << new HujiangPass << new AoguPass << new ZhongyiPass
+           << new CaiqingPass << new DuoyiPass
+           << new QuanmouPass;
+
+    skills << new HujiangPassBuff ;
+    related_skills.insertMulti("hujiang_p","#hujiang_p");
 
     addMetaObject<DuanyanPassCard>();
     addMetaObject<QuanhengPassCard>();
     addMetaObject<XunmaPassCard>();
     addMetaObject<DianjiPassCard>();
     addMetaObject<QuanmouPassCard>();
+    addMetaObject<HujiangPassCard>();
+
     addMetaObject<LiegongPassCard>();
     addMetaObject<JianhunPassCard>();
     addMetaObject<TuodaoPassCard>();
