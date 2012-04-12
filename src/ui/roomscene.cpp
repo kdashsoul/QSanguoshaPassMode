@@ -2568,12 +2568,13 @@ void RoomScene::onGameOver(){
         dialog->setFixedSize(400,600);
         QLabel *image_lable = new QLabel;
         image_lable->setPixmap(QPixmap(QString("image/system/pass/%1.jpg").arg(result)));
-        image_lable->setAlignment(Qt::AlignTop);
 
         QLabel *stage_label = new QLabel;
         stage_label->setText(tr("Stage %1 %2").arg(pass_info_map.value("Stage")).arg(victory ? tr("pass") : tr("fail")));
         stage_label->setFont(Config.TinyFont);
         stage_label->setStyleSheet(victory ? "color:green" : "color:red");
+        stage_label->setAlignment(Qt::AlignHCenter);
+
 
         QLabel *turns_label = new QLabel;
         turns_label->setText(tr("Use turns: %1 (+%2)  Load times: %3")
@@ -2583,11 +2584,13 @@ void RoomScene::onGameOver(){
         turns_label->setAlignment(Qt::AlignHCenter);
 
         QLabel *msg_label = new QLabel;
+        msg_label->setFixedHeight(200);
         QString msg = "";
         if(result == "fail"){
             msg = tr("Sometimes you win and sometimes you don't. <br/> please try again.") ;
         }else if(result == "win"){
-            msg = tr("Congratulations! you have passed all the stages. <br/> Your score: <font color='red'>%1</font> , rank : <font color='red'>%2</font>.") ;
+            msg = tr("Congratulations! you have passed all the stages. <br/> Your score: <font color='red'>%1</font> , rank : <font color='red'>%2</font>.")
+                    .arg(1000).arg("S");
         }
         msg_label->setText(msg);
         msg_label->setFont(Config.SmallFont);
@@ -2611,7 +2614,7 @@ void RoomScene::onGameOver(){
         exp_layout->addStretch();
         QLabel *now_exp_label = new QLabel;
         now_exp_label->setAlignment(Qt::AlignHCenter|Qt::AlignBottom);
-        now_exp_label->setText(QString("Your exp : %1 (+%2)").arg(Self->getMark("@exp")).arg(exp_sum));
+        now_exp_label->setText(tr("Your exp : %1 (+%2)").arg(Self->getMark("@exp")).arg(exp_sum));
         exp_layout->addWidget(now_exp_label);
         exp_box->setLayout(exp_layout);
         pass_info_layout->addWidget(exp_box);
@@ -2621,7 +2624,7 @@ void RoomScene::onGameOver(){
         score_box->setFixedHeight(200);
         QVBoxLayout *score_layout = new QVBoxLayout;
         score_layout->setAlignment(Qt::AlignHCenter);
-        foreach(QString epl_name , epl_info_map.keys()){
+        foreach(QString epl_name , PassMode::getEplTagNames()){
             int score = epl_info_map.value(epl_name).toInt() ;
             score_sum += score ;
             QLabel *score_label = new QLabel;
@@ -2633,7 +2636,7 @@ void RoomScene::onGameOver(){
 
         QLabel *now_score_label = new QLabel;
         now_score_label->setAlignment(Qt::AlignHCenter|Qt::AlignBottom);
-        now_score_label->setText(QString("Your score : %1 (+%2)").arg(pass_info_map.value("Score").toInt()).arg(score_sum));
+        now_score_label->setText(tr("Your score : %1 (+%2)").arg(pass_info_map.value("Score").toInt()).arg(score_sum));
         score_layout->addWidget(now_score_label);
 
         score_box->setLayout(score_layout);
@@ -2643,12 +2646,12 @@ void RoomScene::onGameOver(){
         layout->addWidget(image_lable);
         layout->addWidget(stage_label);
         layout->addWidget(turns_label);
+        layout->addStretch();
         if(result == "fail" || result == "win"){
             layout->addWidget(msg_label);
         }else if(result == "pass"){
             layout->addLayout(pass_info_layout);
         }
-        layout->addStretch();
         dialog->setLayout(layout);
     }
     addRestartButton(dialog);

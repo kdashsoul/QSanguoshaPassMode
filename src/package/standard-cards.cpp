@@ -94,6 +94,12 @@ bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_
         distance_limit = false;
     }
 
+    if(getSkillName() == "wusheng" && Self->isSkillEnhance("wusheng", 1)){
+        int card_id = getSubcards().first() ;
+        if(Sanguosha->getCard(card_id)->getSuit() == Card::Heart)
+            distance_limit = false ;
+    }
+
     return Self->canSlash(to_select, distance_limit);
 }
 

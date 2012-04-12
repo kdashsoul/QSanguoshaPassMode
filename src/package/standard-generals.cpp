@@ -9,6 +9,7 @@
 #include "standard-skillcards.h"
 #include "ai.h"
 #include "pass-mode-scenario.h"
+#include "maneuvering.h"
 
 class Jianxiong:public MasochismSkill{
 public:
@@ -567,7 +568,7 @@ public:
     virtual bool viewFilter(const CardItem *to_select) const{
         const Card *card = to_select->getFilteredCard();
 
-        if(!card->isRed())
+        if(!card->isRed() && !(Self->isSkillEnhance("wusheng", 2) && card->isEquipped()))
             return false;
 
         if(card == Self->getWeapon() && card->objectName() == "crossbow")
@@ -579,9 +580,36 @@ public:
     virtual const Card *viewAs(CardItem *card_item) const{
         const Card *card = card_item->getCard();
         Card *slash = new Slash(card->getSuit(), card->getNumber());
+        if(Self->isSkillEnhance("wusheng", 2) && card_item->isEquipped()){
+            if(card->isRed())
+                slash = new FireSlash(card->getSuit(), card->getNumber());
+            else if(card->isBlack())
+                slash = new ThunderSlash(card->getSuit(), card->getNumber()) ;
+        }
         slash->addSubcard(card->getId());
         slash->setSkillName(objectName());
         return slash;
+    }
+};
+
+class WushengEffect: public TriggerSkill{
+public:
+    WushengEffect():TriggerSkill("#wusheng"){
+        events << CardUsed;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *guanyu, QVariant &data) const{
+        CardUseStruct use = data.value<CardUseStruct>();
+        const Card *card = use.card;
+        if(!card || !card->inherits("Slash"))
+            return false ;
+        if(card->getSkillName() == "wusheng" && guanyu->isSkillEnhance("wusheng",3)){
+            int card_id = card->getSubcards().first();
+            if(Sanguosha->getCard(card_id)->inherits("Slash")){
+                guanyu->drawCards(1);
+            }
+        }
+        return false;
     }
 };
 
@@ -1311,6 +1339,8 @@ void StandardPackage::addGenerals(){
 
     guanyu = new General(this, "guanyu", "shu");
     guanyu->addSkill(new Wusheng);
+    guanyu->addSkill(new WushengEffect);
+    related_skills.insertMulti("wusheng", "#wusheng");
 
     zhangfei = new General(this, "zhangfei", "shu");
     zhangfei->addSkill(new Skill("paoxiao"));

@@ -608,7 +608,7 @@ void Photo::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWi
 
     // avatar related
     painter->drawPixmap(5, 15, avatar);
-    painter->drawPixmap(86, 30, small_avatar);
+    painter->drawPixmap(86, 14, small_avatar);
 
     // kingdom related
     painter->drawPixmap(3, 13, kingdom_frame);

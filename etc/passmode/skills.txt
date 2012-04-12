@@ -11,6 +11,8 @@ startdraw_o 15
 rende 15|10|50
 jijiang 15|10:3
 
+wusheng 15|15|20
+
 jianxiong 20|30
 hujia 40|10:2:2+1
 

@@ -1,3 +1,3 @@
 ﻿general:select|draw:0
-general:zhaoyun|maxhp:5|hp:5|draw:5|equip:qinggang_sword,zixing|exp:8|draw_plus:1|draw:10
-general:guanyu|exp:8|draw_plus:-1|equip:jueying
+general:zhangjiao|maxhp:5|hp:5|draw:5|equip:qinggang_sword,zixing|exp:8|draw_plus:1|draw:10
+general:sunshangxiang|exp:8|draw_plus:-1|equip:jueying

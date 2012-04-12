@@ -31,6 +31,15 @@ CardContainer::CardContainer() :
 }
 
 void CardContainer::fillCards(const QList<int> &card_ids){
+    if(card_ids.isEmpty()){
+        show();
+        return;
+    }
+    else if(!items.isEmpty()){
+        items_stack.push(items);
+        items.clear();
+    }
+
     static const QPointF pos1(30, 40);
     static const QPointF pos2(30, 184);
     static const int card_width = 93;
@@ -78,8 +87,14 @@ void CardContainer::clear(){
     }
 
     items.clear();
-    close_button->hide();
-    hide();
+    if(!items_stack.isEmpty()){
+        items = items_stack.pop();
+        fillCards();
+    }
+    else{
+        close_button->hide();
+        hide();
+    }
 }
 
 void CardContainer::freezeCards(bool is_frozen){
