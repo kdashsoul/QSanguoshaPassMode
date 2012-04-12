@@ -1219,10 +1219,11 @@ void Client::gameOver(const QString &result_str){
     QString winner = texts.at(0);
     QStringList roles = texts.at(1).split("+");
 
-    QStringList pass_info , exp_info;
+    QStringList pass_info , exp_info , epl_info;
     if(ServerInfo.GameMode.contains("_pass_")){
         pass_info = all_info.at(1).split(":") ;
         exp_info = all_info.at(2).split(":") ;
+        epl_info = all_info.at(3).split(":") ;
     }
 
     Q_ASSERT(roles.length() == players.length());
@@ -1247,6 +1248,7 @@ void Client::gameOver(const QString &result_str){
         p->setProperty("win", win);
         p->setProperty("pass_info",pass_info) ;
         p->setProperty("exp_info",exp_info) ;
+        p->setProperty("epl_info",epl_info) ;
     }
 
     emit game_over();

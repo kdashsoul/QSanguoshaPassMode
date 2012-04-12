@@ -394,9 +394,14 @@ void Room::gameOver(const QString &winner){
     if(! ServerInfo.GameMode.contains("_pass_")){
         broadcastInvoke("gameOver", QString("%1:%2").arg(winner).arg(all_roles.join("+")));
     }else{
-        QStringList tags ;
-        foreach (QString tag_name, PassMode::getNeedSaveRoomTagName()) {
-            tags << QString("%1=%2").arg(tag_name).arg(getTag(tag_name).toString()) ;
+        int turns = getTag("Turns").toInt() ;
+        setTag("UseTurns",getTag("UseTurns").toInt() + turns);
+        int score = getTag("Score").toInt() ;
+        setTag("Score",score + PassMode::getScore(this));
+
+        QStringList save_tags ;
+        foreach (QString tag_name, PassMode::getNeedSaveRoomTagNames()) {
+            save_tags << QString("%1=%2").arg(tag_name).arg(getTag(tag_name).toString()) ;
         }
 
         PassModeRule *rule = qobject_cast<PassModeRule*>(getScenario()->getRule());
@@ -410,14 +415,16 @@ void Room::gameOver(const QString &winner){
             }
         }
 
-        int gain_score = 0;
+        QStringList epl_tags ;
+        foreach (QString tag_name, PassMode::getEplTagNames()) {
+            epl_tags << QString("%1=%2").arg(tag_name).arg(getTag(tag_name).toInt()) ;
+        }
 
         ServerPlayer *lord = getLord() ;
         setPlayerMark(lord,"@exp",lord->getMark("@exp") + gain_exp);
-        setPlayerMark(lord,"@score",lord->getMark("@score") + gain_score);
 
-        broadcastInvoke("gameOver", QString("%1:%2|%3|%4").arg(winner).arg(all_roles.join("+"))
-                        .arg(tags.join(":")).arg(exps.join(":")));
+        broadcastInvoke("gameOver", QString("%1:%2|%3|%4|%5").arg(winner).arg(all_roles.join("+"))
+                        .arg(save_tags.join(":")).arg(exps.join(":")).arg(epl_tags.join(":")));
     }
 
     // save records
@@ -486,8 +493,6 @@ void Room::gameOver(const QString &winner){
         }
 
         if(playerWinner){
-            int turns = getTag("Turns").toInt() ;
-            setTag("UseTurns",getTag("UseTurns").toInt() + turns);
             QString id = Config.GameMode;
             id.replace("_pass_","");
             int current = id.toInt();

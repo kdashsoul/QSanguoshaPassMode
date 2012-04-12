@@ -36,7 +36,7 @@ int SkillAttrStruct::getLimitTimes() const{
 PassModeRule::PassModeRule(Scenario *scenario)
     :ScenarioRule(scenario)
 {
-    events << GameStart << TurnStart << DrawNCards << Predamaged << CardUsed << Death ;
+    events << GameStart << TurnStart << PhaseChange << DrawNCards << Predamaged << CardUsed << Death ;
     stage = scenario->objectName().remove("_pass_").toInt() ;
 }
 
@@ -242,7 +242,30 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             int turns = room->getTag("Turns").toInt() ;
             room->setTag("Turns", ++turns );
         }
+        if(player->isLord()){
+            QMap<QString,QVariant> enemies_card_num ;
+            foreach (ServerPlayer *npc, room->getOtherPlayers(player)) {
+                if(npc->getRole() == "rebel"){
+                    enemies_card_num.insert(npc->objectName(),QVariant::fromValue(npc->getCards("he").length()));
+                }
+            }
+            room->setTag("enemies_card_num", QVariant::fromValue(enemies_card_num));
+        }
         break;
+    }case PhaseChange:{
+        if(player->isLord() && player->getPhase() == Player::Finish){
+            QMap<QString,QVariant> enemies_card_num = room->getTag("enemy_card_info").toMap();
+            foreach (QString objectName, enemies_card_num.keys()) {
+                foreach (ServerPlayer *sp, room->getPlayers()) {
+                    if(sp->objectName() == objectName){
+                        int delta = enemies_card_num.value(objectName).toInt() - sp->getCards("he").length();
+                        if(room->getTag("MaxCardDelta").toInt() < delta)
+                            room->setTag("MaxCardDelta",delta);
+                        break ;
+                    }
+                }
+            }
+        }
     }case DrawNCards:{
         if(player->hasAbility("turndraw")){
             data = data.toInt() + 1 ;
@@ -291,20 +314,46 @@ PassMode::PassMode()
 {
 }
 
-QStringList PassMode::getNeedSaveRoomTagName(){
+QStringList PassMode::getNeedSaveRoomTagNames(){
     static QStringList tagNames;
     if(tagNames.isEmpty())
-        tagNames << "Stage" << "Times" << "Turns" << "UseTurns" << "LoadTimes" ;
+        tagNames << "Stage" << "Times" << "Turns" << "UseTurns" << "LoadTimes" << "Score";
 
     return tagNames;
 }
 
-QStringList PassMode::getNeedSavePlayerMarkName(){
+QStringList PassMode::getNeedSavePlayerMarkNames(){
     static QStringList markNames;
     if(markNames.isEmpty())
-        markNames << "@exp" << "@score" ;
+        markNames << "@exp" ;
 
     return markNames;
+}
+
+
+QStringList PassMode::getEplTagNames(){
+    static QStringList tagNames;
+    if(tagNames.isEmpty())
+        tagNames << "Epl_Wind" << "Epl_Thicket" << "Epl_Fire" << "Epl_Mountain" << "Epl_Shadow" << "Epl_Thunder";
+
+    return tagNames;
+}
+
+int PassMode::getScore(Room *room){
+    int wind = 0 ;
+    int turns = room->getTag("Turns").toInt() ;
+    if(turns <= 7){
+        wind = 12 + (7 - turns) * 3 ;
+        room->setTag("Epl_Wind",wind);
+    }
+
+    int fire = 0 ;
+    int max_card_delta = room->getTag("MaxCardDelta").toInt() ;
+    if(max_card_delta >= 4){
+        fire = qMin(8 + max_card_delta * 3 , 20) ;
+        room->setTag("Epl_Fire",fire);
+    }
+    return wind + fire ;
 }
 
 int PassMode::getStage() const{
@@ -322,7 +371,7 @@ bool PassMode::loadData(Room *room, SaveDataStruct *save_data){
         room->setTag(tag_name,save_data->roomTags.value(tag_name));
     }
     int i = 0 ;
-    foreach (QString mark_name, getNeedSavePlayerMarkName()) {
+    foreach (QString mark_name, getNeedSavePlayerMarkNames()) {
         room->setPlayerMark(lord,mark_name,save_data->playerMarks.at(i).toInt());
         i ++ ;
     }
@@ -375,10 +424,10 @@ SaveDataStruct* PassMode::catchSaveInfo(Room *room){
     }
 
     SaveDataStruct *save_cache = new SaveDataStruct;
-    foreach(const QString tag_name, getNeedSaveRoomTagName()){
+    foreach(const QString tag_name, getNeedSaveRoomTagNames()){
         save_cache->roomTags.insert(tag_name,QVariant::fromValue(room->getTag(tag_name))) ;
     }
-    foreach(const QString mark_name, getNeedSavePlayerMarkName()){
+    foreach(const QString mark_name, getNeedSavePlayerMarkNames()){
         save_cache->playerMarks << QString::number(lord->getMark(mark_name)) ;
     }
 

@@ -32,6 +32,7 @@ struct SkillAttrStruct{
     int getValue(const int level = 1) const;
 };
 
+
 class PassModeRule: public ScenarioRule{
 Q_OBJECT
 public:
@@ -54,8 +55,10 @@ class PassMode{
 public:
     PassMode();
 
-    static QStringList getNeedSaveRoomTagName();
-    static QStringList getNeedSavePlayerMarkName();
+    static QStringList getNeedSaveRoomTagNames();
+    static QStringList getNeedSavePlayerMarkNames();
+    static QStringList getEplTagNames();
+    static int getScore(Room *room);
     int getStage() const;
 
     static bool removeSaveData();

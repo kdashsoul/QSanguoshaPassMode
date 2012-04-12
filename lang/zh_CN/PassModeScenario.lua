@@ -281,16 +281,21 @@ local pass_t = {
 	["wuji_p"]                    	= "武姬",
 	[":wuji_p"]                   	= "使用杀时视为装备了目标的武器。",
 
-	["NoDamage"]                    = "毫发无伤",
+	["Epl_Wind"]			= "其疾如风",
+	["Epl_Thicket"]			= "其徐如林",
+	["Epl_Fire"]	           	= "侵略如火",
+	["Epl_Mountain"]		= "不动如山",
+	["Epl_Shadow"]			= "难知如阴",
+	["Epl_Thunder"]			= "动如雷霆",
 
-    
-    ["#TriggerDrawSkill"]           = "%from 的【%arg】效果被触发，从牌堆摸了 %arg2 张牌",
-    ["#TriggerDamageUpSkill"]       = "%from 的【%arg】效果被触发，对 %to 的伤害上升至 %arg2 点",
-    ["#TriggerDamageDownSkill"]     = "%from 的【%arg】效果被触发，受到的伤害下降至 %arg2 点",
+    	["#TriggerDrawSkill"]           = "%from 的【%arg】效果被触发，从牌堆摸了 %arg2 张牌",
+    	["#TriggerDamageUpSkill"]       = "%from 的【%arg】效果被触发，对 %to 的伤害上升至 %arg2 点",
+    	["#TriggerDamageDownSkill"]     = "%from 的【%arg】效果被触发，受到的伤害下降至 %arg2 点",
 
-    ["#RetrialSkill"]     	    = "%from 的【%arg】效果被触发，重新进行一次判定。",
-    ["#ForceEndSkill"]     	    = "%from 的【%arg】效果被触发，%to 中止了出牌阶段。",
-    
+    	["#RetrialSkill"]     	    	= "%from 的【%arg】效果被触发，重新进行一次判定。",
+    	["#ForceEndSkill"]     	    	= "%from 的【%arg】效果被触发，%to 中止了出牌阶段。",
+ 
+   
     ["#DuanYanPassChooseType"]      = "%from 选择了 %arg ，随机展示 %to 手中的1张牌",
     ["#QiangongPassThrow"]          = "%from 的【谦恭】效果被触发，弃置了1张牌以防止【%arg】的效果",
     ["#QiangongPassGive"]           = "%from 的【谦恭】效果被触发，将1张牌交给了 %to 以防止【%arg】的效果",
