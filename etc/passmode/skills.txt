@@ -34,6 +34,11 @@ badao_p 30
 caiqing_p 30
 duoyi_p 20
 
+shoujie_p 30
+liangjiang_p 25
+fenyong_p 30
+wulie_p 20
+
 honglang_p 50
 quanmou_p 20
 

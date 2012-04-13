@@ -36,7 +36,8 @@ int SkillAttrStruct::getLimitTimes() const{
 PassModeRule::PassModeRule(Scenario *scenario)
     :ScenarioRule(scenario)
 {
-    events << GameStart << TurnStart << PhaseChange << DrawNCards << Predamaged << CardUsed << Death ;
+    events << GameStart << TurnStart << PhaseChange << DrawNCards << Predamaged <<
+              DamageComplete << CardLost << CardUsed << Death ;
     stage = scenario->objectName().remove("_pass_").toInt() ;
 }
 
@@ -253,17 +254,30 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
         }
         break;
     }case PhaseChange:{
-        if(player->isLord() && player->getPhase() == Player::Finish){
-            QMap<QString,QVariant> enemies_card_num = room->getTag("enemy_card_info").toMap();
-            foreach (QString objectName, enemies_card_num.keys()) {
-                foreach (ServerPlayer *sp, room->getPlayers()) {
-                    if(sp->objectName() == objectName){
-                        int delta = enemies_card_num.value(objectName).toInt() - sp->getCards("he").length();
-                        if(room->getTag("MaxCardDelta").toInt() < delta)
-                            room->setTag("MaxCardDelta",delta);
-                        break ;
+        if(player->getPhase() == Player::Finish){
+            if(player->isLord()){
+                QMap<QString,QVariant> enemies_card_num = room->getTag("enemy_card_info").toMap();
+                foreach (QString objectName, enemies_card_num.keys()) {
+                    foreach (ServerPlayer *sp, room->getPlayers()) {
+                        if(sp->objectName() == objectName){
+                            int delta = enemies_card_num.value(objectName).toInt() - sp->getCards("he").length();
+                            if(room->getTag("MaxCardDelta").toInt() < delta)
+                                room->setTag("MaxCardDelta",delta);
+                            break ;
+                        }
                     }
                 }
+
+                int damage = player->getMark("epl_damage_sum") ;
+                if(room->getTag("MaxTurnDamage").toInt() < damage){
+                    room->setTag("MaxTurnDamage", damage);
+                }
+            }else if(player->getRole() == "rebel"){
+                int n = player->getMark("epl_discardnum") ;
+                if(room->getTag("MaxDiscardNum").toInt() < n){
+                    room->setTag("MaxDiscardNum", n);
+                }
+                player->removeMark("epl_discardnum");
             }
         }
     }case DrawNCards:{
@@ -280,6 +294,18 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             data = QVariant::fromValue(damage);
         }
         break;
+    }
+    case DamageDone:{
+        DamageStruct damage = data.value<DamageStruct>();
+        int damage_sum = damage.from->getMark("epl_damage_sum") ;
+        if(damage.from && damage.from->isLord()){
+            damage.from->setMark("epl_damage_sum", damage_sum + damage.damage);
+        }
+    }
+    case CardLost:{
+        if(player->getPhase() == Player::Discard && player->getRole() == "rebel"){
+            player->addMark("epl_discardnum");
+        }
     }
     case CardUsed:{
         break;
@@ -340,11 +366,19 @@ QStringList PassMode::getEplTagNames(){
 }
 
 int PassMode::getScore(Room *room){
+    ServerPlayer *lord = room->getLord() ;
     int wind = 0 ;
     int turns = room->getTag("Turns").toInt() ;
     if(turns <= 7){
         wind = 12 + (7 - turns) * 3 ;
         room->setTag("Epl_Wind",wind);
+    }
+
+    int thicket = 0;
+    int max_discard_num = room->getTag("MaxDiscardNum").toInt() ;
+    if(max_discard_num >= 10){
+        thicket = qMin(max_discard_num,20);
+        room->setTag("Epl_Thicket",thicket);
     }
 
     int fire = 0 ;
@@ -353,7 +387,56 @@ int PassMode::getScore(Room *room){
         fire = qMin(8 + max_card_delta * 3 , 20) ;
         room->setTag("Epl_Fire",fire);
     }
-    return wind + fire ;
+
+    int mountain = 0 ;
+    StatisticsStruct *statistics = lord->getStatistics();
+    if(statistics->damage <= 4){
+        mountain = qMin(12 + (4 - statistics->damage) * 6 , 30) ;
+        room->setTag("Epl_Mountain",mountain);
+    }
+
+    int shadow = 0 ;
+    QSet<QString> suit_set ;
+    foreach (const Card *card, lord->getHandcards()) {
+        suit_set << card->getSuitString() ;
+    }
+    if(suit_set.size() == 4){
+        shadow = 20;
+    }else if(suit_set.size() == 3){
+        shadow = 10 ;
+    }
+    room->setTag("Epl_Shadow",shadow);
+
+    int thunder = 0;
+    int max_turn_damage = room->getTag("MaxTurnDamage").toInt() ;
+    if(max_turn_damage >= 4){
+        thunder = qMin(12 + max_turn_damage * 3 , 30) ;
+        room->setTag("Epl_Thunder",thunder);
+    }
+
+    return wind + thicket + fire + mountain + shadow + thunder;
+}
+
+int PassMode::getFinalScore(Room *room){
+    int base = 1000 ;
+    int use_turns = room->getTag("UseTurns").toInt();
+    int load_times = room->getTag("LoadTimes").toInt() ;
+    int exp = room->getLord()->getMark("@exp") ;
+    int epl = room->getTag("Score").toInt() ;
+    return base - use_turns - load_times * 20 + exp * 3 + epl ;
+}
+
+QChar PassMode::getFinalRank(int score){
+    if(score > 1200)
+        return 'S';
+    else if(score > 1000)
+        return 'A';
+    else if(score > 800)
+        return 'B' ;
+    else if(score > 600)
+        return 'C' ;
+    else
+        return 'D' ;
 }
 
 int PassMode::getStage() const{

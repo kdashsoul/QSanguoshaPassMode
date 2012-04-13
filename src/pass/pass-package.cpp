@@ -689,6 +689,31 @@ public:
     }
 };
 
+class ShoujiePass: public TriggerSkill{
+public:
+    ShoujiePass():TriggerSkill("shoujie_p"){
+        events << Dying;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *zhangliao, QVariant &data) const{
+        DyingStruct dying_data = data.value<DyingStruct>();
+        ServerPlayer *damager = dying_data.damage ? dying_data.damage->from : NULL;
+        if(dying_data.who != zhangliao || zhangliao->isKongcheng())
+            return false;
+        if(! damager || damager == zhangliao || damager->isDead() || damager->isKongcheng())
+            return false ;
+        Room *room = zhangliao->getRoom();
+        if(zhangliao->askForSkillInvoke(objectName(), data)){
+            if(zhangliao->pindian(damager , "shoujie", NULL)){
+                RecoverStruct rev;
+                rev.recover = 1 - zhangliao->getHp();
+                room->recover(zhangliao, rev);
+            }
+        }
+        return false;
+    }
+};
+
 class HonglangPass: public TriggerSkill{
 public:
     HonglangPass():TriggerSkill("honglang_p"){
@@ -957,6 +982,101 @@ public:
         return false;
     }
 };
+
+
+LiangjiangPassCard::LiangjiangPassCard(){
+    target_fixed = true;
+    once = true;
+}
+
+void LiangjiangPassCard::use(Room *room, ServerPlayer *player, const QList<ServerPlayer *> &) const{
+    room->throwCard(this);
+    player->drawCards(this->getSubcards().length());
+}
+
+class LiangjiangPass: public OneCardViewAsSkill{
+public:
+    LiangjiangPass():OneCardViewAsSkill("liangjiang_p"){
+
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return ! player->hasUsed("LiangjiangPassCard");
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        return true ;
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        LiangjiangPassCard *card = new LiangjiangPassCard;
+        card->addSubcard(card_item->getFilteredCard());
+        return card;
+    }
+};
+
+class FenyongPass: public TriggerSkill{
+public:
+    FenyongPass():TriggerSkill("fenyong_p"){
+        events << Predamage;
+    }
+
+    virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
+        DamageStruct damage = data.value<DamageStruct>();
+        Room *room = damage.to->getRoom();
+        if(damage.card && damage.card->inherits("Slash") && damage.to->isKongcheng()
+                && !player->isKongcheng() && player->askForSkillInvoke(objectName(), QVariant::fromValue(damage.to)) ){
+            if(room->askForDiscard(player, objectName(), 1)){
+                LogMessage log;
+                log.type = "#TriggerDamageUpSkill";
+                log.from = player;
+                log.to << damage.to;
+                log.arg = objectName() ;
+                log.arg2 = QString::number(damage.damage + 1);
+                room->sendLog(log);
+
+                damage.damage ++;
+                data = QVariant::fromValue(damage);
+            }
+        }
+        return false;
+    }
+};
+
+class WuliePass:public OneCardViewAsSkill{
+public:
+    WuliePass():OneCardViewAsSkill("wulie_p"){
+    }
+
+    virtual bool isEnabledAtPlay(const Player *player) const{
+        return Slash::IsAvailable(player);
+    }
+
+    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+        return  pattern == "slash";
+    }
+
+    virtual bool viewFilter(const CardItem *to_select) const{
+        const Card *card = to_select->getFilteredCard();
+
+        if(card->getSuit() != Card::Heart || card->isEquipped())
+            return false;
+
+        if(card == Self->getWeapon() && card->objectName() == "crossbow")
+            return Self->canSlashWithoutCrossbow();
+        else
+            return true;
+    }
+
+    virtual const Card *viewAs(CardItem *card_item) const{
+        const Card *card = card_item->getCard();
+        Card *slash = new Slash(card->getSuit(), card->getNumber());
+        slash->addSubcard(card->getId());
+        slash->setSkillName(objectName());
+        return slash;
+    }
+};
+
 
 QuanmouPassCard::QuanmouPassCard(){
     once = true;
@@ -2690,34 +2810,6 @@ public:
 };
 
 
-class TongjiPass: public TriggerSkill{
-public:
-    TongjiPass():TriggerSkill("tongji_p"){
-        events << Predamage;
-    }
-
-    virtual bool trigger(TriggerEvent , ServerPlayer *ganning, QVariant &data) const{
-        DamageStruct damage = data.value<DamageStruct>();
-        Room *room = damage.to->getRoom();
-        if(damage.card && damage.card->inherits("Slash") && damage.to->isKongcheng() && !ganning->isKongcheng() && ganning->askForSkillInvoke(objectName(), QVariant::fromValue(damage.to)) ){
-            if(room->askForDiscard(ganning, objectName(), 1 , true)){
-                LogMessage log;
-                log.type = "#TriggerDamageUpSkill";
-                log.from = ganning;
-                log.to << damage.to;
-                log.arg = objectName() ;
-                log.arg2 = QString::number(damage.damage + 1);
-                room->sendLog(log);
-
-                damage.damage ++;
-                data = QVariant::fromValue(damage);
-            }
-        }
-
-        return false;
-    }
-};
-
 class JieluePass: public TriggerSkill{
 public:
     JieluePass():TriggerSkill("jielue_p"){
@@ -3764,11 +3856,12 @@ PassPackage::PassPackage()
     wuniang->addSkill(new XiangxiaoPass);
 
     skills << new TipoPass << new QuanhengPass
-           << new DuanyanPass << new XiongziPass << new QiangongPass << new HonglangPass
-           << new ZhaoliePass << new JunshenPass << new BadaoPass << new WujiPass
+           << new DuanyanPass << new XiongziPass << new QiangongPass
+           << new ZhaoliePass << new JunshenPass << new BadaoPass << new ShoujiePass << new HonglangPass << new WujiPass
            << new WanghouPass << new QiangyunPass << new XiaoxiongPass
            << new HujiangPass << new AoguPass << new ZhongyiPass
            << new CaiqingPass << new DuoyiPass
+           << new LiangjiangPass << new FenyongPass << new WuliePass
            << new QuanmouPass;
 
     skills << new HujiangPassBuff ;
@@ -3778,6 +3871,8 @@ PassPackage::PassPackage()
     addMetaObject<QuanhengPassCard>();
     addMetaObject<XunmaPassCard>();
     addMetaObject<DianjiPassCard>();
+
+    addMetaObject<LiangjiangPassCard>();
     addMetaObject<QuanmouPassCard>();
     addMetaObject<HujiangPassCard>();
 

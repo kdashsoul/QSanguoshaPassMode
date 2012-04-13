@@ -398,6 +398,17 @@ void Room::gameOver(const QString &winner){
         setTag("UseTurns",getTag("UseTurns").toInt() + turns);
         int score = getTag("Score").toInt() ;
         setTag("Score",score + PassMode::getScore(this));
+        QMap<QString,QVariant> enemies_card_num = getTag("enemy_card_info").toMap();
+        foreach (QString objectName, enemies_card_num.keys()) {
+            foreach (ServerPlayer *sp, getPlayers()) {
+                if(sp->objectName() == objectName){
+                    int delta = enemies_card_num.value(objectName).toInt() ;
+                    if(getTag("MaxCardDelta").toInt() < delta)
+                        setTag("MaxCardDelta",delta);
+                    break ;
+                }
+            }
+        }
 
         QStringList save_tags ;
         foreach (QString tag_name, PassMode::getNeedSaveRoomTagNames()) {
@@ -2426,7 +2437,8 @@ void Room::startGame(){
         }
     }
 
-    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && !Config.EnableBasara){
+    if((Config.Enable2ndGeneral) && mode != "02_1v1" && mode != "06_3v3" && mode != "04_1v3" && !Config.EnableBasara
+            && !mode.contains("_pass_")){
         foreach(ServerPlayer *player, players)
             broadcastProperty(player, "general2");
     }

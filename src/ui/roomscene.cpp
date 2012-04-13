@@ -3510,7 +3510,8 @@ void RoomScene::doMovingAnimation(const QString &name, const QStringList &args){
 }
 
 #include "playercarddialog.h"
-void RoomScene::animateHpChange(const QString &name, const QStringList &args)
+
+void RoomScene::animateHpChange(const QString &, const QStringList &args)
 {
     QString who = args.at(0);
     const ClientPlayer *player = ClientInstance->getPlayer(who);
@@ -3649,7 +3650,7 @@ void RoomScene::doAppearingAnimation(const QString &name, const QStringList &arg
     connect(disappear, SIGNAL(finished()), item, SLOT(deleteLater()));
 }
 
-void RoomScene::doLightboxAnimation(const QString &name, const QStringList &args){
+void RoomScene::doLightboxAnimation(const QString &, const QStringList &args){
     // hide discarded card
     foreach(CardItem *item, discarded_queue){
         item->hide();
@@ -3685,7 +3686,7 @@ void RoomScene::doLightboxAnimation(const QString &name, const QStringList &args
     connect(appear, SIGNAL(finished()), this, SLOT(removeLightBox()));
 }
 
-void RoomScene::doHuashen(const QString &name, const QStringList &args){
+void RoomScene::doHuashen(const QString &, const QStringList &args){
     QVariantList huashen_list = Self->tag["Huashens"].toList();
     foreach(QString arg, args){
         huashen_list << arg;
@@ -3733,7 +3734,7 @@ void RoomScene::showIndicator(const QString &from, const QString &to){
     indicator->doAnimation();
 }
 
-void RoomScene::doIndicate(const QString &name, const QStringList &args){
+void RoomScene::doIndicate(const QString &, const QStringList &args){
     showIndicator(args.first(), args.last());
 }
 

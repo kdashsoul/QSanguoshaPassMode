@@ -59,6 +59,8 @@ public:
     static QStringList getNeedSavePlayerMarkNames();
     static QStringList getEplTagNames();
     static int getScore(Room *room);
+    static int getFinalScore(Room *room);
+    static QChar getFinalRank(int score);
     int getStage() const;
 
     static bool removeSaveData();
