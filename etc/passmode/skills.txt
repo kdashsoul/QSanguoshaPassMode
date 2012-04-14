@@ -16,9 +16,14 @@ wusheng 15|15|20
 jianxiong 20|30
 hujia 40|10:2:2+1
 
+tuxi 30|50
+
 zhiheng 40|25
 jiuyuan 20:1
 
+keji 30|40
+
+wushuang 30|30
 
 zhaolie_p 40
 wanghou_p 20
@@ -34,14 +39,20 @@ badao_p 30
 caiqing_p 30
 duoyi_p 20
 
-shoujie_p 30
+shoujie_p 40
 liangjiang_p 25
 fenyong_p 30
 wulie_p 20
 
 honglang_p 50
+shanshe_p 15
 quanmou_p 20
 
 wuji_p 20
+
+tieji_p 40
+feijiang_p 20
+zhunue_p 30
+doushen_p 50
 
 

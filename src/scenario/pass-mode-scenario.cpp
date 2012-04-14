@@ -341,19 +341,27 @@ PassMode::PassMode()
 }
 
 QStringList PassMode::getNeedSaveRoomTagNames(){
-    static QStringList tagNames;
-    if(tagNames.isEmpty())
-        tagNames << "Stage" << "Times" << "Turns" << "UseTurns" << "LoadTimes" << "Score";
+    static QStringList tag_names;
+    if(tag_names.isEmpty())
+        tag_names << "Stage" << "Times" << "Turns" << "UseTurns" << "LoadTimes" << "Score";
 
-    return tagNames;
+    return tag_names;
 }
 
 QStringList PassMode::getNeedSavePlayerMarkNames(){
-    static QStringList markNames;
-    if(markNames.isEmpty())
-        markNames << "@exp" ;
+    static QStringList mark_names;
+    if(mark_names.isEmpty())
+        mark_names << "@exp" ;
 
-    return markNames;
+    return mark_names;
+}
+
+QStringList PassMode::getUnsaveSkillNames(){
+    static QStringList skill_names;
+    if(skill_names.isEmpty())
+        skill_names << "huangtianv" << "shenji" ;
+
+    return skill_names;
 }
 
 
@@ -489,7 +497,7 @@ SaveDataStruct* PassMode::catchSaveInfo(Room *room){
     QSet<QString> skill_names = lord->getAcquiredSkills();
     foreach(QString skill_name, skill_names){
         const Skill *skill = Sanguosha->getSkill(skill_name);
-        if(skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill")
+        if(getUnsaveSkillNames().contains(skill_name) || skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill")
                 || skill_name == "axe" || skill_name == "spear")
             continue;
         if(skill->isVisible())
@@ -647,22 +655,32 @@ QMap<QString, SkillAttrStruct*> PassMode::getSkillMap(){
 
 QMap<QString, QStringList> PassMode::getGeneralMap(){
     static QMap<QString, QStringList> general_map;
-    QRegExp rx("(\\w+)\\s+([\\w|]+)");
-    QFile file("etc/passmode/generals.txt");
-    if(file.open(QIODevice::ReadOnly)){
-        QTextStream stream(&file);
-        while(!stream.atEnd()){
-            QString line = stream.readLine();
-            if(!rx.exactMatch(line))
-                continue;
-            QStringList texts = rx.capturedTexts();
-            QString general_name = texts.at(1);
-            QString skills = texts.at(2);
-            general_map.insert(general_name,skills.split("|")) ;
+    if(general_map.isEmpty()){
+        QRegExp rx("(\\w+)\\s+([\\w|]+)");
+        QFile file("etc/passmode/generals.txt");
+        if(file.open(QIODevice::ReadOnly)){
+            QTextStream stream(&file);
+            while(!stream.atEnd()){
+                QString line = stream.readLine();
+                if(!rx.exactMatch(line))
+                    continue;
+                QStringList texts = rx.capturedTexts();
+                QString general_name = texts.at(1);
+                QString skills = texts.at(2);
+                general_map.insert(general_name,skills.split("|")) ;
+            }
+            file.close();
         }
-        file.close();
     }
     return general_map;
+}
+
+static QSettings *settings ;
+QVariant PassMode::getConfig(const QString &key, const QVariant &default_value){
+    if(settings == NULL){
+        settings = new QSettings("etc/passmode/config.ini",QSettings::IniFormat) ;
+    }
+    return settings->value(key,default_value) ;
 }
 
 bool PassMode::canUseEnhancedSkill(ServerPlayer *player, const QString &skill_name,int index){

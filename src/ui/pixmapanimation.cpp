@@ -1,7 +1,9 @@
 #include "pixmapanimation.h"
+#include "pass-mode-scenario.h"
 #include <QPainter>
 #include <QPixmapCache>
 #include <QDir>
+
 
 PixmapAnimation::PixmapAnimation(QGraphicsScene *scene) :
     QGraphicsItem(0,scene)
@@ -61,6 +63,8 @@ void PixmapAnimation::start(bool permanent,int interval)
 
 PixmapAnimation* PixmapAnimation::GetPixmapAnimation(QGraphicsObject *parent, const QString &emotion)
 {
+    if(PassMode::getConfig("debug").toBool())
+        return NULL;
     PixmapAnimation *pma = new PixmapAnimation();
     pma->setPath(QString("image/system/emotion/%1/").arg(emotion));
     if(pma->valid())

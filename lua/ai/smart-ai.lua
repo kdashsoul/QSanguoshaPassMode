@@ -47,7 +47,7 @@ sgs.ai_slash_weaponfilter = {}
 sgs.ai_slash_prohibit = 	{}
 sgs.ai_trick_prohibit =		{} -- obsolete
 sgs.ai_view_as = {}
-sgs.ai_zerocardview = {}
+sgs.ai_cardsview = {}
 sgs.dynamic_value = 		{
 	damage_card = 			{},
 	control_usecard = 		{},
@@ -75,7 +75,7 @@ function setInitialTables()
 	sgs.masochism_skill = 		"fankui|jieming|yiji|ganglie|enyuan|fangzhu|guixin"
 	sgs.wizard_skill = 			"guicai|guidao|jilve|tiandu"
 	sgs.wizard_harm_skill = 	"guicai|guidao|jilve"
-	sgs.priority_skill = 		"dimeng|haoshi|qingnang|jizhi|guzheng|qixi|jieyin|guose|duanliang"
+	sgs.priority_skill = 		"dimeng|haoshi|qingnang|jizhi|guzheng|qixi|jieyin|guose|duanliang|fanjian|lijian|manjuan|lihun"
 	sgs.save_skill = 			"jijiu|buyi|jiefan|chunlao"
 	sgs.exclusive_skill = 		"huilei|duanchang|enyuan|wuhun|buqu|yiji|ganglie|guixin|jieming|miji"
 	sgs.cardneed_skill =        "paoxiao|tianyi|xianzhen|shuangxiong|jizhi|guose|duanliang|qixi|qingnang|" ..
@@ -2880,15 +2880,16 @@ local function prohibitUseDirectly(card, player)
 	local _, flist = sgs.getSkillLists(player)
 	for _, askill in ipairs(flist) do
 		local callback = sgs.ai_filterskill_filter[askill]
-		if type(callback) == "function" and callback(card) then return true end
+		local card_place = global_room:getCardPlace(card:getEffectiveId())
+		if type(callback) == "function" and callback(card, card_place, player) then return true end
 	end
 	return false
 end
 
-local function zeroCardView(class_name, player)
+local function cardsview(class_name, player)
 	local vlist = sgs.getSkillLists(player)
 	for _, askill in ipairs(vlist) do
-		local callback = sgs.ai_zerocardview[askill]
+		local callback = sgs.ai_cardsview[askill]
 		if type(callback) == "function" and callback(class_name, player) then
 			return callback(class_name, player)
 		end
@@ -2942,7 +2943,7 @@ function SmartAI:getCardId(class_name, player)
 	local cards = player:getCards("he")
 	cards = sgs.QList2Table(cards)
 	self:sortByUsePriority(cards)
-	local card_str = self:getGuhuoCard(class_name, player) or zeroCardView(class_name, player)
+	local card_str = self:getGuhuoCard(class_name, player) or cardsview(class_name, player)
 	if card_str then return card_str end
 
 	for _, card in ipairs(cards) do

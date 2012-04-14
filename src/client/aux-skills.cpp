@@ -160,3 +160,31 @@ void ChoosePlayerSkill::setPlayerNames(const QStringList &names){
 const Card *ChoosePlayerSkill::viewAs() const{
     return card;
 }
+
+DiscardViewAsSkill::DiscardViewAsSkill(const QString &pattern,bool include_equip,const int num)
+    :ViewAsSkill(""),pattern(pattern),include_equip(include_equip),num(num)
+{
+}
+
+bool DiscardViewAsSkill::isEnabledAtPlay(const Player *player) const{
+    return false;
+}
+
+bool DiscardViewAsSkill::viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
+    return selected.length() < num && (include_equip || ! to_select->isEquipped()) ;
+}
+
+bool DiscardViewAsSkill::isEnabledAtResponse(const Player *player, const QString &pattern) const{
+    return pattern == this->pattern;
+}
+
+const Card *DiscardViewAsSkill::viewAs(const QList<CardItem *> &cards) const{
+    if(cards.length() != num){
+        return NULL;
+    }else{
+        DummyCard *card = new DummyCard;
+        card->setSkillName(objectName());
+        card->addSubcards(cards);
+        return card;
+    }
+}
