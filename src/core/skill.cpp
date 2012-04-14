@@ -321,10 +321,12 @@ SPConvertSkill::SPConvertSkill(const QString &name, const QString &from, const Q
 bool SPConvertSkill::triggerable(const ServerPlayer *target) const{
     QString package = Sanguosha->getGeneral(to)->getPackage();
     if(Sanguosha->getBanPackages().contains(package)) return false;
+    if(ServerInfo.GameMode.contains("_pass_")) return false ;
     return GameStartSkill::triggerable(target) && target->getGeneralName() == from;
 }
 
 void SPConvertSkill::onGameStart(ServerPlayer *player) const{
+    if(ServerInfo.GameMode.contains("_pass_")) return;
     if(player->askForSkillInvoke(objectName())){
         Room *room = player->getRoom();
             room->setPlayerProperty(player, "general", to);

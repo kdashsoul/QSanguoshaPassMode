@@ -1,0 +1,4 @@
+﻿general:select
+general:xuhuang
+general:xiahouyuan|exp:16|equip:61,121,68,66|starter:true
+general:yangxiu

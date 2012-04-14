@@ -7,7 +7,7 @@ caocao badao_p|wanghou_p|caiqing_p|duoyi_p
 zhangliao shoujie_p|liangjiang_p|fenyong_p|wulie_p
 
 sunquan honglang_p|wanghou_p|shanshe_p|quanmou_p
-lumeng guoshi_p|dudu_p
+lumeng guoshi_p|dudu_p|zhejie_p|danmou_p
 sunshangxiang wuji_p
 
 lubu tieji_p|feijiang_p|zhunue_p|doushen_p

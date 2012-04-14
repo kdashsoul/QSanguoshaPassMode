@@ -1187,8 +1187,6 @@ public:
         if(room->askForCard(player, "@dudu_p", "@dudu_p")){
             damage.damage--;
             data = QVariant::fromValue(damage);
-            if(damage.damage == 0)
-                return true ;
         }
         return false;
     }
@@ -1200,19 +1198,16 @@ ZhejiePassCard::ZhejiePassCard(){
     will_throw = false;
 }
 
+bool ZhejiePassCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
+    if(!targets.isEmpty())
+        return false;
+    return ! to_select->isKongcheng() && to_select->getHandcardNum() < Self->getHandcardNum() ;
+}
+
 void ZhejiePassCard::onEffect(const CardEffectStruct &effect) const{
-    effect.to->obtainCard(this);
-
     Room *room = effect.from->getRoom();
-    int card_id = room->askForCardChosen(effect.from, effect.to, "hej", "quanmou_p");
-    const Card *card = Sanguosha->getCard(card_id);
-    bool is_public = room->getCardPlace(card_id) != Player::Hand;
-    room->moveCardTo(card, effect.from, Player::Hand, is_public ? true : false);
-
-    QList<ServerPlayer *> targets = room->getOtherPlayers(effect.to);
-    ServerPlayer *target = room->askForPlayerChosen(effect.from, targets, "quanmou_p");
-    if(target != effect.from)
-        room->moveCardTo(card, target, Player::Hand, false);
+    room->askForDiscard(effect.to,"zhejie_p",1);
+    effect.to->obtainCard(this);
 }
 
 class ZhejiePass: public OneCardViewAsSkill{
@@ -1235,6 +1230,39 @@ public:
         return card;
     }
 };
+
+class DanmouPass: public TriggerSkill{
+public:
+    DanmouPass():TriggerSkill("danmou_p"){
+        events << DrawNCards << PhaseChange;
+    }
+
+    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+        Room *room = player->getRoom();
+        if(event == DrawNCards){
+            if(room->askForSkillInvoke(player,objectName())){
+                data = data.toInt() + 2;
+                room->setPlayerFlag(player,objectName());
+            }
+        }else if(event == PhaseChange && player->getPhase() == Player::Finish){
+            if(!player->hasFlag(objectName()))
+                return false ;
+            int x = 2 ;
+            int total = player->getEquips().length() + player->getHandcardNum();
+
+            if(total <= x){
+                player->throwAllHandCards();
+                player->throwAllEquips();
+                room->loseHp(player);
+            }else{
+                room->askForDiscard(player, objectName(), x, false, true);
+            }
+        }
+
+        return false;
+    }
+};
+
 
 
 class WujiPass: public TriggerSkill{
@@ -2523,71 +2551,6 @@ void FanjianPassCard::onEffect(const CardEffectStruct &effect) const{
         zhouyu->obtainCard(card);
     }
 }
-
-
-class QuwuPassViewAsSkill: public ViewAsSkill{
-public:
-    QuwuPassViewAsSkill():ViewAsSkill("quwu_p"){
-
-    }
-
-    virtual bool isEnabledAtPlay(const Player *) const{
-        return false;
-    }
-
-    virtual bool isEnabledAtResponse(const Player *, const QString &pattern) const{
-        return pattern == "@quwu_p";
-    }
-
-    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
-        if(selected.length() >= 1)
-            return false;
-
-        if(!to_select->getCard()->isEquipped())
-            return false;
-
-        return true;
-    }
-
-    virtual const Card *viewAs(const QList<CardItem *> &cards) const{
-        if(cards.length() != 1)
-            return NULL;
-
-        DummyCard *card = new DummyCard;
-        card->setSkillName(objectName());
-        card->addSubcards(cards);
-        return card;
-    }
-};
-
-class QuwuPass: public TriggerSkill{
-public:
-    QuwuPass():TriggerSkill("quwu_p"){
-        view_as_skill = new QuwuPassViewAsSkill;
-        events << Predamaged;
-    }
-
-    virtual bool triggerable(const ServerPlayer *target) const{
-        return TriggerSkill::triggerable(target) && ! target->getEquips().empty() ;
-    }
-
-    virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
-        DamageStruct damage = data.value<DamageStruct>();
-        Room *room = player->getRoom();
-        const Card *card = room->askForCard(player, "@quwu_p", "@@quwu_p");
-        if(card){
-            room->throwCard(card->getEffectiveId());
-            LogMessage log;
-            log.type = "#QuwuPass";
-            log.from = player;
-            room->sendLog(log);
-
-            damage.damage--;
-            data = QVariant::fromValue(damage);
-        }
-        return false;
-    }
-};
 
 class KurouPass: public ZeroCardViewAsSkill{
 public:
@@ -3955,7 +3918,7 @@ PassPackage::PassPackage()
            << new WanghouPass << new QiangyunPass << new XiaoxiongPass
            << new HujiangPass << new AoguPass << new ZhongyiPass  << new CaiqingPass << new DuoyiPass
            << new LiangjiangPass << new FenyongPass << new WuliePass << new QuanmouPass << new DuduPass
-            // << new ZhejiePass << new DanmouPass
+             << new ZhejiePass << new DanmouPass
            << new FeijiangPass << new ZhunuePass << new DoushenPass
               ;
 

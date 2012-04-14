@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "client.h"
 #include "settings.h"
+#include "pass-mode-scenario.h"
 
 #include <QSignalMapper>
 #include <QLineEdit>
@@ -443,6 +444,8 @@ QWidget *PassChooseDialog::createTab(const QList<const General *> &generals,QSig
         button->setToolTip(general->getSkillDescription());
         button->setIconSize(QSize(94,96));
         buttons << button;
+        // debugmode
+        button->setDisabled(! PassMode::getGeneralMap().contains(general->objectName()));
 
         mapper->setMapping(button, general->objectName());
         connect(button, SIGNAL(double_clicked()), mapper, SLOT(map()));

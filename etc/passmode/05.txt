@@ -1,0 +1,4 @@
+﻿general:select|draw:10
+general:zhanghe|judge:100
+general:yuanshao|judge:101,162|exp:16
+general:shuangxiong|judge:102,163

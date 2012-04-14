@@ -2430,6 +2430,8 @@ void RoomScene::changeHp(const QString &who, int delta, DamageStruct::Nature nat
         else if(nature == DamageStruct::Thunder)
             doAnimation("lightning", QStringList() << who);
 
+    }else if(delta == 0){
+        // dummy
     }else{
         QString type = "#Recover";
         QString from_general = ClientInstance->getPlayer(who)->getGeneralName();

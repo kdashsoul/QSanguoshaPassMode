@@ -1,0 +1,5 @@
+﻿general:select
+general:handang
+general:ganning:16
+general:luxun:16
+general:xusheng

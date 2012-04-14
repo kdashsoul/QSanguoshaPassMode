@@ -396,9 +396,7 @@ void Room::gameOver(const QString &winner){
     }else{
         int turns = getTag("Turns").toInt() ;
         setTag("UseTurns",getTag("UseTurns").toInt() + turns);
-        int score = getTag("Score").toInt() ;
-        setTag("Score",score + PassMode::getScore(this));
-        QMap<QString,QVariant> enemies_card_num = getTag("enemy_card_info").toMap();
+        QMap<QString,QVariant> enemies_card_num = getTag("enemies_card_num").toMap();
         foreach (QString objectName, enemies_card_num.keys()) {
             foreach (ServerPlayer *sp, getPlayers()) {
                 if(sp->objectName() == objectName){
@@ -409,7 +407,12 @@ void Room::gameOver(const QString &winner){
                 }
             }
         }
-
+        int damage = getLord()->getMark("epl_damage_sum") ;
+        if(getTag("MaxTurnDamage").toInt() < damage){
+            setTag("MaxTurnDamage", damage);
+        }
+        int score = getTag("Score").toInt() ;
+        setTag("Score",score + PassMode::getScore(this));
         QStringList save_tags ;
         foreach (QString tag_name, PassMode::getNeedSaveRoomTagNames()) {
             save_tags << QString("%1=%2").arg(tag_name).arg(getTag(tag_name).toString()) ;
@@ -420,7 +423,7 @@ void Room::gameOver(const QString &winner){
         int gain_exp = 0;
         foreach(ServerPlayer *player, getPlayers()){
             if(player->getRole() == "rebel" && player->isDead()){
-                int exp = rule->getPlayerProp(player, "exp").toInt() ;
+                int exp = rule->getPlayerProp(player, "exp" , "8").toInt() ;
                 exps << QString("%1=%2").arg(player->getGeneralName()).arg(exp) ;
                 gain_exp += exp;
             }
@@ -3297,9 +3300,10 @@ QString Room::askForGeneral(ServerPlayer *player, const QStringList &generals, Q
 }
 
 QString Room::askForGeneralPass(ServerPlayer *player, const QString &flag){
-    const Package *stdpack = Sanguosha->findChild<const Package *>(flag);
-    QList<const General *> all_generals = stdpack->findChildren<const General *>();
-    QString default_choice = all_generals.at(qrand() % all_generals.size())->objectName() ;
+    // debugmode
+//    const Package *stdpack = Sanguosha->findChild<const Package *>(flag);
+//    QList<const General *> all_generals = stdpack->findChildren<const General *>();
+    QString default_choice = "liubei" ; // all_generals.at(qrand() % all_generals.size())->objectName() ;
     if(player->getState() == "online"){
         executeCommand(player, "askForGeneralPass", "chooseGeneralPassCommand", flag, ".");
         if(result.isEmpty() || result == ".")

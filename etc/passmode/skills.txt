@@ -48,8 +48,10 @@ honglang_p 50
 shanshe_p 15
 quanmou_p 20
 
-guoshi_p 20
+guoshi_p 40
 dudu_p 50
+zhejie_p 20
+danmou_p 20
 
 wuji_p 20
 

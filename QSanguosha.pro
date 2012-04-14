@@ -297,7 +297,16 @@ OTHER_FILES += \
     etc/passmode/generals.txt \
     etc/passmode/02.txt \
     etc/passmode/01.txt \
-    lang/zh_CN/PassModeScenario.lua
+    lang/zh_CN/PassModeScenario.lua \
+    etc/passmode/10.txt \
+    etc/passmode/09.txt \
+    etc/passmode/08.txt \
+    etc/passmode/07.txt \
+    etc/passmode/06.txt \
+    etc/passmode/05.txt \
+    etc/passmode/04.txt \
+    etc/passmode/03.txt
+
 
 
 

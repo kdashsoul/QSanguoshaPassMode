@@ -1,2 +1,2 @@
-﻿general:select starter:true
-general:sunce  maxhp:5  hp:1  equip:guding_blade,hualiu
+﻿general:select
+general:yuanshu|equip:121|starter:true|exp:12
