@@ -84,6 +84,10 @@ bool Slash::targetFilter(const QList<const Player *> &targets, const Player *to_
     if(Self->hasSkill("lihuo") && inherits("FireSlash"))
         slash_targets ++;
 
+    if(Self->hasSkill("tieji_p") && Self->getWeapon() && Self->getWeapon()->getRange() >= 3){
+        slash_targets ++ ;
+    }
+
     if(Self->hasSkill("shenji") && Self->getWeapon() == NULL)
         slash_targets = 3;
 
@@ -364,16 +368,6 @@ public:
         Room *room = player->getRoom();
         CardStar card = room->askForCard(player, "@axe", "@axe:" + effect.to->objectName(),data);
         if(card){
-            QList<int> card_ids = card->getSubcards();
-            foreach(int card_id, card_ids){
-                LogMessage log;
-                log.type = "$DiscardCard";
-                log.from = player;
-                log.card_str = QString::number(card_id);
-
-                room->sendLog(log);
-            }
-
             LogMessage log;
             log.type = "#AxeSkill";
             log.from = player;
@@ -405,16 +399,17 @@ Halberd::Halberd(Suit suit, int number)
 class KylinBowSkill: public WeaponSkill{
 public:
     KylinBowSkill():WeaponSkill("kylin_bow"){
-        events << SlashHit;
+        events << DamagedProceed;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
-        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        DamageStruct damage = data.value<DamageStruct>();
 
         QStringList horses;
-        if(effect.to->getDefensiveHorse())
+    if(damage.card && damage.card->inherits("Slash")){
+        if(damage.to->getDefensiveHorse())
             horses << "dhorse";
-        if(effect.to->getOffensiveHorse())
+        if(damage.to->getOffensiveHorse())
             horses << "ohorse";
 
         if(horses.isEmpty())
@@ -431,9 +426,10 @@ public:
             horse_type = horses.first();
 
         if(horse_type == "dhorse")
-            room->throwCard(effect.to->getDefensiveHorse());
+            room->throwCard(damage.to->getDefensiveHorse());
         else if(horse_type == "ohorse")
-            room->throwCard(effect.to->getOffensiveHorse());
+            room->throwCard(damage.to->getOffensiveHorse());
+    }
 
         return false;
     }
@@ -788,6 +784,9 @@ void Duel::onEffect(const CardEffectStruct &effect) const{
 
     forever{
         if(second->hasSkill("wushuang")){
+            room->addPlayerCountInfo(second,"wushuang");
+            second->addMark("wushuang_usetimes");
+
             room->playSkillEffect("wushuang");
             const Card *slash = room->askForCard(first, "slash", "@wushuang-slash-1:" + second->objectName());
             if(slash == NULL)
@@ -796,7 +795,6 @@ void Duel::onEffect(const CardEffectStruct &effect) const{
             slash = room->askForCard(first, "slash", "@wushuang-slash-2:" + second->objectName());
             if(slash == NULL)
                 break;
-
         }else{
             const Card *slash = room->askForCard(first, "slash", "duel-slash:" + second->objectName());
             if(slash == NULL)
@@ -955,20 +953,20 @@ void Lightning::takeEffect(ServerPlayer *target) const{
 class IceSwordSkill: public WeaponSkill{
 public:
     IceSwordSkill():WeaponSkill("ice_sword"){
-        events << SlashHit;
+        events << DamagedProceed;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
-        SlashEffectStruct effect = data.value<SlashEffectStruct>();
+        DamageStruct damage = data.value<DamageStruct>();
 
         Room *room = player->getRoom();
 
-        if(!effect.to->isNude() && player->askForSkillInvoke("ice_sword", data)){
-            int card_id = room->askForCardChosen(player, effect.to, "he", "ice_sword");
+        if(damage.card && damage.card->inherits("Slash") && !damage.to->isNude() && player->askForSkillInvoke("ice_sword", data)){
+            int card_id = room->askForCardChosen(player, damage.to, "he", "ice_sword");
             room->throwCard(card_id);
 
-            if(!effect.to->isNude()){
-                card_id = room->askForCardChosen(player, effect.to, "he", "ice_sword");
+            if(!damage.to->isNude()){
+                card_id = room->askForCardChosen(player, damage.to, "he", "ice_sword");
                 room->throwCard(card_id);
             }
 

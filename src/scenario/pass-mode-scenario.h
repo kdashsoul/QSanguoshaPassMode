@@ -6,6 +6,8 @@
 #include "client.h"
 #include "engine.h"
 
+#include <QSettings>
+
 struct SaveDataStruct{
     SaveDataStruct();
 
@@ -57,6 +59,7 @@ public:
 
     static QStringList getNeedSaveRoomTagNames();
     static QStringList getNeedSavePlayerMarkNames();
+    static QStringList getUnsaveSkillNames();
     static QStringList getEplTagNames();
     static int getScore(Room *room);
     static int getFinalScore(Room *room);
@@ -72,6 +75,7 @@ public:
 
     static QMap<QString, SkillAttrStruct *> getSkillMap();
     static QMap<QString, QStringList> getGeneralMap();
+    static QVariant getConfig(const QString &key,const QVariant &default_value = QVariant()) ;
     static const int maxStage;
 private:
     static const QString version;

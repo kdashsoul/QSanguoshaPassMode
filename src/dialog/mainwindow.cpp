@@ -10,6 +10,7 @@
 #include "window.h"
 #include "halldialog.h"
 #include "pixmapanimation.h"
+#include "pass-mode-scenario.h"
 
 #include <cmath>
 #include <QGraphicsView>
@@ -329,10 +330,11 @@ void MainWindow::enterRoom(){
     QGraphicsScene *loading_scene = new QGraphicsScene;
     gotoScene(loading_scene);
 
-    BackLoader *loader = new BackLoader(this);
-    loader->start();
-
-    connect(loader,SIGNAL(completed(int)),this,SLOT(updateLoadingProgress(int)));
+    if(! PassMode::getConfig("debug").toBool()){
+        BackLoader *loader = new BackLoader(this);
+        loader->start();
+        connect(loader,SIGNAL(completed(int)),this,SLOT(updateLoadingProgress(int)));
+    }
 
     ui->actionStart_Game->setEnabled(false);
     ui->actionStart_Server->setEnabled(false);
@@ -377,7 +379,12 @@ void MainWindow::enterRoom(){
 
     connect(room_scene, SIGNAL(restart()), this, SLOT(startConnection()));
     connect(room_scene, SIGNAL(return_to_start()), this, SLOT(gotoStartScene()));
-    this->scene = room_scene;
+    if(PassMode::getConfig("debug").toBool()){
+        room_scene->adjustItems();
+        gotoScene(room_scene);
+    }else{
+        this->scene = room_scene;
+    }
 }
 
 void MainWindow::gotoStartScene(){
@@ -814,7 +821,7 @@ public:
         setFlag(ItemIsMovable);
     }
 
-    virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event){
+    virtual void mouseDoubleClickEvent(QGraphicsSceneMouseEvent *){
         foreach(QGraphicsItem *item, childItems()){
             item->setVisible(! item->isVisible());
         }

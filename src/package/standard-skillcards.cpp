@@ -93,7 +93,8 @@ TuxiCard::TuxiCard(){
 }
 
 bool TuxiCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
-    if(targets.length() >= 2)
+    int n = Self->isSkillEnhance("tuxi", 2 ) ? 3 : 2 ;
+    if(targets.length() >= n)
         return false;
 
     if(to_select == Self)
@@ -104,7 +105,8 @@ bool TuxiCard::targetFilter(const QList<const Player *> &targets, const Player *
 
 void TuxiCard::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.from->getRoom();
-    int card_id = room->askForCardChosen(effect.from, effect.to, "h", "tuxi");
+    QString flags = Self->isSkillEnhance("tuxi",1) ? "he" : "h" ;
+    int card_id = room->askForCardChosen(effect.from, effect.to, flags, "tuxi");
     const Card *card = Sanguosha->getCard(card_id);
     room->moveCardTo(card, effect.from, Player::Hand, false);
 

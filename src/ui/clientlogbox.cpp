@@ -56,6 +56,16 @@ void ClientLogBox::appendLog(
         log.replace("%to", to);
         log.replace("%card", log_name);
 
+        if(!arg2.isEmpty()){
+            arg2 = bold(Sanguosha->translate(arg2), Qt::yellow);
+            log.replace("%arg2", arg2);
+        }
+
+        if(!arg.isEmpty()){
+            arg = bold(Sanguosha->translate(arg), Qt::yellow);
+            log.replace("%arg", arg);
+        }
+
         log = QString("<font color='%2'>%1</font>").arg(log).arg(Config.TextEditColor.name());
         append(log);
 

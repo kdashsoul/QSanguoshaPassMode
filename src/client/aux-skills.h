@@ -83,4 +83,22 @@ private:
     ChoosePlayerCard *card;
 };
 
+
+class DiscardViewAsSkill : public ViewAsSkill{
+    Q_OBJECT
+
+public:
+    explicit DiscardViewAsSkill(const QString &pattern, const QString &flags = "h", const int num = 1);
+
+    virtual bool isEnabledAtPlay(const Player *player) const;
+    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const;
+    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const;
+    virtual const Card *viewAs(const QList<CardItem *> &cards) const;
+
+private:
+    QString pattern ;
+    QString flags ;
+    int num ;
+};
+
 #endif // AUXSKILLS_H

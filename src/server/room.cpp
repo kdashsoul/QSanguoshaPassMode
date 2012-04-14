@@ -916,6 +916,23 @@ const Card *Room::askForCard(ServerPlayer *player, const QString &pattern, const
 
             thread->trigger(CardResponsed, player, card_star);
         }else{
+            QList<int> card_ids = card->getSubcards();
+            foreach(int card_id, card_ids){
+                LogMessage log;
+                QString skill_name = prompt ;
+                skill_name = skill_name.remove("@").split(":").at(0).split("-").at(0) ;
+                const Skill *skill = Sanguosha->getSkill(skill_name);
+                if(skill){
+                    log.type = "$DiscardCardForSkill" ;
+                    log.arg = skill->objectName() ;
+                }else{
+                    log.type = "$DiscardCard" ;
+                }
+                log.from = player;
+                log.card_str = QString::number(card_id);
+                sendLog(log);
+            }
+
             thread->trigger(CardDiscarded, player, card_star);
         }
 
@@ -2284,6 +2301,15 @@ void Room::damage(const DamageStruct &damage_data){
         if(thread->trigger(Predamage, damage_data.from, data))
             return;
     }
+
+    // DamageProceed
+    bool prevent = thread->trigger(DamageProceed, damage_data.to, data);
+    if(prevent)
+        return;
+
+    // DamagedProceed
+    if(thread->trigger(DamagedProceed, damage_data.from, data))
+        return;
 
     // predamaged
     bool broken = thread->trigger(Predamaged, damage_data.to, data);

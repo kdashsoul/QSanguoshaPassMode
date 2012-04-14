@@ -939,12 +939,12 @@ public:
         if(lumeng->getPhase() == Player::Start){
             lumeng->setFlags("-keji_use_slash");
         }else if(lumeng->getPhase() == Player::Discard){
-            if(!lumeng->hasFlag("keji_use_slash") &&
-               lumeng->getSlashCount() == 0 &&
-               lumeng->askForSkillInvoke("keji"))
-            {
+            if(lumeng->isSkillEnhance("keji",2) && lumeng->getHandcardNum() < lumeng->getHp()){
+                lumeng->drawCards(1);
+            }
+            bool can_keji = !lumeng->hasFlag("keji_use_slash") && lumeng->getSlashCount() == 0 ;
+            if((can_keji || lumeng->isSkillEnhance("keji",1)) && lumeng->askForSkillInvoke("keji")){
                 lumeng->getRoom()->playSkillEffect("keji");
-
                 return true;
             }
         }
@@ -1153,33 +1153,60 @@ public:
 class Wushuang: public TriggerSkill{
 public:
     Wushuang():TriggerSkill("wushuang"){
-        events << SlashProceed;
+        events << SlashProceed << PhaseChange;
 
         frequency = Compulsory;
     }
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *lubu, QVariant &data) const{
-        SlashEffectStruct effect = data.value<SlashEffectStruct>();
-        Room *room = lubu->getRoom();
-        room->playSkillEffect(objectName());
+    virtual bool trigger(TriggerEvent event, ServerPlayer *lubu, QVariant &data) const{
+        if(event == SlashProceed){
+            SlashEffectStruct effect = data.value<SlashEffectStruct>();
+            Room *room = lubu->getRoom();
+            room->playSkillEffect(objectName());
 
-        QString slasher = lubu->objectName();
+            QString slasher = lubu->objectName();
 
-        const Card *first_jink = NULL, *second_jink = NULL;
-        first_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-1:" + slasher);
-        if(first_jink)
-            second_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-2:" + slasher);
+            const Card *first_jink = NULL, *second_jink = NULL;
+            first_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-1:" + slasher);
+            if(first_jink)
+                second_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-2:" + slasher);
 
-        Card *jink = NULL;
-        if(first_jink && second_jink){
-            jink = new DummyCard;
-            jink->addSubcard(first_jink);
-            jink->addSubcard(second_jink);
+            Card *jink = NULL;
+            if(first_jink && second_jink){
+                jink = new DummyCard;
+                jink->addSubcard(first_jink);
+                jink->addSubcard(second_jink);
+            }
+
+            room->slashResult(effect, jink);
+
+            lubu->addMark("wushuang_usetimes");
+            room->addPlayerCountInfo(lubu,"wushuang");
+            return true;
+        }else if (event == PhaseChange){
+            Room *room = lubu->getRoom();
+            if(lubu->getPhase() == Player::Start){
+                if(lubu->getCountInfo("wushuang") >= 10){
+                    room->acquireSkill(lubu,"shenji");
+                }
+            }else if(lubu->getPhase() == Player::Finish){
+                if(lubu->getMark("wushuang_usetimes") >= 3){
+                    const Card *halberd = Sanguosha->getCard(60) ;
+                    if(room->getDiscardPile().contains(halberd->getId())){
+                        lubu->obtainCard(halberd);
+                    }else{
+                        foreach (ServerPlayer *sp, room->getOtherPlayers(lubu)) {
+                            if(sp->getCards("ej").contains(halberd)){
+                                lubu->obtainCard(halberd);
+                                break ;
+                            }
+                        }
+                    }
+                }
+                lubu->removeMark("wushuang_usetimes");
+            }
         }
-
-        room->slashResult(effect, jink);
-
-        return true;
+        return false ;
     }
 };
 
