@@ -231,6 +231,10 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             log.arg2 = ServerInfo.GameMode ;
             room->sendLog(log);
 
+            log.type = "#StagePrompt";
+            log.arg = QString("%1_d").arg(ServerInfo.GameMode) ;
+            room->sendLog(log);
+
             initGameStart(player->getRoom());
         }
         break ;

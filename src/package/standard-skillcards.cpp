@@ -39,18 +39,34 @@ RendeCard::RendeCard(){
     will_throw = false;
 }
 
+bool RendeCard::targetsFeasible(const QList<const Player *> &targets, const Player *source) const{
+    if(source->isSkillEnhance("rende",3))
+        return true ;
+    else
+        return !targets.isEmpty() ;
+}
+
 void RendeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
     ServerPlayer *target = NULL;
+    bool can_throw = false ;
     if(targets.isEmpty()){
-        foreach(ServerPlayer *player, room->getAlivePlayers()){
-            if(player != source){
-                target = player;
-                break;
+        if(source->isSkillEnhance("rende",3)){
+            can_throw = true ;
+        }else{
+            foreach(ServerPlayer *player, room->getAlivePlayers()){
+                if(player != source){
+                    target = player;
+                    break;
+                }
             }
         }
     }else
         target = targets.first();
-    room->moveCardTo(this, target, Player::Hand, false);
+
+    if(can_throw)
+        room->throwCard(this);
+    else
+        room->moveCardTo(this, target, Player::Hand, false);
 
     int old_value = source->getMark("rende");
     int new_value = old_value + subcards.length();

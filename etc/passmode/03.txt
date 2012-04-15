@@ -1,3 +1,4 @@
 ﻿general:select
-general:dongzhuo|draw_plus:-1|draw:2|exp:12
 general:huaxiong|draw:2
+general:dongzhuo|draw_plus:-1|draw:6|exp:12
+

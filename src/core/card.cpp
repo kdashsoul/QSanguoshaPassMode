@@ -15,7 +15,7 @@ const Card::Suit Card::AllSuits[4] = {
 };
 
 Card::Card(Suit suit, int number, bool target_fixed)
-    :target_fixed(target_fixed), once(false), mute(false), will_throw(true), suit(suit), number(number), id(-1)
+    :target_fixed(target_fixed),once(false), mute(false), will_throw(true), suit(suit), number(number), id(-1)
 {
     can_jilei = will_throw;
 
