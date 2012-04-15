@@ -437,8 +437,17 @@ void Room::gameOver(const QString &winner){
         ServerPlayer *lord = getLord() ;
         setPlayerMark(lord,"@exp",lord->getMark("@exp") + gain_exp);
 
-        broadcastInvoke("gameOver", QString("%1:%2|%3|%4|%5").arg(winner).arg(all_roles.join("+"))
-                        .arg(save_tags.join(":")).arg(exps.join(":")).arg(epl_tags.join(":")));
+        QString id = Config.GameMode;
+        id.replace("_pass_","");
+        int current = id.toInt();
+        QString info_str = QString("%1:%2|%3|%4|%5").arg(winner).arg(all_roles.join("+")).arg(save_tags.join(":")).arg(exps.join(":")).arg(epl_tags.join(":")) ;
+        if(current >= PassMode::maxStage){
+            int score = PassMode::getFinalScore(this) ;
+            info_str.append(QString("|score=%1:rank=%2").arg(score).arg(PassMode::getFinalRank(score))) ;
+        }else{
+            info_str.append("|") ;
+        }
+        broadcastInvoke("gameOver", info_str);
     }
 
     // save records
@@ -2311,7 +2320,7 @@ void Room::damage(const DamageStruct &damage_data){
         return;
 
     // DamagedProceed
-    if(thread->trigger(DamagedProceed, damage_data.from, data))
+    if(thread->trigger(DamageProceed, damage_data.from, data))
         return;
 
     // predamaged

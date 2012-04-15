@@ -305,7 +305,9 @@ OTHER_FILES += \
     etc/passmode/06.txt \
     etc/passmode/05.txt \
     etc/passmode/04.txt \
-    etc/passmode/03.txt
+    etc/passmode/03.txt \
+    etc/passmode/config.ini
+
 
 
 

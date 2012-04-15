@@ -1,8 +1,8 @@
-﻿general:select|hand:135,136,131,132,133,110|equip:59|draw:2
-general:lusu|maxhp:4|role:loyalist|draw:6
-general:caoren|chained:true
-general:zhangliao|chained:true
-general:caocao|equip:109|hand:97|chained:true|exp:16
-general:yujin|chained:true
-general:jiaxu|chained:true
+﻿general:select|hand:88,135,136,137,110
+general:shenzhugeliang|marks:@fog*1|role:loyalist
+general:caoren|chained:true|marks:@gale*1|draw_plus:-1
+general:zhangliao|chained:true|draw_plus:-1
+general:caocao|chained:true|hand:107|exp:16
+general:yujin|chained:true|draw_plus:-1
+general:jiaxu|chained:true|draw_plus:-1
 

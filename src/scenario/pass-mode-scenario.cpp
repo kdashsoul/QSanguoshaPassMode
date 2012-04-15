@@ -115,8 +115,8 @@ void PassModeRule::initGameStart(Room *room) const {
             if(!skill->inherits("SPConvertSkill"))
                 room->getThread()->addTriggerSkill(skill);
             else continue;
-            if(skill->getTriggerEvents().contains(GameStart))
-                skill->trigger(GameStart, player, v);
+//            if(skill->getTriggerEvents().contains(GameStart))
+//                skill->trigger(GameStart, player, v);
         }
 
         QString skills = props.value("acquireSkills","");
@@ -148,7 +148,7 @@ void PassModeRule::initGameStart(Room *room) const {
         }
 
         int n = props["draw"] != NULL ? props["draw"].toInt() : 4 ;
-        player->drawCards(player->hasAbility("startdraw") ? n + 1 : n);
+        player->drawCards(player->hasAbility("startdraw") ? n + 2 : n);
         room->setTag("DrawnCard",true) ;
         if(props["starter"] != NULL){
             room->setCurrent(player);
@@ -223,8 +223,6 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             }
             room->setTag("Turns",0);
 
-            room->askForSkillLearn(player);
-
             LogMessage log;
             log.type = "#StartStage";
             log.arg = room->getTag("Stage").toString() ;
@@ -234,6 +232,8 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             log.type = "#StagePrompt";
             log.arg = QString("%1_d").arg(ServerInfo.GameMode) ;
             room->sendLog(log);
+
+            room->askForSkillLearn(player);
 
             initGameStart(player->getRoom());
         }
@@ -276,6 +276,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
                 if(room->getTag("MaxTurnDamage").toInt() < damage){
                     room->setTag("MaxTurnDamage", damage);
                 }
+                player->removeMark("epl_damage_sum");
             }else if(player->getRole() == "rebel"){
                 int n = player->getMark("epl_discardnum") ;
                 if(room->getTag("MaxDiscardNum").toInt() < n){
@@ -284,6 +285,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
                 player->removeMark("epl_discardnum");
             }
         }
+        break;
     }case DrawNCards:{
         if(player->hasAbility("turndraw")){
             data = data.toInt() + 1 ;
@@ -305,11 +307,13 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
             int damage_sum = damage.from->getMark("epl_damage_sum") ;
             damage.from->setMark("epl_damage_sum", damage_sum + damage.damage);
         }
+        break;
     }
     case CardLost:{
         if(player->getPhase() == Player::Discard && player->getRole() == "rebel"){
             player->addMark("epl_discardnum");
         }
+        break;
     }
     case CardUsed:{
         break;
@@ -327,6 +331,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
                 }
             }
         }
+        break;
     }
     default:
         break;
@@ -338,7 +343,7 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
 
 const QString PassMode::version = "2.0";
 const QString PassMode::savePath = "savedata/pass_mode.sav";
-const int PassMode::maxStage = 10 ;
+const int PassMode::maxStage = 7 ;
 
 PassMode::PassMode()
 {
@@ -381,8 +386,9 @@ int PassMode::getScore(Room *room){
     ServerPlayer *lord = room->getLord() ;
     int wind = 0 ;
     int turns = room->getTag("Turns").toInt() ;
-    if(turns <= 7){
-        wind = 12 + (7 - turns) * 3 ;
+    int num = room->getPlayers().count() > 3 ? 12 : 7 ;
+    if(turns <= num){
+        wind = qMin(12 + (num - turns) * 3 , 30) ;
         room->setTag("Epl_Wind",wind);
     }
 
@@ -435,7 +441,7 @@ int PassMode::getFinalScore(Room *room){
     int load_times = room->getTag("LoadTimes").toInt() ;
     int exp = room->getLord()->getMark("@exp") ;
     int epl = room->getTag("Score").toInt() ;
-    return base - use_turns - load_times * 20 + exp * 3 + epl ;
+    return base - use_turns * 2 - load_times * 20 + exp * 3 + epl ;
 }
 
 QChar PassMode::getFinalRank(int score){

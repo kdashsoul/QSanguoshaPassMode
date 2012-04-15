@@ -1,4 +1,4 @@
-﻿general:select
-general:huaxiong|draw:2
+﻿general:select|hand:137
+general:huaxiong|draw:2|draw_plus:-1
 general:dongzhuo|draw_plus:-1|draw:6|exp:12
 

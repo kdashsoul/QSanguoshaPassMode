@@ -1,5 +1,5 @@
 ﻿general:select
-general:chengong|hp:2|draw:2
+general:chengong|hp:2|draw:2|draw_plus:-1
 general:lubu|hp:3|equip:60,67|hand:45|exp:16
-general:gaoshun|hp:2|draw:2
-
+general:gaoshun|hp:2|draw:2|draw_plus:-1
+general:xunyou|draw:2|draw_plus:-1|role:loyalist

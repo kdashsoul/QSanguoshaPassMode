@@ -121,7 +121,7 @@ public:
             bool can_invoke = false;
             QList<ServerPlayer *> other_players = room->getOtherPlayers(zhangliao);
             foreach(ServerPlayer *player, other_players){
-                if(!player->isKongcheng()){
+                if(zhangliao->isSkillEnhance("tuxi",1) ? !player->isNude() : !player->isKongcheng()){
                     can_invoke = true;
                     break;
                 }
@@ -521,9 +521,11 @@ public:
         if(pattern != "slash")
             return false;
 
+        bool can_use_enhanced_skill = PassMode::canUseEnhancedSkill(liubei,"jijiang",1) ;
+
         Room *room = liubei->getRoom();
         QList<ServerPlayer *> lieges = room->getLieges("shu", liubei);
-        if(lieges.isEmpty())
+        if(lieges.isEmpty() && !can_use_enhanced_skill)
             return false;
 
         if(!room->askForSkillInvoke(liubei, objectName()))
@@ -538,6 +540,14 @@ public:
                 room->provide(slash);
                 return true;
             }
+        }
+
+        if(can_use_enhanced_skill){
+            room->addPlayerCountInfo(liubei,"jijiang");
+            Slash *slash = new Slash(Card::NoSuit,0) ;
+            slash->setSkillName("jijiang");
+            room->provide(slash);
+            return true;
         }
 
         return false;
@@ -1154,7 +1164,6 @@ class Wushuang: public TriggerSkill{
 public:
     Wushuang():TriggerSkill("wushuang"){
         events << SlashProceed << PhaseChange;
-
         frequency = Compulsory;
     }
 
@@ -1186,11 +1195,11 @@ public:
         }else if (event == PhaseChange){
             Room *room = lubu->getRoom();
             if(lubu->getPhase() == Player::Start){
-                if(lubu->getCountInfo("wushuang") >= 10){
+                if(lubu->isSkillEnhance("wushuang",2) && lubu->getCountInfo("wushuang") >= 10){
                     room->acquireSkill(lubu,"shenji");
                 }
             }else if(lubu->getPhase() == Player::Finish){
-                if(lubu->getMark("wushuang_usetimes") >= 3){
+                if(lubu->isSkillEnhance("wushuang",1) && lubu->getMark("wushuang_usetimes") >= 3){
                     const Card *halberd = Sanguosha->getCard(60) ;
                     if(room->getDiscardPile().contains(halberd->getId())){
                         lubu->obtainCard(halberd);

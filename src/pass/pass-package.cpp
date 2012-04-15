@@ -1247,7 +1247,7 @@ public:
         }else if(event == PhaseChange && player->getPhase() == Player::Finish){
             if(!player->hasFlag(objectName()))
                 return false ;
-            int x = 2 ;
+            int x = 3 ;
             int total = player->getEquips().length() + player->getHandcardNum();
 
             if(total <= x){

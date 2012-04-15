@@ -1,4 +1,6 @@
-﻿general:select
+﻿general:select|hand:45
 general:xuhuang
-general:xiahouyuan|exp:16|equip:61,121,68,66|starter:true
+general:fazheng|hp:1|hand:46|role:loyalist
 general:yangxiu
+general:xiahouyuan|exp:16|equip:61,121,68,66|starter:true
+

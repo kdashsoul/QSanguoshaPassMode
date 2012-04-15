@@ -9,7 +9,7 @@ startdraw_o 15
 
 
 rende 15|10|50
-jijiang 15|10:3
+jijiang 15:3
 
 wusheng 15|15|20
 

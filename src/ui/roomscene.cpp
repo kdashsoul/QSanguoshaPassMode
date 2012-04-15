@@ -2559,6 +2559,14 @@ void RoomScene::onGameOver(){
                 epl_info_map.insert(kv.at(0), kv.at(1));
             }
         }
+        QMap<QString,QString> score_info_map ;
+        foreach (QString info, Self->property("score_info").toStringList()) {
+            QStringList kv = info.split("=") ;
+            if(kv.length() == 2){
+                score_info_map.insert(kv.at(0), kv.at(1));
+            }
+        }
+
         QString result ;
         if(victory){
             int current = ServerInfo.GameMode.remove("_pass_").toInt();
@@ -2592,7 +2600,7 @@ void RoomScene::onGameOver(){
             msg = tr("Sometimes you win and sometimes you don't. <br/> please try again.") ;
         }else if(result == "win"){
             msg = tr("Congratulations! you have passed all the stages. <br/> Your score: <font color='red'>%1</font> , rank : <font color='red'>%2</font>.")
-                    .arg(1000).arg("S");
+                    .arg(score_info_map.value("score")).arg(score_info_map.value("rank"));
         }
         msg_label->setText(msg);
         msg_label->setFont(Config.SmallFont);

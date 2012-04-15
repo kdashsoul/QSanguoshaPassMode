@@ -5,6 +5,7 @@
 #include "engine.h"
 #include "client.h"
 #include "settings.h"
+#include "pass-mode-scenario.h"
 
 ZhihengCard::ZhihengCard(){
     target_fixed = true;
@@ -71,7 +72,7 @@ void RendeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *
     int old_value = source->getMark("rende");
     int new_value = old_value + subcards.length();
     room->setPlayerMark(source, "rende", new_value);
-    int num = Self->isSkillEnhance("rende",1) ? 1 : 2;
+    int num = (Self->isSkillEnhance("rende",1) && source->isKongcheng()) ? 1 : 2;
     if(old_value < num && new_value >= num){
         RecoverStruct recover;
         recover.card = this;
@@ -305,7 +306,7 @@ void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer
         }
     }
 
-    if(liubei->isSkillEnhance("jijiang",1)){
+    if(PassMode::canUseEnhancedSkill(liubei,"jijiang",1)){
         room->addPlayerCountInfo(liubei,"jijiang");
         Slash *slash = new Slash(Card::NoSuit,0) ;
         slash->setSkillName("jijiang");
