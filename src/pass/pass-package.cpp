@@ -1142,11 +1142,6 @@ void QuanmouPassCard::onEffect(const CardEffectStruct &effect) const{
     const Card *card = Sanguosha->getCard(card_id);
     bool is_public = room->getCardPlace(card_id) != Player::Hand;
     room->moveCardTo(card, effect.from, Player::Hand, is_public ? true : false);
-
-    QList<ServerPlayer *> targets = room->getOtherPlayers(effect.to);
-    ServerPlayer *target = room->askForPlayerChosen(effect.from, targets, "quanmou_p");
-    if(target != effect.from)
-        room->moveCardTo(card, target, Player::Hand, false);
 }
 
 class QuanmouPass: public OneCardViewAsSkill{
@@ -1234,17 +1229,15 @@ public:
 class DanmouPass: public TriggerSkill{
 public:
     DanmouPass():TriggerSkill("danmou_p"){
-        events << DrawNCards << PhaseChange;
+        events << PhaseChange;
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
-        if(event == DrawNCards){
-            if(room->askForSkillInvoke(player,objectName())){
-                data = data.toInt() + 2;
-                room->setPlayerFlag(player,objectName());
-            }
-        }else if(event == PhaseChange && player->getPhase() == Player::Finish){
+        if(player->getPhase() == Player::Start && room->askForSkillInvoke(player,objectName())){
+            player->drawCards(2);
+            room->setPlayerFlag(player,objectName());
+        }else if(player->getPhase() == Player::Finish){
             if(!player->hasFlag(objectName()))
                 return false ;
             int x = 3 ;
@@ -3917,7 +3910,7 @@ PassPackage::PassPackage()
                 << new Skill("tieji_p")
            << new WanghouPass << new QiangyunPass << new XiaoxiongPass
            << new HujiangPass << new AoguPass << new ZhongyiPass  << new CaiqingPass << new DuoyiPass
-           << new LiangjiangPass << new FenyongPass << new WuliePass << new QuanmouPass << new DuduPass
+           << new LiangjiangPass << new FenyongPass << new WuliePass << new QuanmouPass << new Skill("shanshe_p") << new DuduPass
              << new ZhejiePass << new DanmouPass
            << new FeijiangPass << new ZhunuePass << new DoushenPass
               ;

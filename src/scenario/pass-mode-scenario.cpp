@@ -323,10 +323,10 @@ bool PassModeRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &d
 
         if(player->getRole() == "rebel"){
             DamageStar damage = data.value<DamageStar>();
-            if((!damage || damage->from != lord)){
+            if(!damage || !damage->from){
                 lord->drawCards(3);
             }else{
-                if(lord->hasAbility("killdraw")){
+                if(damage && damage->from == lord && lord->hasAbility("killdraw")){
                     lord->drawCards(1);
                 }
             }
@@ -502,7 +502,7 @@ SaveDataStruct* PassMode::catchSaveInfo(Room *room){
     foreach(QString skill_name, skill_names){
         const Skill *skill = Sanguosha->getSkill(skill_name);
         if(getUnsaveSkillNames().contains(skill_name) || skill->inherits("WeaponSkill") || skill->inherits("ArmorSkill")
-                || skill_name == "axe" || skill_name == "spear")
+                || skill_name == "axe" || skill_name == "spear" || skill_name == "fan")
             continue;
         if(skill->isVisible())
             lord_skills << skill_name;

@@ -163,6 +163,8 @@ int Player::getAttackRange() const{
         range = 1;
     if(hasSkill("shenshe_p"))
         range *= 2 ;
+    if(hasSkill("shanshe_p"))
+        range += 1 ;
     range += getAbilityLevel("slashrange") ;
     return range ;
 }

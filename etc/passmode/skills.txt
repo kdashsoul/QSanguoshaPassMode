@@ -19,7 +19,7 @@ hujia 40|10:2:2+1
 tuxi 30|50
 
 zhiheng 40|25
-jiuyuan 20:1
+jiuyuan 20:2
 
 keji 30|40
 

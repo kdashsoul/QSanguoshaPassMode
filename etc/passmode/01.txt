@@ -1,2 +1,2 @@
 ﻿general:select
-general:zhangjiao|equip:62|hand:30|exp:12
+general:zhangjiao|equip:62|hand:30
