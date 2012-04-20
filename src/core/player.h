@@ -206,6 +206,7 @@ public:
 
     StatisticsStruct *getStatistics() const;
     void setStatistics(StatisticsStruct *statistics);
+
     bool isCaoCao() const;
     void copyFrom(Player* p);
 

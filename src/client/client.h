@@ -6,6 +6,7 @@
 #include "skill.h"
 #include "socket.h"
 #include "clientstruct.h"
+#include "protocol.h"
 
 class NullificationDialog;
 class Recorder;
@@ -43,17 +44,28 @@ public:
     void roomError(const QString &errorStr);
     void hallEntered(const QString &);
 
+    // cheat functions
+    void requestCheatGetOneCard(int card_id);
+    void requestCheatChangeGeneral(QString name);
+    void requestCheatKill(const QString& killer, const QString& victim);
+    void requestCheatDamage(const QString& source, const QString& target, DamageStruct::Nature nature, int points);
+    void requestCheatRevive(const QString& name);
+    void requestCheatRunScript(const QString& script);
+
     void disconnectFromHost();
+    void replyToServer(QSanProtocol::CommandType command, const Json::Value &arg);
+    void requestToServer(QSanProtocol::CommandType command, const Json::Value &arg);
     void request(const QString &message);
-    void useCard(const Card *card, const QList<const Player *> &targets = QList<const Player *>());
+    void onPlayerUseCard(const Card *card, const QList<const Player *> &targets = QList<const Player *>());
     void setStatus(Status status);
     Status getStatus() const;
     int alivePlayerCount() const;
-    void responseCard(const Card *card);
-    bool noTargetResponsing() const;
-    void discardCards(const Card *card);
-    void replyYiji(const Card *card, const Player *to);
-    void replyGuanxing(const QList<int> &up_cards, const QList<int> &down_cards);
+    void onPlayerResponseCard(const Card *card);
+    bool hasNoTargetResponsing() const;
+    void onPlayerDiscardCards(const Card *card);
+    void onPlayerReplyYiji(const Card *card, const Player *to);
+    void onPlayerReplyGuanxing(const QList<int> &up_cards, const QList<int> &down_cards);
+    void onPlayerAssignRole(const QList<QString> &names, const QList<QString> &roles);
     QList<const ClientPlayer *> getPlayers() const;
     void speakToServer(const QString &text);
     ClientPlayer *getPlayer(const QString &name);
@@ -72,6 +84,7 @@ public:
     QTextDocument *getPromptDoc() const;
 
     typedef void (Client::*Callback)(const QString &);
+    typedef void (Client::*CallBack)(const Json::Value &);
 
     void checkVersion(const QString &server_version);
     void setup(const QString &setup_str);
@@ -80,11 +93,9 @@ public:
     void removePlayer(const QString &player_name);
     void drawCards(const QString &cards_str);
     void drawNCards(const QString &draw_str);
-    void doChooseGeneral(const QString &generals_str);
-    void doChooseGeneral2(const QString &generals_str);
     void startInXs(const QString &);
     void arrangeSeats(const QString &seats);
-    void activate(const QString &focus_player);
+    void activate(const Json::Value &playerId);
     void startGame(const QString &);
     void hpChange(const QString &change_str);
     void playSkillEffect(const QString &play_str);
@@ -98,15 +109,13 @@ public:
     void warn(const QString &);
     void setMark(const QString &mark_str);
     void doFilter(const QString &);
-    void showCard(const QString &show_str);
-    void doGuanxing(const QString &guanxing_str);
-    void doGongxin(const QString &gongxin_str);
+    void showCard(const Json::Value &show_str);    
     void log(const QString &log_str);
     void speak(const QString &speak_data);
     void addHistory(const QString &card);
-    void moveFocus(const QString &focus);
+    void moveFocus(const Json::Value &focus);
     void setEmotion(const QString &set_str);
-    void skillInvoked(const QString &invoke_str);
+    void skillInvoked(const Json::Value &invoke_str);
     void acquireSkill(const QString &acquire_str);
     void animate(const QString &animate_str);
     void jilei(const QString &jilei_str);
@@ -126,51 +135,54 @@ public:
     void moveNCards(const QString &move_str);
 
     void fillAG(const QString &cards_str);
-    void askForAG(const QString &);
     void takeAG(const QString &take_str);
     void clearAG(const QString &);
     void disableAG(const QString &disable_str);
 
-    void askForCard(const QString &request_str);
-    void askForUseCard(const QString &request_str);
-    void askForCardOrUseCard(const QString &request_str);
-
-    void askForSinglePeach(const QString &ask_str);
-    void askForCardShow(const QString &requestor);
-    void askForSkillInvoke(const QString &skill_name);
-    void askForChoice(const QString &ask_str);
-    void askForSkillLearn(const QString &tab_index);
-    void askForDiscard(const QString &discard_str);
-    void askForExchange(const QString &exchange_str);
-    void askForSuit(const QString &);
-    void askForKingdom(const QString &);
-    void askForNullification(const QString &ask_str);
-    void askForPindian(const QString &ask_str);
-    void askForYiji(const QString &card_list);
-    void askForCardChosen(const QString &ask_str);
-    void askForPlayerChosen(const QString &ask_str);
-    void askForGeneral(const QString &generals);
-    void askForGeneralPass(const QString &flag);
+    //interactive server callbacks
+    void askForCard(const Json::Value&);
+    void askForUseCard(const Json::Value&);
+    void askForAG(const Json::Value&);
+    void askForSinglePeach(const Json::Value &);
+    void askForCardShow(const Json::Value &);
+    void askForSkillInvoke(const Json::Value &);
+    void askForChoice(const Json::Value &);
+    void askForSkillLearn(const Json::Value &tab_index);
+    void askForDiscard(const Json::Value &);
+    void askForExchange(const Json::Value &);
+    void askForSuit(const Json::Value &);
+    void askForKingdom(const Json::Value &);
+    void askForNullification(const Json::Value &);
+    void askForPindian(const Json::Value &);    
+    void askForCardChosen(const Json::Value &);
+    void askForPlayerChosen(const Json::Value &);
+    void askForGeneral(const Json::Value &);
+	void askForGeneralPass(const Json::Value &);
+    void askForYiji(const Json::Value &);
+    void askForGuanxing(const Json::Value &);
+    void askForGongxin(const Json::Value &);
+    void askForAssign(const Json::Value &); // Assign roles at the beginning of game
+    //3v3 & 1v1
+    void askForOrder(const Json::Value &);
+    void askForRole3v3(const Json::Value &);
+    void askForDirection(const Json::Value &);
 
     // 3v3 & 1v1 methods
     void fillGenerals(const QString &generals);
     void askForGeneral3v3(const QString &);
     void takeGeneral(const QString &take_str);
     void startArrange(const QString &);
-    void askForOrder(const QString &reason);
-    void askForRole(const QString &role_str);
-    void askForDirection(const QString &);
+    
     void recoverGeneral(const QString &);
     void revealGeneral(const QString &);
 
     void attachSkill(const QString &skill_name);
     void detachSkill(const QString &skill_name);
-
-    void askForAssign(const QString &);
+    
 
     // public fields
-    bool refusable;
-    bool include_equip;
+    bool m_isDiscardActionRefusable;
+    bool m_canDiscardEquip;
     int discard_num;
     QString skill_name;
     QList<const Card*> discarded_list;
@@ -179,52 +191,58 @@ public:
 
 public slots:
     void signup();
-    void chooseItem(const QString &_name);
-    void selectChoice();
-    void chooseCard(int card_id = -2);
-    void choosePlayer(const Player *player);
+    void onPlayerChooseGeneral(const QString &_name);
+    void onPlayerChooseGeneralPass(const QString &_name);
+    void onPlayerMakeChoice();    
+    void onPlayerMakeSkillChoice();
+    void onPlayerChooseCard(int card_id = -2);
+    void onPlayerChooseAG(int card_id);
+    void onPlayerChoosePlayer(const Player *player);
     void trust();
-    void requestCard(int card_id);
-    void changeGeneral(QString name);
     void addRobot();
     void fillRobots();
     void newPass();
     void continuePass();
     void arrange(const QStringList &order);
-    void chooseAG(int card_id);
-    void replyGongxin(int card_id = -1);
+    
+    void onPlayerReplyGongxin(int card_id = -1);
 
 private:
     ClientSocket *socket;
     Status status;
     int alive_count;
     QHash<QString, Callback> callbacks;
+    QHash<QSanProtocol::CommandType, CallBack> m_interactions;
+    QHash<QSanProtocol::CommandType, CallBack> m_callbacks;
     QList<const ClientPlayer*> players;
-    bool use_card;
+    bool m_isUseCard;
     QStringList ban_packages;
     Recorder *recorder;
     Replayer *replayer;
     QTextDocument *lines_doc, *prompt_doc;
     int pile_num;
     QString skill_title, skill_line;
-    QString choose_command;
     QString card_pattern;
     QString skill_to_invoke;
     int swap_pile;
+
+    unsigned int _m_lastServerSerial;
 
     void updatePileNum();
     void setPromptList(const QStringList &text);
     void commandFormatWarning(const QString &str, const QRegExp &rx, const char *command);
 
+    void _askForCardOrUseCard(const Json::Value&);
+
 private slots:
     void processCommand(const QString &cmd);
     void processReply(char *reply);
     void notifyRoleChange(const QString &new_role);
-    void chooseSuit();
-    void chooseKingdom();
+    void onPlayerChooseSuit();
+    void onPlayerChooseKingdom();
     void clearTurnTag();
-    void selectOrder();
-    void selectRole();
+    void onPlayerChooseOrder();
+    void onPlayerChooseRole3v3();
 
 signals:
     void version_checked(const QString &version_number, const QString &mod_name);
@@ -233,7 +251,7 @@ signals:
     void player_added(ClientPlayer *new_player);
     void player_removed(const QString &player_name);
     void generals_got(const QStringList &generals);
-    void pass_generals_got(const QString packages);
+    void pass_generals_got(const QString &flags);
     void seats_arranged(const QList<const ClientPlayer*> &seats);
     void hp_changed(const QString &who, int delta, DamageStruct::Nature nature, bool losthp);
     void status_changed(Client::Status new_status);

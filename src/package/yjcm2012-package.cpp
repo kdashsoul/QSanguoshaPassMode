@@ -534,8 +534,8 @@ public:
 
         if(event == Dying){
             DyingStruct dying = data.value<DyingStruct>();
-            if(!handang || !dying.savers.contains(handang) || dying.who->getHp() > 0 ||
-               handang->isNude() || !room->askForSkillInvoke(handang, objectName(), data))
+            if(!handang || !dying.savers.contains(handang) || dying.who->getHp() > 0 || handang->isNude() ||
+               room->getCurrent()->isDead() || !room->askForSkillInvoke(handang, objectName(), data))
                 return false;
 
             const Card *slash = room->askForCard(handang, "slash", "jiefan-slash:" + dying.who->objectName(), data);
@@ -729,11 +729,11 @@ public:
         return false;
     }
 
-    virtual bool isEnabledAtResponse(const Player *player, const QString &pattern) const{
+    virtual bool isEnabledAtResponse(const Player *, const QString &pattern) const{
         return pattern == "@@chunlao";
     }
 
-    virtual bool viewFilter(const QList<CardItem *> &selected, const CardItem *to_select) const{
+    virtual bool viewFilter(const QList<CardItem *> &, const CardItem *to_select) const{
         return to_select->getFilteredCard()->inherits("Slash");
     }
 
@@ -755,7 +755,7 @@ public:
         view_as_skill = new ChunlaoViewAsSkill;
     }
 
-    virtual bool triggerable(const ServerPlayer *target) const{
+    virtual bool triggerable(const ServerPlayer *) const{
         return true;
     }
 

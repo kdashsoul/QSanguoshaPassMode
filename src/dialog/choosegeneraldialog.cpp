@@ -165,7 +165,7 @@ ChooseGeneralDialog::ChooseGeneralDialog(const QStringList &general_names, QWidg
     mapper->setMapping(this, default_name);
     connect(this, SIGNAL(rejected()), mapper, SLOT(map()));
 
-    connect(mapper, SIGNAL(mapped(QString)), ClientInstance, SLOT(chooseItem(QString)));
+    connect(mapper, SIGNAL(mapped(QString)), ClientInstance, SLOT(onPlayerChooseGeneral(QString)));
 
     QVBoxLayout *dialog_layout = new QVBoxLayout;
     dialog_layout->addLayout(layout);
@@ -213,7 +213,7 @@ void ChooseGeneralDialog::freeChoose(){
     FreeChooseDialog *dialog = new FreeChooseDialog(this);
 
     connect(dialog, SIGNAL(accepted()), this, SLOT(accept()));
-    connect(dialog, SIGNAL(general_chosen(QString)), ClientInstance, SLOT(chooseItem(QString)));
+    connect(dialog, SIGNAL(general_chosen(QString)), ClientInstance, SLOT(onPlayerChooseGeneral(QString)));
 
     free_chooser = dialog;
 
@@ -409,7 +409,7 @@ PassChooseDialog::PassChooseDialog(QWidget *parent,const QString &flag)
     mapper->setMapping(this, ".");
     connect(this, SIGNAL(rejected()), mapper, SLOT(map()));
 
-    connect(mapper, SIGNAL(mapped(QString)), ClientInstance, SLOT(chooseItem(QString)));
+    connect(mapper, SIGNAL(mapped(QString)), ClientInstance, SLOT(onPlayerChooseGeneralPass(QString)));
     foreach(QString kingdom, kingdoms){
         QList<const General *> generals = map[kingdom];
         if(!generals.isEmpty()){

@@ -12,4 +12,9 @@ sgs.ai_skill_cardask["@huanshi-card"] = function(self, data)
 	return "."
 end
 
+sgs.ai_skill_invoke.hongyuan = function(self, data)
+	return 	self.player:getHandcardNum() > 0
+end
+
 sgs.ai_skill_invoke.mingzhe = true
+

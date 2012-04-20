@@ -13,6 +13,8 @@ struct LogMessage;
 
 #include "serverplayer.h"
 #include "roomthread.h"
+#include "protocol.h"
+#include <qmutex.h>
 
 class Room : public QThread{
     Q_OBJECT
@@ -23,6 +25,7 @@ public:
     friend class RoomThread1v1;
 
     typedef void (Room::*Callback)(ServerPlayer *, const QString &);
+    typedef bool (Room::*CallBack)(ServerPlayer *, const QSanProtocol::QSanGeneralPacket*);
 
     explicit Room(QObject *parent, const QString &mode);
     QString createLuaState();
@@ -74,7 +77,7 @@ public:
     void sendJudgeResult(const JudgeStar judge);
     QList<int> getNCards(int n, bool update_pile_number = true);
     ServerPlayer *getLord() const;
-    void doGuanxing(ServerPlayer *zhuge, const QList<int> &cards, bool up_only);
+    void askForGuanxing(ServerPlayer *zhuge, const QList<int> &cards, bool up_only);
     void doGongxin(ServerPlayer *shenlumeng, ServerPlayer *target);
     int drawCard();
     const Card *peek();
@@ -85,12 +88,65 @@ public:
     void sendLog(const LogMessage &log);
     void showCard(ServerPlayer *player, int card_id, ServerPlayer *only_viewer = NULL);
     void showAllCards(ServerPlayer *player, ServerPlayer *to = NULL);
+   
+    // Ask a server player to execute a command and returns the client response. Call is blocking until client replies or
+    // server times out, whichever is earlier.
+    // @param player
+    //        The server player to carry out the command.
+    // @param packet
+    //        Packet to be forwarded to the client.
+    // @param timeOut
+    //        Maximum milliseconds that server should wait for client response before returning.
+    // @param broadcast
+    //        Specifies whether other players should also be notified about the event.
+    // @param moveFocus
+    //        Suggests whether the all clients' UI should move focus to the player specified.
+    // @param wait
+    //        If ture, executeCommand will return immediately without waiting for client reply.
+    // @return True if the a valid response is returned from client.
+    bool executeCommand(ServerPlayer* player, const QSanProtocol::QSanGeneralPacket* packet, time_t timeOut,
+        bool broadcast = false, bool moveFocus = true, bool wait = true);
+    
+    // Ditto, except that default timeout from configuration is used.
+    bool executeCommand(ServerPlayer* player, const QSanProtocol::QSanGeneralPacket* packet,
+        bool broadcast = false, bool move_focus = true, bool wait = true);
 
-    void getResult(const QString &reply_func, ServerPlayer *reply_player, const QString &defaultValue, bool move_focus = true,
-                   bool supply_timeout = false, time_t timeout = 0);
-    void executeCommand(ServerPlayer* player, const char *invokeString, const QString &commandString,
-                     const QString &invokeArg, const QString &defaultValue, bool broadcast = false, bool move_focus = true,
-                     bool supply_timeout = false, time_t timeout = 0);
+    // Ditto, a specialization of executeCommand for S_SERVER_REQUEST packets.
+    // Usage note: when you need a round trip request-response vector with a SINGLE client, use this command
+    // with wait = true and read the reponse from player->getClientReply(). If you want to initiate a poll 
+    // where more than one clients can respond simultaneously, you have to do it in two steps:
+    // 1. Use this command with wait = false once for each client involved in the poll (or you can call this
+    //    command only once in all with broadcast = true if the poll is to everypody).
+    // 2. Call getResult(player, timeout) on each player to retrieve the result. Read manual for getResults
+    //    before you use.
+    bool doRequest(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, 
+                            bool broadcast = false, bool moveFocus = true, bool wait = true);
+    bool doRequest(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, time_t timeOut,
+                            bool broadcast = false, bool moveFocus = true, bool wait = true);
+    
+    // Ditto, a specialization of executeCommand for S_SERVER_NOTIFICATION packets. No reply should be expected from
+    // the client for S_SERVER_NOTIFICATION as it's a one way notice. Any message from the client in reply to this call
+    // will be rejected.
+    bool doNotify(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, 
+                            bool broadcast = false); 
+
+
+    // Ask a server player to execute a command and returns the client response. Call is blocking until client replies or
+    // server times out, whichever is earlier.
+    // @param player
+    //        The server player to retrieve the client response.
+    // @param timeOut
+    //        Maximum milliseconds that server should wait for client response before returning.
+    // @return True if the a valid response is returned from client.
+    
+    // Usage note: this function is only supposed to be either internally used by executeCommand (wait = true) or externally
+    // used in pair with executeCommand (wait = false). Any other usage could result in unexpected synchronization errors. 
+    // When getResult returns true, it's guaranteed that the expected client response has been stored and can be accessed by
+    // calling player->getClientReply(). If getResult returns false, the value stored in player->getClientReply() could be
+    // corrupted or in response to an unrelevant server request. Therefore, if the return value is false, do not poke into
+    // player->getClientReply(), use the default value directly. If the return value is true, the reply value should still be
+    // examined as a malicious client can have tampered with the content of the package for cheating purposes.
+    bool getResult(ServerPlayer* player, time_t timeOut);
 
     void acquireSkill(ServerPlayer *player, const Skill *skill, bool open = true , bool trigger_skill = true);
     void acquireSkill(ServerPlayer *player, const QString &skill_name, bool open = true , bool trigger_skill = true);
@@ -140,8 +196,8 @@ public:
     void obtainCard(ServerPlayer *target, const Card *card);
     void obtainCard(ServerPlayer *target, int card_id);
 
-    void throwCard(const Card *card);
-    void throwCard(int card_id);
+    void throwCard(const Card *card, ServerPlayer *who = NULL);
+    void throwCard(int card_id, ServerPlayer *who = NULL);
     void moveCardTo(const Card *card, ServerPlayer *to, Player::Place place, bool open = true);
     void doMove(const CardMoveStruct &move, const QSet<ServerPlayer *> &scope);
 
@@ -172,20 +228,19 @@ public:
     //Get the timeout allowance for a command. Server countdown is more lenient than the client.
     //@param command: type of command
     //@return countdown for command in milliseconds.
-    time_t getCommandTimeout(const QString &command);
+    time_t getCommandTimeout(QSanProtocol::CommandType command);
     void toggleReadyCommand(ServerPlayer *player, const QString &);
     void speakCommand(ServerPlayer *player, const QString &arg);
     void trustCommand(ServerPlayer *player, const QString &arg);
     void kickCommand(ServerPlayer *player, const QString &arg);
     void surrenderCommand(ServerPlayer *player, const QString &);
-    void commonCommand(ServerPlayer *player, const QString &arg);
+    void interactiveCommand(ServerPlayer *player, const QSanProtocol::QSanGeneralPacket* arg);
     void addRobotCommand(ServerPlayer *player, const QString &arg);
     void fillRobotsCommand(ServerPlayer *player, const QString &arg);
     void newPassCommand(ServerPlayer *player, const QString &arg);
     void continuePassCommand(ServerPlayer *player, const QString &arg);
-    void chooseCommand(ServerPlayer *player, const QString &general_name);
-    void choose2Command(ServerPlayer *player, const QString &general_name);
     void broadcastProperty(ServerPlayer *player, const char *property_name, const QString &value = QString());
+    void broadcastInvoke(const QSanProtocol::QSanPacket* packet, ServerPlayer *except = NULL);
     void broadcastInvoke(const char *method, const QString &arg = ".", ServerPlayer *except = NULL);
     void startTest(const QString &to_test);
     void networkDelayTestCommand(ServerPlayer *player, const QString &);
@@ -194,11 +249,12 @@ protected:
     virtual void run();
 
 private:
+    QString _chooseDefaultGeneral(ServerPlayer* player) const;
+    bool _setPlayerGeneral(ServerPlayer* player, const QString& generalName, bool isFirst);
     QString mode;
     QList<ServerPlayer*> players, alive_players;
     int player_count;
     ServerPlayer *current;
-    ServerPlayer *reply_player;
     QList<int> pile1, pile2;
     QList<int> table_cards;
     QList<int> *draw_pile, *discard_pile;
@@ -211,10 +267,12 @@ private:
     RoomThread3v3 *thread_3v3;
     RoomThread1v1 *thread_1v1;
     QSemaphore *sem;
-    QString result;
-    QString reply_func;
+    QMutex _m_mutexInteractive;
 
+    
     QHash<QString, Callback> callbacks;
+    QHash<QSanProtocol::CommandType, CallBack> m_callbacks;
+    QHash<QSanProtocol::CommandType, QSanProtocol::CommandType> m_requestResponsePair;
 
     QMap<int, Player::Place> place_map;
     QMap<int, ServerPlayer*> owner_map;
@@ -237,14 +295,15 @@ private:
     void arrangeCommand(ServerPlayer *player, const QString &arg);
     void takeGeneralCommand(ServerPlayer *player, const QString &arg);
     QString askForOrder(ServerPlayer *player);
-    void selectOrderCommand(ServerPlayer *player, const QString &arg);
     QString askForRole(ServerPlayer *player, const QStringList &roles, const QString &scheme);
-    void selectRoleCommand(ServerPlayer *player, const QString &arg);
 
-    void makeCheat(const QString &cheat_str);
-    void makeDamage(const QStringList &texts);
-    void makeKilling(const QStringList &texts);
-    void makeReviving(const QStringList &texts);
+    //process client requests
+    bool processRequestCheat(ServerPlayer *player, const QSanProtocol::QSanGeneralPacket *packet);
+
+    bool makeCheat(ServerPlayer* player);
+    void makeDamage(const QString& source, const QString& target, QSanProtocol::CheatCategory nature, int point);
+    void makeKilling(const QString& killer, const QString& victim);
+    void makeReviving(const QString &name);
     void doScript(const QString &script);
 
 private slots:

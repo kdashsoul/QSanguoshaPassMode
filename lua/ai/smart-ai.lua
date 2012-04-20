@@ -484,7 +484,7 @@ function SmartAI:cardNeed(card)
 		if (self.player:getHp() < 3 or self.player:getLostHp() > 1 and not self:hasSkill("longhun")) or self:hasSkills("kurou|benghuai") then return 14 end
 		return self:getUseValue(card)
 	end
-	if self:isWeak() and card:inherits("Jink") and self:getCardsNum("Jink") < self.player:getHp() then return 12 end
+	if self:isWeak() and card:inherits("Jink") and self:getCardsNum("Jink") < 1 then return 12 end
 	if sgs[self.player:getGeneralName().."_keep_value"] then
 		value = sgs[self.player:getGeneralName().."_keep_value"][class_name]
 		if value then return value+4 end
@@ -494,12 +494,13 @@ function SmartAI:cardNeed(card)
 		if value then return value+4 end
 	end
 
-	if card:inherits("Jink") and self:getCardsNum("Jink") == 0 then return 5.9 end
+	if card:inherits("Slash") and self:getCardsNum("Slash") == 0 then return 5.9 end
 	if card:inherits("Analeptic") then
 		if self.player:getHp() < 2 then return 10 end
 	end
 	if card:inherits("Slash") and (self:getCardsNum("Slash") > 0) then return 4 end
 	if card:inherits("Crossbow") and  self:hasSkills("luoshen|yongsi|kurou|keji|wusheng|wushen",self.player) then return 20 end
+	if card:inherits("Axe") and  self:hasSkills("luoyi|jiushi|jiuchi|pojun",self.player) then return 15 end
 	if card:inherits("Weapon") and (not self.player:getWeapon()) and (self:getCardsNum("Slash") > 1) then return 6 end
 	if card:inherits("Nullification") and self:getCardsNum("Nullification") == 0 then
 		if self.player:containsTrick("indulgence") or self.player:containsTrick("supply_shortage") then return 10 end
@@ -837,13 +838,25 @@ function sgs.modifiedRoleTrends(role)
 	for _, modifier in ipairs(min_trends) do
 		local name = modifier:objectName()
 		if role == "renegade" then
-			sgs.role_evaluation[name][role] = math.max(sgs.role_evaluation[name]["rebel"], sgs.role_evaluation[name]["loyalist"]) - 15
+			if sgs.role_evaluation[name]["rebel"] > sgs.role_evaluation[name]["loyalist"] then
+				sgs.role_evaluation[name]["rebel"] = sgs.role_evaluation[name][role] + 15
+			else
+				sgs.role_evaluation[name]["loyalist"] = sgs.role_evaluation[name][role] + 15
+			end
 		elseif role == "rebel" then
-			sgs.role_evaluation[name][role] = math.max(sgs.role_evaluation[name]["renegade"], sgs.role_evaluation[name]["loyalist"]) - 15
+			if sgs.role_evaluation[name]["renegade"] >= sgs.role_evaluation[name]["loyalist"] then
+				sgs.role_evaluation[name]["renegade"] = sgs.role_evaluation[name][role] + 15
+			else
+				sgs.role_evaluation[name]["loyalist"] = sgs.role_evaluation[name][role] + 15	
+			end
 		elseif role == "loyalist" then
-			sgs.role_evaluation[name][role] = math.max(sgs.role_evaluation[name]["rebel"], sgs.role_evaluation[name]["renegade"]) - 15
+			if sgs.role_evaluation[name]["renegade"] >= sgs.role_evaluation[name]["rebel"] then
+				sgs.role_evaluation[name]["renegade"] = sgs.role_evaluation[name][role] + 15
+			else
+				sgs.role_evaluation[name]["rebel"] = sgs.role_evaluation[name][role] + 15	
+			end
 		end
-		global_room:writeToConsole("The evaluation of " .. modifier:getGeneralName() .. " " .. role .. " is " .. sgs.role_evaluation[name][role])
+		global_room:writeToConsole("The evaluation role of " .. modifier:getGeneralName() .. " " ..  " is " .. sgs.evaluatePlayerRole(modifier))
 	end
 	
 	global_room:writeToConsole("Modified Role Trends Success!")
@@ -1225,7 +1238,7 @@ function SmartAI:objectiveLevel(player)
 				if player:isLord() then
 					if not sgs.isLordHealthy() then return 0
 					else return 3 end
-				elseif sgs.evaluatePlayerRole(player) == "renegade" then
+				elseif sgs.evaluatePlayerRole(player) == "renegade" and renegade_num > 1 then
 					return 3
 				else
 					return 5
@@ -2331,6 +2344,9 @@ function SmartAI:getCardNeedPlayer(cards)
 	end
 
 	if (self.player:hasSkill("rende") and self.player:isWounded() and self.player:usedTimes("RendeCard") < 2) then 
+		if (self.player:getHandcardNum() < 2 and self.player:usedTimes("RendeCard") == 0) then
+			return
+		end
 		if (self.player:getHandcardNum() == 2 and self.player:usedTimes("RendeCard") == 0) or
 			(self.player:getHandcardNum() == 1 and self.player:usedTimes("RendeCard") == 1) then
 			for _, enemy in ipairs(self.enemies) do
@@ -2351,18 +2367,19 @@ function SmartAI:getCardNeedPlayer(cards)
 				end
 			end
 		end
-		if self.player:getHandcardNum()> 2 or #cardtogive > 2 then
-			for _, friend in ipairs(self.friends_noself) do
-				if not self:needKongcheng(friend) or self.player:getHp() > 2 then
-					for _, hcard in ipairs(cardtogive) do
-						if #cardtogive > 1  then 
-							return hcard, friend
-						end
+		for _, friend in ipairs(self.friends_noself) do
+			if not self:needKongcheng(friend) or self.player:getHp() > 2 then
+				for _, hcard in ipairs(cardtogive) do
+					if #cardtogive > 1  then 
+						return hcard, friend
 					end
 				end
 			end
 		end
-		for _, friend in ipairs(self.friends_noself) do
+	end
+
+	for _, friend in ipairs(self.friends_noself) do
+		if not self:needKongcheng(friend) then
 			for _, hcard in ipairs(cardtogive) do
 				if self:getOverflow()>0	then
 					return hcard, friend
@@ -2383,15 +2400,6 @@ function SmartAI:getCardNeedPlayer(cards)
 		end
 	end
 
-	for _, friend in ipairs(self.friends_noself) do
-		if not self:needKongcheng(friend) then
-			for _, hcard in ipairs(cardtogive) do
-				if self:getOverflow()>0	then
-					return hcard, friend
-				end
-			end
-		end
-	end
 	
 	self:sortByUseValue(cards,true)
 	local name = self.player:objectName()
@@ -2851,9 +2859,6 @@ function SmartAI:damageIsEffective(player, nature, source)
 	player = player or self.player
 	source = source or self.player
 	nature = nature or sgs.DamageStruct_Normal
-	if player:hasSkill("zhichi") and self.room:getTag("Zhichi"):toString() == player:objectName() then
-		return false
-	end
 
 	if player:hasSkill("shenjun") and player:getGender() ~= source:getGender() and nature ~= sgs.DamageStruct_Thunder then
 		return false
@@ -2887,7 +2892,7 @@ function SmartAI:getDamagedEffects(self, player)
 end
 
 local function prohibitUseDirectly(card, player)
-	if player:isLocked(card) then return true end
+	if player:isLocked(card) or player:isJilei(card) then return true end
 	
 	local _, flist = sgs.getSkillLists(player)
 	for _, askill in ipairs(flist) do
@@ -2898,7 +2903,7 @@ local function prohibitUseDirectly(card, player)
 	return false
 end
 
-local function cardsview(class_name, player)
+local function cardsView(class_name, player)
 	local vlist = sgs.getSkillLists(player)
 	for _, askill in ipairs(vlist) do
 		local callback = sgs.ai_cardsview[askill]
@@ -2923,9 +2928,12 @@ local function getSkillViewCard(card, class_name, player, card_place)
 	local vlist = sgs.getSkillLists(player)
 	for _, askill in ipairs(vlist) do
 		local callback = sgs.ai_view_as[askill]
-		if type(callback) == "function" and callback(card, player, card_place, class_name)
-			and sgs.Card_Parse(callback(card, player, card_place, class_name)):inherits(class_name) then
-			return callback(card, player, card_place, class_name)
+		if type(callback) == "function" then
+			local skill_card_str = callback(card, player, card_place, class_name)
+			if skill_card_str then
+				local skill_card = sgs.Card_Parse(skill_card_str)
+				if skill_card:inherits(class_name) and not player:isJilei(skill_card) then return skill_card_str end
+			end
 		end
 	end
 end
@@ -2955,7 +2963,7 @@ function SmartAI:getCardId(class_name, player)
 	local cards = player:getCards("he")
 	cards = sgs.QList2Table(cards)
 	self:sortByUsePriority(cards)
-	local card_str = self:getGuhuoCard(class_name, player) or cardsview(class_name, player)
+	local card_str = self:getGuhuoCard(class_name, player) or cardsView(class_name, player)
 	if card_str then return card_str end
 
 	for _, card in ipairs(cards) do
@@ -3467,8 +3475,8 @@ function SmartAI:useTrickCard(card, use)
 		if good > 0 then
 			use.card = card
 		end
-		if self.role == "renegade" or self:hasSkill("jianxiong|luanji|manjuan",self.player) then
-			if good > -20 then use.card = card end
+		if self:hasSkills("jianxiong|luanji|manjuan",self.player) then
+			if good > -10 then use.card = card end
 		end
 	else
 		self:useCardByClassName(card, use)

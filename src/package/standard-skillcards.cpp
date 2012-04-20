@@ -13,7 +13,7 @@ ZhihengCard::ZhihengCard(){
 }
 
 void ZhihengCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &) const{
-    room->throwCard(this);
+    room->throwCard(this, source);
     if(source->isAlive()){
         int n = subcards.length() ;
         if(source->isSkillEnhance("zhiheng",2)){
@@ -84,6 +84,7 @@ void RendeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *
 JieyinCard::JieyinCard(){
     once = true;
     mute = true;
+    owner_discarded = true;
 }
 
 bool JieyinCard::targetFilter(const QList<const Player *> &targets, const Player *to_select, const Player *Self) const{
@@ -117,7 +118,7 @@ bool TuxiCard::targetFilter(const QList<const Player *> &targets, const Player *
     if(to_select == Self)
         return false;
 
-    return !to_select->isKongcheng();
+    return Self->isSkillEnhance("tuxi", 1 ) ? !to_select->isNude() : !to_select->isKongcheng();
 }
 
 void TuxiCard::onEffect(const CardEffectStruct &effect) const{
@@ -193,8 +194,8 @@ bool LijianCard::targetsFeasible(const QList<const Player *> &targets, const Pla
     return targets.length() == 2;
 }
 
-void LijianCard::use(Room *room, ServerPlayer *, const QList<ServerPlayer *> &targets) const{
-    room->throwCard(this);
+void LijianCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
+    room->throwCard(this, source);
     room->playSkillEffect("lijian");
 
     ServerPlayer *to = targets.at(0);
@@ -223,7 +224,7 @@ bool QingnangCard::targetsFeasible(const QList<const Player *> &targets, const P
 }
 
 void QingnangCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    room->throwCard(this);
+    room->throwCard(this, source);
 
     ServerPlayer *target = targets.value(0, source);
 
@@ -254,6 +255,7 @@ void GuicaiCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer 
 
 LiuliCard::LiuliCard()
 {
+    owner_discarded = true;
 }
 
 
@@ -319,22 +321,3 @@ void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer
     }
 }
 
-CheatCard::CheatCard(){
-    target_fixed = true;
-    will_throw = false;
-}
-
-void CheatCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    if(Config.FreeChoose)
-        room->obtainCard(source, subcards.first());
-}
-
-ChangeCard::ChangeCard(){
-    target_fixed = true;
-}
-void ChangeCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *> &targets) const{
-    if(Config.FreeChoose){
-        QString name = Self->tag["GeneralName"].toString();
-        room->transfigure(source, name, false, true);
-    }
-}

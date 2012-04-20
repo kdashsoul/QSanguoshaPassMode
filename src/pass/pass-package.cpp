@@ -1169,7 +1169,7 @@ class DuduPass: public TriggerSkill{
 public:
     DuduPass():TriggerSkill("dudu_p"){
         view_as_skill = new DiscardViewAsSkill("@dudu_p","e") ;
-        events << DamageProceed;
+        events << DamagedProceed;
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
@@ -2157,24 +2157,6 @@ public:
             if(!room->askForDiscard(zhaoyun, objectName(), 2 , true)){
                 room->loseHp(zhaoyun);
             }
-        }
-        return false;
-    }
-};
-
-
-class GuanxingPass:public PhaseChangeSkill{
-public:
-    GuanxingPass():PhaseChangeSkill("guanxing_p"){
-        frequency = Frequent;
-    }
-
-    virtual bool onPhaseChange(ServerPlayer *zhuge) const{
-        if(zhuge->getPhase() == Player::Start && zhuge->askForSkillInvoke(objectName())){
-            Room *room = zhuge->getRoom();
-            room->playSkillEffect(objectName());
-            int n = 3 + qMax(0, (zhuge->getLostHp() + 1) / 2) ;
-            room->doGuanxing(zhuge, room->getNCards(n, false), false);
         }
         return false;
     }

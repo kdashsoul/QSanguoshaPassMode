@@ -3,13 +3,15 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QMessageBox>
-
+#include <qlist.h>
 #include "general.h"
 #include "player.h"
 #include "client.h"
 #include "engine.h"
 #include "roomscene.h"
 #include "settings.h"
+
+using namespace QSanProtocol;
 
 RoleAssignDialog::RoleAssignDialog(QWidget *parent)
     :QDialog(parent)
@@ -93,17 +95,19 @@ void RoleAssignDialog::accept(){
     QStringList role_list = Sanguosha->getRoleList(ServerInfo.GameMode);
     QStringList real_list;
 
+    QList<QString> names;
+    QList<QString> roles;
     if(Config.FreeAssignSelf){
         QString name = list->item(0)->data(Qt::UserRole).toString();
         QString role = role_mapping.value(name);
-
-        ClientInstance->request("assignRoles " + QString("%1:%2").arg(name).arg(role));
+        names.push_back(name);
+        roles.push_back(role);
+        ClientInstance->onPlayerAssignRole(names, roles);
         QDialog::accept();
         return;
     }
-
-    QStringList assignments;
-    for(int i=0; i<list->count(); i++){
+    
+    for(int i = 0; i < list->count(); i++){
         QString name = list->item(i)->data(Qt::UserRole).toString();
         QString role = role_mapping.value(name);
 
@@ -113,14 +117,15 @@ void RoleAssignDialog::accept(){
         }
 
         real_list << role;
-        assignments << QString("%1:%2").arg(name).arg(role);
+        names.push_back(name);
+        roles.push_back(role);
     }
 
     role_list.sort();
     real_list.sort();
 
     if(role_list == real_list){
-        ClientInstance->request("assignRoles " + assignments.join("+"));
+        ClientInstance->onPlayerAssignRole(names, roles);
         QDialog::accept();
     }else{
         QMessageBox::warning(this, tr("Warning"),
@@ -129,7 +134,7 @@ void RoleAssignDialog::accept(){
 }
 
 void RoleAssignDialog::reject(){
-    ClientInstance->request("assignRoles .");
+    ClientInstance->replyToServer(S_COMMAND_CHOOSE_ROLE, Json::Value::null);
     QDialog::reject();
 }
 

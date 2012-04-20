@@ -578,9 +578,11 @@ public:
 	bool isMute() const;
 	bool willThrow() const;
 	bool canJilei() const;
+	bool isOwnerDiscarded() const;
 	
     void setFlags(const char *flag) const;
     bool hasFlag(const char *flag) const;
+	void clearFlags() const;
 
 	virtual void onUse(Room *room, const CardUseStruct &card_use) const;
 	virtual void use(Room *room, ServerPlayer *source,  const QList<ServerPlayer *> &targets) const;
@@ -806,7 +808,7 @@ public:
 	void sendJudgeResult(const JudgeStar judge);
 	QList<int> getNCards(int n, bool update_pile_number = true);
 	ServerPlayer *getLord() const;
-	void doGuanxing(ServerPlayer *zhuge, const QList<int> &cards, bool up_only);
+	void askForGuanxing(ServerPlayer *zhuge, const QList<int> &cards, bool up_only);
 	void doGongxin(ServerPlayer *shenlumeng, ServerPlayer *target);
 	int drawCard();
 	const Card *peek();
@@ -817,11 +819,6 @@ public:
 	void sendLog(const LogMessage &log);
 	void showCard(ServerPlayer *player, int card_id, ServerPlayer *only_viewer = NULL);
 	void showAllCards(ServerPlayer *player, ServerPlayer *to = NULL);
-	void getResult(const QString &reply_func, ServerPlayer *reply_player, const QString &defaultValue, bool move_focus = true,
-                   bool supply_timeout = false, time_t timeout = 0);
-	void executeCommand(ServerPlayer* player, const char *invokeString, const QString &commandString,
-                   const QString &invokeArg, const QString &defaultValue, bool broadcast = false, bool move_focus = true,
-                   bool supply_timeout = false, time_t timeout = 0);
 	void acquireSkill(ServerPlayer *player, const Skill *skill, bool open = true);
 	void acquireSkill(ServerPlayer *player, const char *skill_name, bool open = true);
 	void adjustSeats();
@@ -868,8 +865,8 @@ public:
 	void obtainCard(ServerPlayer *target, const Card *card);
 	void obtainCard(ServerPlayer *target, int card_id);
 
-	void throwCard(const Card *card);
-	void throwCard(int card_id);
+	void throwCard(const Card *card, ServerPlayer *who = NULL);
+	void throwCard(int card_id, ServerPlayer *who = NULL);
 	void moveCardTo(const Card *card, ServerPlayer *to, Player::Place place, bool open = true);
 	void doMove(const CardMoveStruct &move, const QSet<ServerPlayer *> &scope);
 

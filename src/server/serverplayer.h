@@ -8,6 +8,7 @@ class Recorder;
 
 #include "player.h"
 #include "socket.h"
+#include "protocol.h"
 
 #include <QSemaphore>
 #include <QDateTime>
@@ -22,6 +23,7 @@ public:
     explicit ServerPlayer(Room *room);
 
     void setSocket(ClientSocket *socket);
+    void invoke(const QSanProtocol::QSanPacket* packet);
     void invoke(const char *method, const QString &arg = ".");
     QString reportHeader() const;
     void sendProperty(const char *property_name, const Player *player = NULL) const;
@@ -55,7 +57,7 @@ public:
     QList<Player::Phase> &getPhases();
     void skip(Player::Phase phase);
     void skip();
-
+    
     void gainMark(const QString &mark, int n = 1);
     void loseMark(const QString &mark, int n = 1);
     void loseAllMarks(const QString &mark_name);
@@ -63,6 +65,8 @@ public:
     void setAI(AI *ai);
     AI *getAI() const;
     AI *getSmartAI() const;
+
+    bool isOnline() const;
 
     virtual int aliveCount() const;
     virtual int getHandcardNum() const;
@@ -104,7 +108,7 @@ public:
     qint64 endNetworkDelayTest();
 
     //Synchronization helpers
-    enum SemaphoreType {SEMA_CHOOSE_GENERAL, SEMA_CHOOSE_GENERAL2, SEMA_COMMAND, SEMA_CHOOSE_ROLE};
+    enum SemaphoreType {SEMA_MUTEX, SEMA_COMMAND, SEMA_COMMAND_INTERACTIVE, SEMA_CHOOSE_ROLE};
     inline QSemaphore* getSemaphore(SemaphoreType type){ return semas[type]; }
     inline void acquireLock(SemaphoreType type){ semas[type]->acquire(); }
     inline bool tryAcquireLock(SemaphoreType type, int timeout = 0){
@@ -117,6 +121,16 @@ public:
             drainLock((SemaphoreType)i);
         }
     }
+    inline QString getClientReplyString(){return m_clientResponseString;}
+    inline void setClientReplyString(const QString &val){m_clientResponseString = val;}
+    inline Json::Value getClientReply(){return m_clientResponse;}
+    inline void setClientReply(const Json::Value &val){m_clientResponse = val;}    
+    QSanProtocol::CommandType m_expectedReplyCommand;
+    bool m_isWaitingReply;
+    int m_expectedReplySerial;
+    Json::Value m_cheatCode;
+    bool m_isClientResponseReady;
+    Json::Value m_cheatArgs;
 
 
 protected:    
@@ -136,6 +150,8 @@ private:
     ServerPlayer *next;
     QStringList selected; // 3v3 mode use only
     QDateTime test_time;
+    QString m_clientResponseString;
+    Json::Value m_clientResponse;
 
 private slots:
     void getMessage(char *message);

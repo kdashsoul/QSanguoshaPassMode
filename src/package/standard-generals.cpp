@@ -720,7 +720,7 @@ public:
             room->playSkillEffect(objectName());
 
             int n = qMin(5, room->alivePlayerCount());
-            room->doGuanxing(zhuge, room->getNCards(n, false), false);
+            room->askForGuanxing(zhuge, room->getNCards(n, false), false);
         }
 
         return false;
@@ -1484,7 +1484,7 @@ public:
             Room *room = zhuge->getRoom();
             room->playSkillEffect("guanxing");
 
-            room->doGuanxing(zhuge, room->getNCards(5, false), false);
+            room->askForGuanxing(zhuge, room->getNCards(5, false), false);
         }
 
         return false;
@@ -1508,9 +1508,6 @@ TestPackage::TestPackage()
     new General(this, "sujiangf", "god", 5, false, true);
 
     new General(this, "anjiang", "god", 4,true, true, true);
-
-    addMetaObject<CheatCard>();
-    addMetaObject<ChangeCard>();
 }
 
 ADD_PACKAGE(Test)

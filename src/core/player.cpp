@@ -62,6 +62,7 @@ int Player::getMaxHP() const{
 int Player::getMaxHp() const{
     return getMaxHP();
 }
+
 void Player::setMaxHP(int max_hp){
     if(this->max_hp == max_hp)
         return;
@@ -220,7 +221,7 @@ QString Player::getGeneralName() const{
     if(general)
         return general->objectName();
     else
-        return "";
+        return QString();
 }
 
 void Player::setGeneral2Name(const QString &general_name){
@@ -496,15 +497,6 @@ int Player::getMaxCards() const{
         }
     }
 
-    int guwu = 0 ;
-    if(getKingdom() == "evil"){
-        QList<const Player *> players = getSiblings();
-        foreach(const Player *player, players){
-            if(player->isAlive() && player->hasSkill("guwu_p"))
-                guwu += 1;
-        }
-    }
-
     int shenwei = 0;
     if(hasSkill("shenwei"))
         shenwei = 2;
@@ -523,7 +515,7 @@ int Player::getMaxCards() const{
         zongshi = kingdom_set.size();
     }
 
-    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi + guwu;
+    total = qMax(hp,0) + extra + juejing + xueyi + shenwei + zongshi;
     total += getAbilityLevel("maxcards");
 
     return total;
@@ -759,10 +751,14 @@ bool Player::canSlashWithoutCrossbow() const{
         return true;
 
     int slash_count = getSlashCount();
-    int n = 1 + getAbilityLevel("slashnum");
-    if(hasFlag("tianyi_success") || hasFlag("jiangchi_invoke") || hasFlag("duoyi_p"))
-        n++ ;
-    return slash_count < n;
+    int valid_slash_count = 1 + getAbilityLevel("slashnum");
+    if(hasFlag("tianyi_success"))
+        valid_slash_count++;
+    if(hasFlag("jiangchi_invoke"))
+        valid_slash_count++;
+	if(hasFlag("duoyi_p"))
+		valid_slash_count++;
+    return slash_count < valid_slash_count;
 }
 
 void Player::jilei(const QString &type){

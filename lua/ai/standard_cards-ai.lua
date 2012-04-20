@@ -501,6 +501,11 @@ end
 
 function sgs.ai_cardsview.spear(class_name, player)
 	if class_name == "Slash" then
+		local cards = player:getCards("he")	
+		cards = sgs.QList2Table(cards)
+		for _, acard in ipairs(cards) do
+			if acard:inherits("Slash") then return end
+		end
 		local cards = player:getCards("h")	
 		cards=sgs.QList2Table(cards)
 		local newcards = {}
@@ -975,7 +980,7 @@ function SmartAI:useCardSnatchOrDismantlement(card, use)
 			return
 		end
 		if self:isEquip("SilverLion", friend) and self:hasTrickEffective(card, friend) and 
-		friend:isWounded() and (friend:hasSkill("benghuai") or (friend:getHp() < 4 and not friend:hasSkill("longhun"))) then
+		friend:isWounded() and not self:hasSkills("longhun|duanliang|qixi|guidao",friend) then
 			hasLion = true
 			target = friend
 		end

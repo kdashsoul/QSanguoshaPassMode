@@ -586,7 +586,6 @@ QGroupBox *ServerDialog::createGameModeBox(){
 
         scenario_combobox = new QComboBox;
         QStringList names = Sanguosha->getScenarioNames();
-
         foreach(QString name, names){
             QString scenario_name = Sanguosha->translate(name);
             const Scenario *scenario = Sanguosha->getScenario(name);

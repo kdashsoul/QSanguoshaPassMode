@@ -188,7 +188,7 @@ sgs.ai_skill_use["@@leiji"]=function(self,prompt)
 	self:sort(self.enemies,"hp")
 	for _,enemy in ipairs(self.enemies) do
 		if not self:isEquip("SilverLion", enemy) and not enemy:hasSkill("hongyan") and
-			self:objectiveLevel(enemy) > 3 and not (enemy:isChained() and not self:isGoodChainTarget(enemy)) then
+			self:objectiveLevel(enemy) > 3 and not self:cantbeHurt(enemy) and not (enemy:isChained() and not self:isGoodChainTarget(enemy)) then
 			return "@LeijiCard=.->"..enemy:objectName()
 		end
 	end
@@ -365,6 +365,11 @@ sgs.ai_skill_use["@@tianxiang"] = function(self, data)
 	return "."
 end
 
+function sgs.ai_slash_prohibit.tianxiang(self, to)
+	if self:isFriend(to) then return false end
+	return self:cantbeHurt(to)
+end
+
 sgs.xiaoqiao_suit_value = 
 {
 	spade = 6,
@@ -373,20 +378,15 @@ sgs.xiaoqiao_suit_value =
 
 table.insert(sgs.ai_global_flags, "questioner")
 
-local guhuo_filter = function(player, carduse)
-	if carduse.card:inherits("GuhuoCard") then
-		sgs.questioner = nil
-		local guhuocard = sgs.Sanguosha:cloneCard(carduse.card:toString():split(":")[2], carduse.card:getSuit(), carduse.card:getNumber())
-		sgs.guhuotype = guhuocard:className()
-	end
-end
-
 table.insert(sgs.ai_choicemade_filter.cardUsed, guhuo_filter)
 
 sgs.ai_skill_choice.guhuo = function(self, choices)
 	local yuji = self.room:findPlayerBySkillName("guhuo")
-	if sgs.guhuotype and self:getRestCardsNum(sgs.guhuotype) == 0 and self.player:getHp() > 0 then return "question" end
-	if sgs.guhuotype and (sgs.guhuotype == "Shit" or sgs.guhuotype == "AmazingGrace" or (sgs.guhuotype == "Slash" and not self:isEquip("Crossbow",yuji))) then return "noquestion" end
+	local guhuoname = self.room:getTag("GuhuoType"):toString()
+	local guhuocard = sgs.Sanguosha:cloneCard(guhuoname, sgs.Card_NoSuit, 0)
+	local guhuotype = guhuocard:className()
+	if guhuotype and self:getRestCardsNum(guhuotype) == 0 and self.player:getHp() > 0 then return "question" end
+	if guhuotype and (guhuotype == "Shit" or guhuotype == "AmazingGrace" or (guhuotype:match("Slash") and not self:isEquip("Crossbow",yuji))) then return "noquestion" end
 	local players = self.room:getOtherPlayers(self.player)
 	players = sgs.QList2Table(players)
 	local yuji
