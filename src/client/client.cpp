@@ -101,6 +101,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["clearPile"] = &Client::clearPile;
     callbacks["setPileNumber"] = &Client::setPileNumber;
     callbacks["setStatistics"] = &Client::setStatistics;
+    callbacks["setCardFlag"] = &Client::setCardFlag;
 
     // interactive methods    
     m_interactions[S_COMMAND_CHOOSE_GENERAL] = &Client::askForGeneral;
@@ -152,6 +153,7 @@ Client::Client(QObject *parent, const QString &filename)
     //callbacks["askForCardChosen"] = &Client::askForCardChosen;
     m_interactions[S_COMMAND_CHOOSE_ORDER] = &Client::askForOrder;
     m_interactions[S_COMMAND_CHOOSE_ROLE_3V3] = &Client::askForRole3v3;
+    m_interactions[S_COMMAND_SURRENDER] = &Client::askForSurrender;
 
     callbacks["fillAG"] = &Client::fillAG;
     callbacks["takeAG"] = &Client::takeAG;
@@ -761,7 +763,10 @@ QString Client::getSkillNameToInvoke() const{
     return skill_to_invoke;
 }
 
-void Client::invokeSkill(bool invoke){    
+void Client::onPlayerInvokeSkill(bool invoke){    
+    if (skill_name == "surrender")
+        replyToServer(S_COMMAND_SURRENDER, invoke);
+    else
     replyToServer(S_COMMAND_INVOKE_SKILL, invoke);
     setStatus(NotActive);
 }
@@ -837,6 +842,7 @@ void Client::askForSkillInvoke(const Json::Value &arg){
     if (!isStringArray(arg, 0, 1)) return;
     QString skill_name = toQString(arg[0]);
     QString data = toQString(arg[1]);
+
     skill_to_invoke = skill_name;
         
     QString text;
@@ -864,6 +870,21 @@ void Client::onPlayerMakeSkillChoice(){
     QString option = sender()->objectName();
     replyToServer(S_COMMAND_SKILL_CHOICE, toJsonString(option));
     setStatus(NotActive);
+}
+
+void Client::askForSurrender(const Json::Value &initiator){
+    
+    if (!initiator.isString()) return;    
+
+    QString text = tr("%1 initiated a vote for disadvataged side to claim "
+                        "capitulation. Click \"OK\" to surrender or \"Cancel\" to resist.")
+                            .arg(Sanguosha->translate(toQString(initiator)));
+    text.append(tr("<br/> <b>Noitce</b>: if all people on your side decides to surrender. "
+                   "You'll lose this game."));
+    skill_name = "surrender";
+
+    prompt_doc->setHtml(text);
+    setStatus(AskForSkillInvoke);
 }
 
 void Client::askForChoice(const Json::Value &ask_str){
@@ -1140,9 +1161,8 @@ void Client::trust(){
     setStatus(NotActive);
 }
 
-void Client::surrender(){
-    request("surrender .");
-
+void Client::requestSurrender(){
+    requestToServer(S_COMMAND_SURRENDER);
     setStatus(NotActive);
 }
 
@@ -1270,6 +1290,17 @@ void Client::setStatistics(const QString &property_str){
     Self->setStatistics(statistics);
 }
 
+void Client::setCardFlag(const QString &pattern_str){
+    QRegExp rx("(\\w+):(\\w+)");
+    if(!rx.exactMatch(pattern_str))
+        return;
+
+    QStringList texts = rx.capturedTexts();
+    QString object = texts.at(1);
+    QString card_str = texts.at(2);
+
+    Sanguosha->getCard(card_str.toInt())->setFlags(object);
+}
 void Client::updatePileNum(){
     QString pile_str = tr("Draw pile: <b>%1</b>, discard pile: <b>%2</b>, swap times: <b>%3</b>")
                        .arg(pile_num).arg(discarded_list.length()).arg(swap_pile);

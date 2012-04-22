@@ -26,6 +26,7 @@ public:
 
     typedef void (Room::*Callback)(ServerPlayer *, const QString &);
     typedef bool (Room::*CallBack)(ServerPlayer *, const QSanProtocol::QSanGeneralPacket*);
+    typedef bool (Room::*ResponseVerifyFunction)(ServerPlayer*, const Json::Value&, void*);
 
     explicit Room(QObject *parent, const QString &mode);
     QString createLuaState();
@@ -96,22 +97,12 @@ public:
     // @param packet
     //        Packet to be forwarded to the client.
     // @param timeOut
-    //        Maximum milliseconds that server should wait for client response before returning.
-    // @param broadcast
-    //        Specifies whether other players should also be notified about the event.
+    //        Maximum milliseconds that server should wait for client response before returning.    
     // @param moveFocus
     //        Suggests whether the all clients' UI should move focus to the player specified.
     // @param wait
-    //        If ture, executeCommand will return immediately without waiting for client reply.
-    // @return True if the a valid response is returned from client.
-    bool executeCommand(ServerPlayer* player, const QSanProtocol::QSanGeneralPacket* packet, time_t timeOut,
-        bool broadcast = false, bool moveFocus = true, bool wait = true);
-    
-    // Ditto, except that default timeout from configuration is used.
-    bool executeCommand(ServerPlayer* player, const QSanProtocol::QSanGeneralPacket* packet,
-        bool broadcast = false, bool move_focus = true, bool wait = true);
-
-    // Ditto, a specialization of executeCommand for S_SERVER_REQUEST packets.
+    //        If ture, return immediately after sending the request without waiting for client reply.
+    // @return True if the a valid response is returned from client.  
     // Usage note: when you need a round trip request-response vector with a SINGLE client, use this command
     // with wait = true and read the reponse from player->getClientReply(). If you want to initiate a poll 
     // where more than one clients can respond simultaneously, you have to do it in two steps:
@@ -119,16 +110,41 @@ public:
     //    command only once in all with broadcast = true if the poll is to everypody).
     // 2. Call getResult(player, timeout) on each player to retrieve the result. Read manual for getResults
     //    before you use.
-    bool doRequest(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, 
-                            bool broadcast = false, bool moveFocus = true, bool wait = true);
     bool doRequest(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, time_t timeOut,
-                            bool broadcast = false, bool moveFocus = true, bool wait = true);
+                            bool moveFocus = true, bool wait = true);
+    bool doRequest(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, 
+                            bool moveFocus = true, bool wait = true);    
+
+    // Ask several server players to execute a command and get the client responses. Call is blocking until all client
+    // replies or server times out, whichever is earlier. Check each player's m_isClientResponseReady to see if a valid
+    // result has been received. The client response can be accessed by calling each player's getClientReply() function. 
+    // @param players
+    //        The list of server players to carry out the command.
+    // @param command
+    //        Command to be executed on client side. Command arguments should be stored in players->m_commandArgs.
+    // @param timeOut
+    //        Maximum total milliseconds that server will wait for all clients to respond before returning. Any client 
+    //        response after the timeOut will be rejected.
+    // @return True if the a valid response is returned from client.  
+    bool doBroadcastRequest(QList<ServerPlayer*> &players, QSanProtocol::CommandType command, time_t timeOut);
+    bool doBroadcastRequest(QList<ServerPlayer*> &players, QSanProtocol::CommandType command);
+
+    // Ask several server players to execute a command and get the client responses. Call is blocking until first client
+    // response is received or server times out, whichever is earlier. Any client response is verified by the validation
+    // function and argument passed in. When a response is verified to be invalid, the function will continue to wait for
+    // the next client response.
+    // @param validateFunc
+    //        Validation function that verifies whether the reply is a valid one. The first parameter passed to the function
+    //        is the response sender, the second parameter is the response content, the third parameter is funcArg passed in.
+    // @return The player that first send a legal request to the server. NULL if no such request is received.
+    ServerPlayer* doBroadcastRaceRequest(QList<ServerPlayer*> &players, QSanProtocol::CommandType command, 
+           time_t timeOut, ResponseVerifyFunction validateFunc = NULL, void* funcArg = NULL);
     
     // Ditto, a specialization of executeCommand for S_SERVER_NOTIFICATION packets. No reply should be expected from
     // the client for S_SERVER_NOTIFICATION as it's a one way notice. Any message from the client in reply to this call
     // will be rejected.
-    bool doNotify(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, 
-                            bool broadcast = false); 
+    bool doNotify(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg); 
+    bool doBroadcastNotify(QList<ServerPlayer*> &players, QSanProtocol::CommandType command, const Json::Value &arg); 
 
 
     // Ask a server player to execute a command and returns the client response. Call is blocking until client replies or
@@ -147,6 +163,11 @@ public:
     // player->getClientReply(), use the default value directly. If the return value is true, the reply value should still be
     // examined as a malicious client can have tampered with the content of the package for cheating purposes.
     bool getResult(ServerPlayer* player, time_t timeOut);
+    ServerPlayer* getRaceResult(QList<ServerPlayer*> &players, QSanProtocol::CommandType command, time_t timeOut,
+                                ResponseVerifyFunction validateFunc = NULL, void* funcArg = NULL);
+
+    //Verification functions
+    bool verifyNullificationResponse(ServerPlayer*, const Json::Value&, void*);
 
     void acquireSkill(ServerPlayer *player, const Skill *skill, bool open = true , bool trigger_skill = true);
     void acquireSkill(ServerPlayer *player, const QString &skill_name, bool open = true , bool trigger_skill = true);
@@ -233,7 +254,6 @@ public:
     void speakCommand(ServerPlayer *player, const QString &arg);
     void trustCommand(ServerPlayer *player, const QString &arg);
     void kickCommand(ServerPlayer *player, const QString &arg);
-    void surrenderCommand(ServerPlayer *player, const QString &);
     void interactiveCommand(ServerPlayer *player, const QSanProtocol::QSanGeneralPacket* arg);
     void addRobotCommand(ServerPlayer *player, const QString &arg);
     void fillRobotsCommand(ServerPlayer *player, const QString &arg);
@@ -252,7 +272,7 @@ private:
     QString _chooseDefaultGeneral(ServerPlayer* player) const;
     bool _setPlayerGeneral(ServerPlayer* player, const QString& generalName, bool isFirst);
     QString mode;
-    QList<ServerPlayer*> players, alive_players;
+    QList<ServerPlayer*> m_players, m_alivePlayers;
     int player_count;
     ServerPlayer *current;
     QList<int> pile1, pile2;
@@ -267,12 +287,19 @@ private:
     RoomThread3v3 *thread_3v3;
     RoomThread1v1 *thread_1v1;
     QSemaphore *sem;
-    QMutex _m_mutexInteractive;
+    QSemaphore _m_semRaceRequest;
+    QSemaphore _m_semRoomMutex;
 
     
     QHash<QString, Callback> callbacks;
     QHash<QSanProtocol::CommandType, CallBack> m_callbacks;
     QHash<QSanProtocol::CommandType, QSanProtocol::CommandType> m_requestResponsePair;
+    bool _m_isFirstSurrenderRequest;
+    QTime _m_timeSinceLastSurrenderRequest;
+    
+    //helper variables for race request function
+    bool _m_raceStarted; 
+    ServerPlayer* _m_raceWinner;
 
     QMap<int, Player::Place> place_map;
     QMap<int, ServerPlayer*> owner_map;
@@ -283,6 +310,7 @@ private:
     QVariantMap tag;
     const Scenario *scenario;
 
+    bool m_surrenderRequestReceived;
     bool _virtual;
 
     static QString generatePlayerName();
@@ -299,12 +327,24 @@ private:
 
     //process client requests
     bool processRequestCheat(ServerPlayer *player, const QSanProtocol::QSanGeneralPacket *packet);
+    bool processRequestSurrender(ServerPlayer *player, const QSanProtocol::QSanGeneralPacket *packet);
 
+    bool makeSurrender(ServerPlayer* player);
     bool makeCheat(ServerPlayer* player);
     void makeDamage(const QString& source, const QString& target, QSanProtocol::CheatCategory nature, int point);
     void makeKilling(const QString& killer, const QString& victim);
     void makeReviving(const QString &name);
     void doScript(const QString &script);
+
+    //helper functions and structs
+    struct _NullificationAiHelper
+    {
+        const TrickCard* m_trick;
+        ServerPlayer* m_from;
+        ServerPlayer* m_to;
+    };
+    bool _askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive, _NullificationAiHelper helper);
+    void _setupChooseGeneralRequestArgs(ServerPlayer *player);    
 
 private slots:
     void reportDisconnection();

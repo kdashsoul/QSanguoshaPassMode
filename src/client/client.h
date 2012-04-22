@@ -52,16 +52,20 @@ public:
     void requestCheatRevive(const QString& name);
     void requestCheatRunScript(const QString& script);
 
+    // other client requests
+    void requestSurrender();
+
     void disconnectFromHost();
-    void replyToServer(QSanProtocol::CommandType command, const Json::Value &arg);
-    void requestToServer(QSanProtocol::CommandType command, const Json::Value &arg);
+    void replyToServer(QSanProtocol::CommandType command, const Json::Value &arg = Json::Value::null);
+    void requestToServer(QSanProtocol::CommandType command, const Json::Value &arg = Json::Value::null);
     void request(const QString &message);
     void onPlayerUseCard(const Card *card, const QList<const Player *> &targets = QList<const Player *>());
     void setStatus(Status status);
     Status getStatus() const;
     int alivePlayerCount() const;
-    void onPlayerResponseCard(const Card *card);
     bool hasNoTargetResponsing() const;
+    void onPlayerResponseCard(const Card *card);
+    void onPlayerInvokeSkill(bool invoke);
     void onPlayerDiscardCards(const Card *card);
     void onPlayerReplyYiji(const Card *card, const Player *to);
     void onPlayerReplyGuanxing(const QList<int> &up_cards, const QList<int> &down_cards);
@@ -69,7 +73,6 @@ public:
     QList<const ClientPlayer *> getPlayers() const;
     void speakToServer(const QString &text);
     ClientPlayer *getPlayer(const QString &name);
-    void surrender();
     void kick(const QString &to_kick);
     bool save(const QString &filename) const;
     void setLines(const QString &skill_name);
@@ -78,7 +81,6 @@ public:
     QString getPlayerName(const QString &str);
     QString getPattern() const;
     QString getSkillNameToInvoke() const;
-    void invokeSkill(bool invoke) ;
 
     QTextDocument *getLinesDoc() const;
     QTextDocument *getPromptDoc() const;
@@ -130,6 +132,7 @@ public:
     void transfigure(const QString &transfigure_tr);
     void updateStateItem(const QString &state_str);
     void setStatistics(const QString &property_str);
+    void setCardFlag(const QString &pattern_str);
 
     void moveCard(const QString &move_str);
     void moveNCards(const QString &move_str);
@@ -162,6 +165,7 @@ public:
     void askForGuanxing(const Json::Value &);
     void askForGongxin(const Json::Value &);
     void askForAssign(const Json::Value &); // Assign roles at the beginning of game
+    void askForSurrender(const Json::Value &);
     //3v3 & 1v1
     void askForOrder(const Json::Value &);
     void askForRole3v3(const Json::Value &);

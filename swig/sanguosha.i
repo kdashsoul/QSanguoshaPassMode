@@ -888,7 +888,6 @@ public:
 	bool askForYiji(ServerPlayer *guojia, QList<int> &cards);
 	const Card *askForPindian(ServerPlayer *player, ServerPlayer *from, ServerPlayer *to, const char *reason);
 	ServerPlayer *askForPlayerChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets, const char *reason);
-	void askForGeneralAsync(ServerPlayer *player);
 	const Card *askForSinglePeach(ServerPlayer *player, ServerPlayer *dying);
 };
 
@@ -909,7 +908,7 @@ public:
 
 	void writeToConsole(const char *msg){
 		$self->output(msg);
-		qWarning(msg);
+		qWarning("%s", msg);
 	}
 };
 
