@@ -2595,7 +2595,7 @@ function SmartAI:askForSinglePeach(dying)
 	if self:isFriend(dying) then
 		if self:needDeath(dying) then return "." end
 		local buqu = dying:getPile("buqu")
-		local weaklord = false
+		local weaklord = 0
 		if not buqu:isEmpty() then
 			local same = false
 			for i, card_id in sgs.qlist(buqu) do
@@ -2614,12 +2614,12 @@ function SmartAI:askForSinglePeach(dying)
 			card_str = self:getCardId("Peach")
 		else
 			for _, friend in ipairs(self.friends_noself) do
-				if friend:getHp() == 1 and friend:isLord() and not friend:hasSkill("buqu") then  weaklord = true end
+				if friend:getHp() == 1 and friend:isLord() and not friend:hasSkill("buqu") then  weaklord = weaklord + 1 end
 			end
 			for _, enemy in ipairs(self.enemies) do
-				if enemy:getHp() == 1 and enemy:isLord() and not enemy:hasSkill("buqu") and self.player:getRole() == "renegade" then weaklord = true end
+				if enemy:getHp() == 1 and enemy:isLord() and not enemy:hasSkill("buqu") and self.player:getRole() == "renegade" then weaklord = weaklord + 1 end
 			end
-			if not weaklord or self:getAllPeachNum() > 1 then
+			if weaklord < 1 or self:getAllPeachNum() > 1 then
 				card_str = self:getCardId("Peach") 
 			end
 		end
@@ -2787,7 +2787,7 @@ function SmartAI:needRetrial(judge)
 		end
 	end
 	if self:isFriend(judge.who) then
-		if not self.player:hasSkill("guidao") and judge.reason == "luoshen" and self:getOverflow(judge.who) > 1 and self.player:getHandcardNum() < 3
+		if judge.reason == "luoshen" and self:getOverflow(judge.who) > 1 and self.player:getHandcardNum() < 3
 			and not self:isEquip("Crossbow", judge.who) then return false end
 		return not judge:isGood()
 	elseif self:isEnemy(judge.who) then

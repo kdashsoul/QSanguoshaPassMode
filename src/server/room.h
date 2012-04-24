@@ -64,7 +64,12 @@ public:
     void setPlayerSkillEnHance(ServerPlayer *player, const QString &enhance_name);
     void setPlayerAbility(ServerPlayer *player, const QString &ablity_name,const int level=1);
     void addPlayerCountInfo(ServerPlayer *player, const QString &name);
+    void clearPlayerCardLock(ServerPlayer *player);
 	void setPlayerStatistics(ServerPlayer *player, const QString &property_name, const QVariant &value);
+    void setCardFlag(const Card *card, const QString &flag, ServerPlayer *who = NULL);
+    void setCardFlag(int card_id, const QString &flag, ServerPlayer *who = NULL);
+    void clearCardFlag(const Card *card, ServerPlayer *who = NULL);
+    void clearCardFlag(int card_id, ServerPlayer *who = NULL);
     void useCard(const CardUseStruct &card_use, bool add_history = true);
     void damage(const DamageStruct &data);
     void sendDamageLog(const DamageStruct &data);
@@ -79,7 +84,7 @@ public:
     QList<int> getNCards(int n, bool update_pile_number = true);
     ServerPlayer *getLord() const;
     void askForGuanxing(ServerPlayer *zhuge, const QList<int> &cards, bool up_only);
-    void doGongxin(ServerPlayer *shenlumeng, ServerPlayer *target);
+    void doGongxin(ServerPlayer *shenlvmeng, ServerPlayer *target);
     int drawCard();
     const Card *peek();
     void fillAG(const QList<int> &card_ids, ServerPlayer *who = NULL);
@@ -96,6 +101,8 @@ public:
     //        The server player to carry out the command.
     // @param packet
     //        Packet to be forwarded to the client.
+    // @param arg
+    //        Command args.
     // @param timeOut
     //        Maximum milliseconds that server should wait for client response before returning.    
     // @param moveFocus
@@ -144,7 +151,7 @@ public:
     // the client for S_SERVER_NOTIFICATION as it's a one way notice. Any message from the client in reply to this call
     // will be rejected.
     bool doNotify(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg); 
-    bool doBroadcastNotify(QList<ServerPlayer*> &players, QSanProtocol::CommandType command, const Json::Value &arg); 
+    bool doBroadcastNotify(QSanProtocol::CommandType command, const Json::Value &arg);
 
 
     // Ask a server player to execute a command and returns the client response. Call is blocking until client replies or
@@ -234,7 +241,7 @@ public:
     bool askForNullification(const TrickCard *trick, ServerPlayer *from, ServerPlayer *to, bool positive);
     bool isCanceled(const CardEffectStruct &effect);
     int askForCardChosen(ServerPlayer *player, ServerPlayer *who, const QString &flags, const QString &reason);
-    const Card *askForCard(ServerPlayer *player, const QString &pattern, const QString &prompt, const QVariant &data = QVariant());
+    const Card *askForCard(ServerPlayer *player, const QString &pattern, const QString &prompt, const QVariant &data = QVariant(), TriggerEvent trigger_event = CardResponsed);
     bool askForUseCard(ServerPlayer *player, const QString &pattern, const QString &prompt);
     int askForAG(ServerPlayer *player, const QList<int> &card_ids, bool refusable, const QString &reason);
     const Card *askForCardShow(ServerPlayer *player, ServerPlayer *requestor, const QString &reason);
@@ -254,7 +261,7 @@ public:
     void speakCommand(ServerPlayer *player, const QString &arg);
     void trustCommand(ServerPlayer *player, const QString &arg);
     void kickCommand(ServerPlayer *player, const QString &arg);
-    void interactiveCommand(ServerPlayer *player, const QSanProtocol::QSanGeneralPacket* arg);
+    void processResponse(ServerPlayer *player, const QSanProtocol::QSanGeneralPacket* arg);
     void addRobotCommand(ServerPlayer *player, const QString &arg);
     void fillRobotsCommand(ServerPlayer *player, const QString &arg);
     void newPassCommand(ServerPlayer *player, const QString &arg);
@@ -293,7 +300,7 @@ private:
     
     QHash<QString, Callback> callbacks;
     QHash<QSanProtocol::CommandType, CallBack> m_callbacks;
-    QHash<QSanProtocol::CommandType, QSanProtocol::CommandType> m_requestResponsePair;
+    QHash<QSanProtocol::CommandType, QSanProtocol::CommandType> m_requestResponsePair, m_notifyInteractionPair;
     bool _m_isFirstSurrenderRequest;
     QTime _m_timeSinceLastSurrenderRequest;
     
@@ -348,7 +355,7 @@ private:
 
 private slots:
     void reportDisconnection();
-    void processRequest(const QString &request);
+    void processClientPacket(const QString &packet);
     void assignRoles();
     void startGame();
 

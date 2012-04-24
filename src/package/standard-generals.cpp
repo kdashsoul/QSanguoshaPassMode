@@ -186,7 +186,7 @@ public:
             QList<int> yiji_cards;
             foreach(const Card *card, guojia->getHandcards()){
                 if(card->hasFlag(objectName())){
-                    card->setFlags("-" + objectName());
+                    room->setCardFlag(card, "-" + objectName());
                     yiji_cards << card->getEffectiveId();
                 }
             }
@@ -927,10 +927,10 @@ public:
         frequency = Frequent;
     }
 
-    virtual bool trigger(TriggerEvent , ServerPlayer *lumeng, QVariant &data) const{
+    virtual bool trigger(TriggerEvent , ServerPlayer *lvmeng, QVariant &data) const{
         CardStar card_star = data.value<CardStar>();
         if(card_star->inherits("Slash"))
-            lumeng->setFlags("keji_use_slash");
+            lvmeng->setFlags("keji_use_slash");
 
         return false;
     }
@@ -945,16 +945,16 @@ public:
         return 3;
     }
 
-    virtual bool onPhaseChange(ServerPlayer *lumeng) const{
-        if(lumeng->getPhase() == Player::Start){
-            lumeng->setFlags("-keji_use_slash");
-        }else if(lumeng->getPhase() == Player::Discard){
-            if(lumeng->isSkillEnhance("keji",2) && lumeng->getHandcardNum() < lumeng->getHp()){
-                lumeng->drawCards(1);
+    virtual bool onPhaseChange(ServerPlayer *lvmeng) const{
+        if(lvmeng->getPhase() == Player::Start){
+            lvmeng->setFlags("-keji_use_slash");
+        }else if(lvmeng->getPhase() == Player::Discard){
+            if(lvmeng->isSkillEnhance("keji",2) && lvmeng->getHandcardNum() < lvmeng->getHp()){
+                lvmeng->drawCards(1);
             }
-            bool can_keji = !lumeng->hasFlag("keji_use_slash") && lumeng->getSlashCount() == 0 ;
-            if((can_keji || lumeng->isSkillEnhance("keji",1)) && lumeng->askForSkillInvoke("keji")){
-                lumeng->getRoom()->playSkillEffect("keji");
+            bool can_keji = !lvmeng->hasFlag("keji_use_slash") && lvmeng->getSlashCount() == 0 ;
+            if((can_keji || lvmeng->isSkillEnhance("keji",1)) && lvmeng->askForSkillInvoke("keji")){
+                lvmeng->getRoom()->playSkillEffect("keji");
                 return true;
             }
         }
@@ -1167,13 +1167,13 @@ public:
         frequency = Compulsory;
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *lubu, QVariant &data) const{
+    virtual bool trigger(TriggerEvent event, ServerPlayer *lvbu, QVariant &data) const{
         if(event == SlashProceed){
             SlashEffectStruct effect = data.value<SlashEffectStruct>();
-            Room *room = lubu->getRoom();
+            Room *room = lvbu->getRoom();
             room->playSkillEffect(objectName());
 
-            QString slasher = lubu->objectName();
+            QString slasher = lvbu->objectName();
 
             const Card *first_jink = NULL, *second_jink = NULL;
             first_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-1:" + slasher);
@@ -1189,30 +1189,30 @@ public:
 
             room->slashResult(effect, jink);
 
-            lubu->addMark("wushuang_usetimes");
-            room->addPlayerCountInfo(lubu,"wushuang");
+            lvbu->addMark("wushuang_usetimes");
+            room->addPlayerCountInfo(lvbu,"wushuang");
             return true;
         }else if (event == PhaseChange){
-            Room *room = lubu->getRoom();
-            if(lubu->getPhase() == Player::Start){
-                if(lubu->isSkillEnhance("wushuang",2) && lubu->getCountInfo("wushuang") >= 10){
-                    room->acquireSkill(lubu,"shenji");
+            Room *room = lvbu->getRoom();
+            if(lvbu->getPhase() == Player::Start){
+                if(lvbu->isSkillEnhance("wushuang",2) && lvbu->getCountInfo("wushuang") >= 10){
+                    room->acquireSkill(lvbu,"shenji");
                 }
-            }else if(lubu->getPhase() == Player::Finish){
-                if(lubu->isSkillEnhance("wushuang",1) && lubu->getMark("wushuang_usetimes") >= 3){
+            }else if(lvbu->getPhase() == Player::Finish){
+                if(lvbu->isSkillEnhance("wushuang",1) && lvbu->getMark("wushuang_usetimes") >= 3){
                     const Card *halberd = Sanguosha->getCard(60) ;
                     if(room->getDiscardPile().contains(halberd->getId())){
-                        lubu->obtainCard(halberd);
+                        lvbu->obtainCard(halberd);
                     }else{
-                        foreach (ServerPlayer *sp, room->getOtherPlayers(lubu)) {
+                        foreach (ServerPlayer *sp, room->getOtherPlayers(lvbu)) {
                             if(sp->getCards("ej").contains(halberd)){
-                                lubu->obtainCard(halberd);
+                                lvbu->obtainCard(halberd);
                                 break ;
                             }
                         }
                     }
                 }
-                lubu->removeMark("wushuang_usetimes");
+                lvbu->removeMark("wushuang_usetimes");
             }
         }
         return false ;
@@ -1399,7 +1399,7 @@ void StandardPackage::addGenerals(){
     huangyueying->addSkill(new Jizhi);
     huangyueying->addSkill(new Skill("qicai", Skill::Compulsory));
 
-    General *sunquan, *zhouyu, *lumeng, *luxun, *ganning, *huanggai, *daqiao, *sunshangxiang;
+    General *sunquan, *zhouyu, *lvmeng, *luxun, *ganning, *huanggai, *daqiao, *sunshangxiang;
     sunquan = new General(this, "sunquan$", "wu");
     sunquan->addSkill(new Zhiheng);
     sunquan->addSkill(new Jiuyuan);
@@ -1407,9 +1407,9 @@ void StandardPackage::addGenerals(){
     ganning = new General(this, "ganning", "wu");
     ganning->addSkill(new Qixi);
 
-    lumeng = new General(this, "lumeng", "wu");
-    lumeng->addSkill(new Keji);
-    lumeng->addSkill(new KejiSkip);
+    lvmeng = new General(this, "lvmeng", "wu");
+    lvmeng->addSkill(new Keji);
+    lvmeng->addSkill(new KejiSkip);
     related_skills.insertMulti("keji", "#keji-skip");
 
     huanggai = new General(this, "huanggai", "wu");
@@ -1432,14 +1432,14 @@ void StandardPackage::addGenerals(){
     sunshangxiang->addSkill(new Jieyin);
     sunshangxiang->addSkill(new Xiaoji);
 
-    General *lubu, *huatuo, *diaochan;
+    General *lvbu, *huatuo, *diaochan;
 
     huatuo = new General(this, "huatuo", "qun", 3);
     huatuo->addSkill(new Qingnang);
     huatuo->addSkill(new Jijiu);
 
-    lubu = new General(this, "lubu", "qun");
-    lubu->addSkill(new Wushuang);
+    lvbu = new General(this, "lvbu", "qun");
+    lvbu->addSkill(new Wushuang);
 
     diaochan = new General(this, "diaochan", "qun", 3, false);
     diaochan->addSkill(new Lijian);
