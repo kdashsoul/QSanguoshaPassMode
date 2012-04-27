@@ -1176,9 +1176,9 @@ public:
             QString slasher = lvbu->objectName();
 
             const Card *first_jink = NULL, *second_jink = NULL;
-            first_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-1:" + slasher);
+        	first_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-1:" + slasher, QVariant(), JinkUsed);
             if(first_jink)
-                second_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-2:" + slasher);
+            second_jink = room->askForCard(effect.to, "jink", "@wushuang-jink-2:" + slasher, QVariant(), JinkUsed);
 
             Card *jink = NULL;
             if(first_jink && second_jink){

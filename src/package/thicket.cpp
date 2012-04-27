@@ -194,6 +194,10 @@ public:
         frequency = Compulsory;
     }
 
+    virtual int getPriority() const{
+        return 3;
+    }
+
     virtual bool triggerable(const ServerPlayer *target) const{
         return !target->hasSkill(objectName());
     }
@@ -680,7 +684,7 @@ void LuanwuCard::onEffect(const CardEffectStruct &effect) const{
     }
 
     const Card *slash = NULL;
-    if(!luanwu_targets.isEmpty() && (slash = room->askForCard(effect.to, "slash", "@luanwu-slash", NULL, NonTrigger))){
+    if(!luanwu_targets.isEmpty() && (slash = room->askForCard(effect.to, "slash", "@luanwu-slash", QVariant(), NonTrigger))){
         ServerPlayer *to_slash;
         if(luanwu_targets.length() == 1)
             to_slash = luanwu_targets.first();
@@ -741,9 +745,9 @@ public:
         Room *room = player->getRoom();
 
         const Card *first_jink = NULL, *second_jink = NULL;
-        first_jink = room->askForCard(player, "jink", QString("@%1-jink-1").arg(reason), NULL, JinkUsed);
+        first_jink = room->askForCard(player, "jink", QString("@%1-jink-1").arg(reason), QVariant(), JinkUsed);
         if(first_jink)
-            second_jink = room->askForCard(player, "jink", QString("@%1-jink-2").arg(reason), NULL, JinkUsed);
+            second_jink = room->askForCard(player, "jink", QString("@%1-jink-2").arg(reason), QVariant(), JinkUsed);
 
         Card *jink = NULL;
         if(first_jink && second_jink){

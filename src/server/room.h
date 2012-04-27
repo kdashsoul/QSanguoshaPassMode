@@ -29,7 +29,6 @@ public:
     typedef bool (Room::*ResponseVerifyFunction)(ServerPlayer*, const Json::Value&, void*);
 
     explicit Room(QObject *parent, const QString &mode);
-    QString createLuaState();
     ServerPlayer *addSocket(ClientSocket *socket);
     bool isFull() const;
     bool isFinished() const;
@@ -65,7 +64,7 @@ public:
     void setPlayerAbility(ServerPlayer *player, const QString &ablity_name,const int level=1);
     void addPlayerCountInfo(ServerPlayer *player, const QString &name);
     void clearPlayerCardLock(ServerPlayer *player);
-	void setPlayerStatistics(ServerPlayer *player, const QString &property_name, const QVariant &value);
+    void setPlayerStatistics(ServerPlayer *player, const QString &property_name, const QVariant &value);
     void setCardFlag(const Card *card, const QString &flag, ServerPlayer *who = NULL);
     void setCardFlag(int card_id, const QString &flag, ServerPlayer *who = NULL);
     void clearCardFlag(const Card *card, ServerPlayer *who = NULL);
@@ -93,14 +92,14 @@ public:
     QList<ServerPlayer *> getLieges(const QString &kingdom, ServerPlayer *lord) const;
     void sendLog(const LogMessage &log);
     void showCard(ServerPlayer *player, int card_id, ServerPlayer *only_viewer = NULL);
-    void showAllCards(ServerPlayer *player, ServerPlayer *to = NULL);
+    void showAllCards(ServerPlayer *player, ServerPlayer *to = NULL);   
    
-    // Ask a server player to execute a command and returns the client response. Call is blocking until client replies or
-    // server times out, whichever is earlier.
+    // Ask a player to send a server request and returns the client response. Call is blocking until client 
+    // replies or server times out, whichever is earlier.
     // @param player
     //        The server player to carry out the command.
-    // @param packet
-    //        Packet to be forwarded to the client.
+    // @param command
+    //        Command to be executed on client side.
     // @param arg
     //        Command args.
     // @param timeOut
@@ -122,7 +121,7 @@ public:
     bool doRequest(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg, 
                             bool moveFocus = true, bool wait = true);    
 
-    // Ask several server players to execute a command and get the client responses. Call is blocking until all client
+    // Broadcast a request to a list of players and get the client responses. Call is blocking until all client
     // replies or server times out, whichever is earlier. Check each player's m_isClientResponseReady to see if a valid
     // result has been received. The client response can be accessed by calling each player's getClientReply() function. 
     // @param players
@@ -136,8 +135,8 @@ public:
     bool doBroadcastRequest(QList<ServerPlayer*> &players, QSanProtocol::CommandType command, time_t timeOut);
     bool doBroadcastRequest(QList<ServerPlayer*> &players, QSanProtocol::CommandType command);
 
-    // Ask several server players to execute a command and get the client responses. Call is blocking until first client
-    // response is received or server times out, whichever is earlier. Any client response is verified by the validation
+    // Broadcast a request to a list of players and get the first valid client response. Call is blocking until the first
+    // client response is received or server times out, whichever is earlier. Any client response is verified by the validation
     // function and argument passed in. When a response is verified to be invalid, the function will continue to wait for
     // the next client response.
     // @param validateFunc
@@ -147,23 +146,26 @@ public:
     ServerPlayer* doBroadcastRaceRequest(QList<ServerPlayer*> &players, QSanProtocol::CommandType command, 
            time_t timeOut, ResponseVerifyFunction validateFunc = NULL, void* funcArg = NULL);
     
-    // Ditto, a specialization of executeCommand for S_SERVER_NOTIFICATION packets. No reply should be expected from
+    // Notify a player of a event by sending S_SERVER_NOTIFICATION packets. No reply should be expected from
     // the client for S_SERVER_NOTIFICATION as it's a one way notice. Any message from the client in reply to this call
     // will be rejected.
     bool doNotify(ServerPlayer* player, QSanProtocol::CommandType command, const Json::Value &arg); 
+    // Broadcast a event to a list of players by sending S_SERVER_NOTIFICATION packets. No replies should be expected from
+    // the clients for S_SERVER_NOTIFICATION as it's a one way notice. Any message from the client in reply to this call
+    // will be rejected.
     bool doBroadcastNotify(QSanProtocol::CommandType command, const Json::Value &arg);
 
 
-    // Ask a server player to execute a command and returns the client response. Call is blocking until client replies or
-    // server times out, whichever is earlier.
+    // Ask a server player to wait for the client response. Call is blocking until client replies or server times out, 
+    // whichever is earlier.
     // @param player
     //        The server player to retrieve the client response.
     // @param timeOut
     //        Maximum milliseconds that server should wait for client response before returning.
     // @return True if the a valid response is returned from client.
     
-    // Usage note: this function is only supposed to be either internally used by executeCommand (wait = true) or externally
-    // used in pair with executeCommand (wait = false). Any other usage could result in unexpected synchronization errors. 
+    // Usage note: this function is only supposed to be either internally used by doRequest (wait = true) or externally
+    // used in pair with doRequest (wait = false). Any other usage could result in unexpected synchronization errors. 
     // When getResult returns true, it's guaranteed that the expected client response has been stored and can be accessed by
     // calling player->getClientReply(). If getResult returns false, the value stored in player->getClientReply() could be
     // corrupted or in response to an unrelevant server request. Therefore, if the return value is false, do not poke into
@@ -248,9 +250,8 @@ public:
     bool askForYiji(ServerPlayer *guojia, QList<int> &cards);
     const Card *askForPindian(ServerPlayer *player, ServerPlayer *from, ServerPlayer *to, const QString &reason);
     ServerPlayer *askForPlayerChosen(ServerPlayer *player, const QList<ServerPlayer *> &targets, const QString &reason);
-    QString askForGeneral(ServerPlayer *player, const QStringList &generals, QString default_choice = QString());
+    QString askForGeneral(ServerPlayer *player, const QStringList &generals, QString default_choice = QString());    
     QString askForGeneralPass(ServerPlayer *player, const QString &flag="standard");
-    void askForGeneralAsync(ServerPlayer *player);
     const Card *askForSinglePeach(ServerPlayer *player, ServerPlayer *dying);
     
     //Get the timeout allowance for a command. Server countdown is more lenient than the client.
@@ -293,16 +294,19 @@ private:
     RoomThread *thread;
     RoomThread3v3 *thread_3v3;
     RoomThread1v1 *thread_1v1;
-    QSemaphore *sem;
-    QSemaphore _m_semRaceRequest;
-    QSemaphore _m_semRoomMutex;
+    QSemaphore *sem; // Legacy semaphore, expected to be reomved after new synchronization is fully deployed.
+    QSemaphore _m_semRaceRequest; // When race starts, server waits on his semaphore for the first replier
+    QSemaphore _m_semRoomMutex; // Provide per-room  (rather than per-player) level protection of any shared variables
 
     
-    QHash<QString, Callback> callbacks;
-    QHash<QSanProtocol::CommandType, CallBack> m_callbacks;
-    QHash<QSanProtocol::CommandType, QSanProtocol::CommandType> m_requestResponsePair, m_notifyInteractionPair;
-    bool _m_isFirstSurrenderRequest;
-    QTime _m_timeSinceLastSurrenderRequest;
+    QHash<QString, Callback> callbacks; // Legacy protocol callbacks
+    QHash<QSanProtocol::CommandType, CallBack> m_callbacks; // Stores the callbacks for client request. Do not use this
+                                                            // this map for anything else but S_CLIENT_REQUEST!!!!!
+    QHash<QSanProtocol::CommandType, QSanProtocol::CommandType> m_requestResponsePair; 
+        // Stores the expected client response for each server request, any unmatched client response will be discarded.
+
+    QTime _m_timeSinceLastSurrenderRequest; // Timer used to ensure that surrender polls are not initiated too frequently
+    bool _m_isFirstSurrenderRequest; // We allow the first surrender poll to go through regardless of the timer.
     
     //helper variables for race request function
     bool _m_raceStarted; 

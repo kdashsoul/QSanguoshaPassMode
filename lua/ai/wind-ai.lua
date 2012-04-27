@@ -163,11 +163,12 @@ sgs.ai_skill_cardask["@guidao-card"]=function(self, data)
 		if self:needRetrial(judge) then
 			self:sortByUseValue(cards, true)
 			if self:getUseValue(judge.card) > self:getUseValue(cards[1]) then
-				return "@GuidaoCard=" .. cards[1]:getId()
+				return "@GuidaoCard[" .. cards[1]:getSuitString() .. ":" .. card:getNumberString() .."]=" .. cards[1]:getId()
 			end
 		end
 	elseif self:needRetrial(judge) or self:getUseValue(judge.card) > self:getUseValue(sgs.Sanguosha:getCard(card_id)) then
-		return "@GuidaoCard=" .. card_id
+		local card = sgs.Sanguosha:getCard(card_id)
+		return "@GuidaoCard[" .. card:getSuitString() .. ":" .. card:getNumberString() .. "]=" .. card_id
 	end
 	
 	return "."
@@ -473,7 +474,7 @@ end
 
 sgs.ai_skill_use_func.GuhuoCard=function(card,use,self)
 	local userstring=card:toString()
-	userstring=(userstring:split(":"))[2]
+	userstring=(userstring:split(":"))[3]
 	local guhuocard=sgs.Sanguosha:cloneCard(userstring, card:getSuit(), card:getNumber())
 	if guhuocard:getTypeId() == sgs.Card_Basic then self:useBasicCard(guhuocard,use,false) else assert(guhuocard) self:useTrickCard(guhuocard,use) end
 	if not use.card then return end

@@ -41,9 +41,9 @@ SOURCES += src/main.cpp \
 	src/dialog/playercarddialog.cpp \
 	src/dialog/roleassigndialog.cpp \
 	src/dialog/scenario-overview.cpp \
-        src/dialog/halldialog.cpp \
+	src/dialog/halldialog.cpp \
 	src/package/package.cpp \
-        src/package/exppattern.cpp \
+	src/package/exppattern.cpp \
 	src/package/firepackage.cpp \
 	src/package/god.cpp \
 	src/package/maneuvering.cpp \
@@ -58,8 +58,8 @@ SOURCES += src/main.cpp \
 	src/package/wind.cpp \
 	src/package/yjcm-package.cpp \
 	src/package/yjcm2012-package.cpp \
-        src/package/bgm-package.cpp \
-        src/package/special3v3-package.cpp \
+	src/package/bgm-package.cpp \
+	src/package/special3v3-package.cpp \
 	src/scenario/scenario.cpp \
 	src/scenario/scenerule.cpp \
 	src/scenario/miniscenarios.cpp \
@@ -93,37 +93,36 @@ SOURCES += src/main.cpp \
 	src/util/detector.cpp \
 	src/util/nativesocket.cpp \
 	src/util/recorder.cpp \
-        src/lua/print.c \
-        src/lua/lzio.c \
-        src/lua/lvm.c \
-        src/lua/lundump.c \
-        src/lua/ltm.c \
-        src/lua/ltablib.c \
-        src/lua/ltable.c \
-    src/lua/lstrlib.c \
-    src/lua/lstring.c \
-    src/lua/lstate.c \
-    src/lua/lparser.c \
-    src/lua/loslib.c \
-    src/lua/lopcodes.c \
-    src/lua/lobject.c \
-    src/lua/loadlib.c \
-    src/lua/lmem.c \
-    src/lua/lmathlib.c \
-    src/lua/llex.c \
-    src/lua/liolib.c \
-    src/lua/linit.c \
-    src/lua/lgc.c \
-    src/lua/lfunc.c \
-    src/lua/ldump.c \
-    src/lua/ldo.c \
-    src/lua/ldebug.c \
-    src/lua/ldblib.c \
-    src/lua/lcode.c \
-    src/lua/lbaselib.c \
-    src/lua/lauxlib.c \
-    src/lua/lapi.c \
-    src/pass/pass-package.cpp \
+	src/lua/print.c \
+	src/lua/lzio.c \
+	src/lua/lvm.c \
+	src/lua/lundump.c \
+	src/lua/ltm.c \
+	src/lua/ltablib.c \
+	src/lua/ltable.c \
+	src/lua/lstrlib.c \
+	src/lua/lstring.c \
+	src/lua/lstate.c \
+	src/lua/lparser.c \
+	src/lua/loslib.c \
+	src/lua/lopcodes.c \
+	src/lua/lobject.c \
+	src/lua/loadlib.c \
+	src/lua/lmem.c \
+	src/lua/lmathlib.c \
+	src/lua/llex.c \
+	src/lua/liolib.c \
+	src/lua/linit.c \
+	src/lua/lgc.c \
+	src/lua/lfunc.c \
+	src/lua/ldump.c \
+	src/lua/ldo.c \
+	src/lua/ldebug.c \
+	src/lua/ldblib.c \
+	src/lua/lcode.c \
+	src/lua/lbaselib.c \
+	src/lua/lauxlib.c \
+	src/lua/lapi.c \
 	swig/sanguosha_wrap.cxx \
     src/core/protocol.cpp \
     src/core/jsonutils.cpp \
@@ -132,7 +131,8 @@ SOURCES += src/main.cpp \
     src/jsoncpp/src/json_value.cpp \
     src/jsoncpp/src/json_reader.cpp \
     src/jsoncpp/src/json_internalmap.inl \
-    src/jsoncpp/src/json_internalarray.inl
+    src/jsoncpp/src/json_internalarray.inl \
+    src/core/util.cpp
 
 HEADERS += src/client/aux-skills.h \
 	src/client/client.h \
@@ -162,7 +162,7 @@ HEADERS += src/client/aux-skills.h \
 	src/dialog/playercarddialog.h \
 	src/dialog/roleassigndialog.h \ 
 	src/dialog/scenario-overview.h \
-        src/package/exppattern.h \
+	src/package/exppattern.h \
 	src/package/firepackage.h \
 	src/package/god.h \
 	src/package/maneuvering.h \
@@ -177,7 +177,7 @@ HEADERS += src/client/aux-skills.h \
 	src/package/wind.h \
 	src/package/yjcm-package.h \
 	src/package/yjcm2012-package.h \
-        src/package/bgm-package.h \
+	src/package/bgm-package.h \
 	src/package/special3v3-package.h \
 	src/scenario/miniscenarios.h \
 	src/scenario/scenario.h \
@@ -214,31 +214,30 @@ HEADERS += src/client/aux-skills.h \
 	src/util/nativesocket.h \
 	src/util/recorder.h \
 	src/util/socket.h \
-    src/lua/lzio.h \
-    src/lua/lvm.h \
-    src/lua/lundump.h \
-    src/lua/lualib.h \
-    src/lua/luaconf.h \
-    src/lua/lua.hpp \
-    src/lua/lua.h \
-    src/lua/ltm.h \
-    src/lua/ltable.h \
-    src/lua/lstring.h \
-    src/lua/lstate.h \
-    src/lua/lparser.h \
-    src/lua/lopcodes.h \
-    src/lua/lobject.h \
-    src/lua/lmem.h \
-    src/lua/llimits.h \
-    src/lua/llex.h \
-    src/lua/lgc.h \
-    src/lua/lfunc.h \
-    src/lua/ldo.h \
-    src/lua/ldebug.h \
-    src/lua/lcode.h \
-    src/lua/lauxlib.h \
-    src/lua/lapi.h \
-    src/pass/pass-package.h \
+	src/lua/lzio.h \
+	src/lua/lvm.h \
+	src/lua/lundump.h \
+	src/lua/lualib.h \
+	src/lua/luaconf.h \
+	src/lua/lua.hpp \
+	src/lua/lua.h \
+	src/lua/ltm.h \
+	src/lua/ltable.h \
+	src/lua/lstring.h \
+	src/lua/lstate.h \
+	src/lua/lparser.h \
+	src/lua/lopcodes.h \
+	src/lua/lobject.h \
+	src/lua/lmem.h \
+	src/lua/llimits.h \
+	src/lua/llex.h \
+	src/lua/lgc.h \
+	src/lua/lfunc.h \
+	src/lua/ldo.h \
+	src/lua/ldebug.h \
+	src/lua/lcode.h \
+	src/lua/lauxlib.h \
+	src/lua/lapi.h \
     src/core/protocol.h \
     src/core/jsonutils.h \
     src/jsoncpp/src/json_tool.h \
@@ -251,7 +250,8 @@ HEADERS += src/client/aux-skills.h \
     src/jsoncpp/include/json/features.h \
     src/jsoncpp/include/json/config.h \
     src/jsoncpp/include/json/autolink.h \
-    src/jsoncpp/include/json/assertions.h
+    src/jsoncpp/include/json/assertions.h \
+    src/core/util.h
 	
 FORMS += src/dialog/cardoverview.ui \
 	src/dialog/configdialog.ui \
@@ -272,7 +272,7 @@ INCLUDEPATH += src/lua
 INCLUDEPATH += src/jsoncpp/include
 
 win32{
-    RC_FILE += resource/icon.rc
+	RC_FILE += resource/icon.rc
 }
 
 macx{
@@ -283,18 +283,18 @@ macx{
 LIBS += -L.
 
 CONFIG(audio){
-    DEFINES += AUDIO_SUPPORT
-    INCLUDEPATH += include/fmod
-    LIBS += -lfmodex
-    SOURCES += src/core/audio.cpp
+	DEFINES += AUDIO_SUPPORT
+	INCLUDEPATH += include/fmod
+	LIBS += -lfmodex
+	SOURCES += src/core/audio.cpp
 }
 
 CONFIG(joystick){
-    DEFINES += JOYSTICK_SUPPORT
-    HEADERS += src/ui/joystick.h
-    SOURCES += src/ui/joystick.cpp
-    win32: LIBS += -lplibjs -lplibul -lwinmm
-    unix: LIBS += -lplibjs -lplibul
+	DEFINES += JOYSTICK_SUPPORT
+	HEADERS += src/ui/joystick.h
+	SOURCES += src/ui/joystick.cpp
+	win32: LIBS += -lplibjs -lplibul -lwinmm
+	unix: LIBS += -lplibjs -lplibul
 }
 
 CONFIG(chatvoice){
@@ -329,11 +329,3 @@ OTHER_FILES += \
     etc/passmode/04.txt \
     etc/passmode/03.txt \
     etc/passmode/config.ini
-
-
-
-
-
-
-
-

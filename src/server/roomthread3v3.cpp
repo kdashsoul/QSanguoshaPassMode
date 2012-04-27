@@ -132,7 +132,7 @@ void RoomThread3v3::takeGeneral(ServerPlayer *player, const QString &name){
 }
 
 void RoomThread3v3::startArrange(ServerPlayer *player){
-    if(player->getState() != "online"){
+    if(!player->isOnline()){
         GeneralSelector *selector = GeneralSelector::GetInstance();
         arrange(player, selector->arrange3v3(player));
     }else{
@@ -165,18 +165,17 @@ void RoomThread3v3::arrange(ServerPlayer *player, const QStringList &arranged){
 void RoomThread3v3::assignRoles(const QStringList &roles, const QString &scheme){
     QStringList all_roles = roles;
     QList<ServerPlayer *> new_players, abstained;
-    int i;
-    for(i=0; i<6; i++)
+    for (int i = 0; i < 6; i++)
         new_players << NULL;
 
     foreach(ServerPlayer *player, room->m_players){
-        if(player->getState() == "online"){
+        if(player->isOnline()){
             QString role = room->askForRole(player, all_roles, scheme);
             if(role != "abstain"){
                 player->setRole(role);
                 all_roles.removeOne(role);
 
-                for(i=0; i<6; i++){
+                for(int i = 0; i < 6; i++){
                     if(roles.at(i) == role && new_players.at(i) == NULL){
                         new_players[i] = player;
                         break;
@@ -193,7 +192,7 @@ void RoomThread3v3::assignRoles(const QStringList &roles, const QString &scheme)
     if(!abstained.isEmpty()){
         qShuffle(abstained);
 
-        for(i=0; i<6; i++){
+        for(int i = 0; i < 6; i++){
             if(new_players.at(i) == NULL){
                 new_players[i] = abstained.takeFirst();
                 new_players.at(i)->setRole(roles.at(i));

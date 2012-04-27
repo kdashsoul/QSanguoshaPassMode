@@ -17,6 +17,7 @@ class GuanxingBox;
 class IrregularButton;
 class TrustButton;
 class QGroupBox;
+struct RoomLayout;
 
 #include <QGraphicsScene>
 #include <QTableWidget>
@@ -225,6 +226,7 @@ private:
     QLineEdit *chat_edit;
     QGraphicsProxyWidget *chat_box_widget;
     ChatWidget *chat_widget;
+    RoomLayout *room_layout;
 
 #ifdef AUDIO_SUPPORT
     QSharedMemory *memory;
@@ -283,7 +285,6 @@ private:
     void animatePopup(const QString &name, const QStringList &args);
     EffectAnimation *animations;
     Pixmap *drawPile;
-
 
     //re-layout attempts
     bool game_started;

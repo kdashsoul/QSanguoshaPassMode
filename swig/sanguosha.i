@@ -372,7 +372,7 @@ struct SlashEffectStruct{
 	SlashEffectStruct();
 
 	const Slash *slash;
-	const Jink *jink;
+	const Card *jink;
 
 	ServerPlayer *from;
 	ServerPlayer *to;
@@ -480,6 +480,7 @@ enum TriggerEvent{
     SlashProceed,
     SlashHit,
     SlashMissed,
+	
 	JinkUsed,
 
     CardAsked,
@@ -770,7 +771,6 @@ public:
 class Room : public QThread{
 public:
 	explicit Room(QObject *parent, const char *mode);
-	QString createLuaState();
 	ServerPlayer *addSocket(ClientSocket *socket);
 	bool isFull() const;
 	bool isFinished() const;

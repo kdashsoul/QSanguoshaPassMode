@@ -149,7 +149,7 @@ public:
 
             yangxiu->tag["Danlao"] = use.card->getEffectiveId();
 
-                room->playSkillEffect(objectName());
+            room->playSkillEffect(objectName());
 
             LogMessage log;
             log.type = "#DanlaoAvoid";
@@ -359,18 +359,18 @@ public:
         do{
             once_success = false;
 
-        if(!target->askForSkillInvoke(objectName()))
-            return false;
+            if(!target->askForSkillInvoke(objectName()))
+                return false;
 
-        Room *room = target->getRoom();
-        int card_id = room->askForCardChosen(target, target, "j", objectName());
-        const Card *card = Sanguosha->getCard(card_id);
+            Room *room = target->getRoom();
+            int card_id = room->askForCardChosen(target, target, "j", objectName());
+            const Card *card = Sanguosha->getCard(card_id);
 
-        QString suit_str = card->getSuitString();
-        QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
-        QString prompt = QString("@xiuluo:::%1").arg(suit_str);
-            if(room->askForCard(target, pattern, prompt, NULL, CardDiscarded)){
-            room->throwCard(card);
+            QString suit_str = card->getSuitString();
+            QString pattern = QString(".%1").arg(suit_str.at(0).toUpper());
+            QString prompt = QString("@xiuluo:::%1").arg(suit_str);
+            if(room->askForCard(target, pattern, prompt, QVariant(), CardDiscarded)){
+                room->throwCard(card);
                 once_success = true;
             }
         }while(!target->getCards("j").isEmpty() && once_success);

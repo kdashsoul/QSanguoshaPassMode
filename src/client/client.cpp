@@ -72,7 +72,8 @@ Client::Client(QObject *parent, const QString &filename)
     m_callbacks[S_COMMAND_MOVE_FOCUS] = &Client::moveFocus; 
     //callbacks["moveFocus"] = &Client::moveFocus;
     callbacks["setEmotion"] = &Client::setEmotion;
-    m_callbacks[S_COMMAND_INVOKE_SKILL] = &Client::skillInvoked; 
+    m_callbacks[S_COMMAND_INVOKE_SKILL] = &Client::skillInvoked;
+    m_callbacks[S_COMMAND_SHOW_ALL_CARDS] = &Client::askForGongxin;
     m_callbacks[S_COMMAND_SKILL_GONGXIN] = &Client::askForGongxin; 
     //callbacks["skillInvoked"] = &Client::skillInvoked;
     callbacks["addHistory"] = &Client::addHistory;
@@ -155,7 +156,7 @@ Client::Client(QObject *parent, const QString &filename)
     m_interactions[S_COMMAND_CHOOSE_ROLE_3V3] = &Client::askForRole3v3;
     m_interactions[S_COMMAND_SURRENDER] = &Client::askForSurrender;
 
-    callbacks["fillAG"] = &Client::fillAG;
+    callbacks["fillAG"] = &Client::fillAG;    
     callbacks["takeAG"] = &Client::takeAG;
     callbacks["clearAG"] = &Client::clearAG;
     callbacks["disableAG"] = &Client::disableAG;
@@ -165,9 +166,9 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["askForGeneral3v3"] = &Client::askForGeneral3v3;
     callbacks["askForGeneral1v1"] = &Client::askForGeneral3v3;
     callbacks["takeGeneral"] = &Client::takeGeneral;
-    callbacks["startArrange"] = &Client::startArrange;
+    callbacks["startArrange"] = &Client::startArrange;    
     callbacks["recoverGeneral"] = &Client::recoverGeneral;
-    callbacks["revealGeneral"] = &Client::revealGeneral;
+    callbacks["revealGeneral"] = &Client::revealGeneral;   
 
     ask_dialog = NULL;
     m_isUseCard = false;
@@ -290,7 +291,7 @@ void Client::processCommand(const QString &cmd){
     processReply(cmd.toAscii().data());
 }
 
-void Client::processReply(char *reply){
+void Client::processReply(char *reply){    
 
     QSanGeneralPacket packet;
     if (packet.parse(reply))
@@ -312,6 +313,7 @@ void Client::processReply(char *reply){
         }
         return;
     }
+
     if(strlen(reply) <= 2)
         return;
 
@@ -767,7 +769,7 @@ void Client::onPlayerInvokeSkill(bool invoke){
     if (skill_name == "surrender")
         replyToServer(S_COMMAND_SURRENDER, invoke);
     else
-    replyToServer(S_COMMAND_INVOKE_SKILL, invoke);
+        replyToServer(S_COMMAND_INVOKE_SKILL, invoke);
     setStatus(NotActive);
 }
 
@@ -788,6 +790,7 @@ void Client::setPromptList(const QStringList &texts){
         QString arg2 = Sanguosha->translate(texts.at(4));
         prompt.replace("%2arg", arg2);
     }
+
     prompt_doc->setHtml(prompt);
 }
 
@@ -1301,6 +1304,7 @@ void Client::setCardFlag(const QString &pattern_str){
 
     Sanguosha->getCard(card_str.toInt())->setFlags(object);
 }
+
 void Client::updatePileNum(){
     QString pile_str = tr("Draw pile: <b>%1</b>, discard pile: <b>%2</b>, swap times: <b>%3</b>")
                        .arg(pile_num).arg(discarded_list.length()).arg(swap_pile);
