@@ -87,42 +87,18 @@ Engine::Engine()
 {
     Sanguosha = this;
 
-    QStringList package_names;
-    package_names << "StandardCard"
-            << "StandardExCard"
-            << "Maneuvering"
-            << "SPCard"
-            << "Nostalgia"
+    QString error_msg;
+    lua = createLuaState(error_msg);
+    if(lua == NULL){
+        QMessageBox::warning(NULL, tr("Lua script error"), error_msg);
+        exit(1);
+    }
 
-            << "Standard"
-            << "Wind"
-            << "Fire"
-            << "Thicket"
-            << "Mountain"
-            << "God"
-            << "SP"
-            << "YJCM"
-            << "YJCM2012"
-            << "Special3v3"
-            << "BGM"
-
-            << "Test"
-			<< "Pass" ;
-
+    QStringList package_names = GetConfigFromLuaState(lua, "package_names").toStringList();
     foreach(QString name, package_names)
         addPackage(name);
 
-    QStringList scene_names;
-    scene_names << "Custom";
-
-    for(int i=1; i<=PassMode::maxStage ; i++){
-        scene_names << QString("PassMode_%1").arg(i, 2, 10, QChar('0'));
-    }
-
-    for(int i=1; i<=21; i++){
-        scene_names << QString("MiniScene_%1").arg(i, 2, 10, QChar('0'));
-    }
-
+    QStringList scene_names = GetConfigFromLuaState(lua, "scene_names").toStringList();
     foreach(QString name, scene_names)
         addScenario(name);
 
@@ -149,12 +125,7 @@ Engine::Engine()
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(deleteLater()));
 
-    QString error_msg;
-    lua = createLuaState(error_msg);
-    if(lua == NULL){
-        QMessageBox::warning(NULL, tr("Lua script error"), error_msg);
-        exit(1);
-    }
+
 
     foreach(QString ban, getBanPackages()){
         addBanPackage(ban);
