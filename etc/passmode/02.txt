@@ -1,2 +1,2 @@
 ﻿general:select
-general:yuanshu|equip:121|starter:true|exp:12
+general:yuanshu|equip:121|starter:true|exp:16
