@@ -8,7 +8,6 @@
 #include "god.h"
 #include "maneuvering.h"
 
-
 class Zhenlie: public TriggerSkill{
 public:
     Zhenlie():TriggerSkill("zhenlie"){
@@ -72,7 +71,7 @@ public:
 
                 QList<const Card *> miji_cards = wangyi->getHandcards().mid(wangyi->getHandcardNum() - x);
                 foreach(const Card *card, miji_cards)
-                    room->moveCardTo(card, target, Player::Hand, false);
+                    room->obtainCard(target, card, false);
             }
         }
         return false;
@@ -520,7 +519,7 @@ public:
 class Jiefan : public TriggerSkill{
 public:
     Jiefan():TriggerSkill("jiefan"){
-        events << Dying << DamageProceed << SlashMissed << CardFinished;
+        events << Dying << DamageProceed << CardFinished;
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
@@ -570,11 +569,8 @@ public:
             }
             return false;
         }
-        else if(event == SlashMissed)
+        else if(!room->getTag("JiefanTarget").isNull())
             room->removeTag("JiefanTarget");
-        else
-            if(!room->getTag("JiefanTarget").isNull())
-                room->removeTag("JiefanTarget");
 
         return false;
     }
@@ -605,7 +601,7 @@ void AnxuCard::use(Room *room, ServerPlayer *source, const QList<ServerPlayer *>
     ServerPlayer *to = selecteds.takeFirst();
     int id = room->askForCardChosen(from, to, "h", "anxu");
     const Card *cd = Sanguosha->getCard(id);
-    room->moveCardTo(cd, from, Player::Hand, true);
+    room->obtainCard(from, cd);
     room->showCard(from, id);
     if(cd->getSuit() != Card::Spade){
         source->drawCards(1);

@@ -91,10 +91,7 @@ public:
         Room *room = effect.to->getRoom();
         int card_id = room->askForCardChosen(effect.from, effect.to, "hej", "scene_27_effect");
 
-        if(room->getCardPlace(card_id) == Player::Hand)
-            room->moveCardTo(Sanguosha->getCard(card_id), effect.from, Player::Hand, false);
-        else
-            room->obtainCard(effect.from, card_id);
+        room->obtainCard(effect.from, card_id, room->getCardPlace(card_id) != Player::Hand);
     }
 };
 
@@ -397,9 +394,6 @@ bool SceneRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data
                     break;
                 }
             }
-        }
-
-        switch(room->getTag("SceneID").toInt()) {
         }
 
         break;

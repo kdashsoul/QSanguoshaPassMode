@@ -1,7 +1,6 @@
 #include "client.h"
 #include "settings.h"
 #include "engine.h"
-#include "playercarddialog.h"
 #include "standard.h"
 #include "choosegeneraldialog.h"
 #include "nativesocket.h"
@@ -21,8 +20,6 @@
 #include <QLabel>
 #include <QTextDocument>
 #include <QTextCursor>
-#include <QScrollArea>
-#include <QFormLayout>
 
 using namespace std;
 using namespace QSanProtocol;
@@ -36,6 +33,7 @@ Client::Client(QObject *parent, const QString &filename)
 {
 
     ClientInstance = this;
+    m_isGameOver = false;
 
     callbacks["checkVersion"] = &Client::checkVersion;
 
@@ -55,7 +53,7 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["warn"] = &Client::warn;
 
     callbacks["startGame"] = &Client::startGame;
-    callbacks["gameOver"] = &Client::gameOver;
+    m_callbacks[S_COMMAND_GAME_OVER] = &Client::gameOver;
 
     callbacks["hpChange"] = &Client::hpChange;
     callbacks["killPlayer"] = &Client::killPlayer;
@@ -113,7 +111,6 @@ Client::Client(QObject *parent, const QString &filename)
     m_interactions[S_COMMAND_CHOOSE_ROLE] = &Client::askForAssign;
     //callbacks["askForAssign"] = &Client::askForAssign;
     m_interactions[S_COMMAND_CHOOSE_DIRECTION] = &Client::askForDirection;
-    m_interactions[S_COMMAND_CHOOSE_SKILL] = &Client::askForSkillLearn;
     //callbacks["askForDirection"] = &Client::askForDirection;
     m_interactions[S_COMMAND_EXCHANGE_CARD] = &Client::askForExchange;
     //callbacks["askForExchange"] = &Client::askForExchange;
@@ -159,7 +156,6 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["fillAG"] = &Client::fillAG;    
     callbacks["takeAG"] = &Client::takeAG;
     callbacks["clearAG"] = &Client::clearAG;
-    callbacks["disableAG"] = &Client::disableAG;
 
     // 3v3 mode & 1v1 mode
     callbacks["fillGenerals"] = &Client::fillGenerals;
@@ -170,7 +166,6 @@ Client::Client(QObject *parent, const QString &filename)
     callbacks["recoverGeneral"] = &Client::recoverGeneral;
     callbacks["revealGeneral"] = &Client::revealGeneral;   
 
-    ask_dialog = NULL;
     m_isUseCard = false;
 
     Self = new ClientPlayer(this);
@@ -186,7 +181,7 @@ Client::Client(QObject *parent, const QString &filename)
         recorder = NULL;
 
         replayer = new Replayer(this, filename);
-        connect(replayer, SIGNAL(command_parsed(QString)), this, SLOT(processCommand(QString)));
+        connect(replayer, SIGNAL(command_parsed(QString)), this, SLOT(processServerPacket(QString)));
     }else{
         socket = new NativeClientSocket;
         socket->setParent(this);
@@ -194,7 +189,7 @@ Client::Client(QObject *parent, const QString &filename)
         recorder = new Recorder(this);
 
         connect(socket, SIGNAL(message_got(char*)), recorder, SLOT(record(char*)));
-        connect(socket, SIGNAL(message_got(char*)), this, SLOT(processReply(char*)));
+        connect(socket, SIGNAL(message_got(char*)), this, SLOT(processServerPacket(char*)));
         connect(socket, SIGNAL(error_message(QString)), this, SIGNAL(error_message(QString)));
         socket->connectToHost();
 
@@ -287,14 +282,14 @@ void Client::disconnectFromHost(){
 
 typedef char buffer_t[1024];
 
-void Client::processCommand(const QString &cmd){
-    processReply(cmd.toAscii().data());
+void Client::processServerPacket(const QString &cmd){
+    processServerPacket(cmd.toAscii().data());
 }
 
-void Client::processReply(char *reply){    
-
+void Client::processServerPacket(char *cmd){
+    if (m_isGameOver) return;
     QSanGeneralPacket packet;
-    if (packet.parse(reply))
+    if (packet.parse(cmd))
     {
         if (packet.getPacketType() == S_SERVER_NOTIFICATION)
         {
@@ -304,16 +299,33 @@ void Client::processReply(char *reply){
             }
         }
         else if (packet.getPacketType() == S_SERVER_REQUEST)
-        {
-            _m_lastServerSerial = packet.m_globalSerial;
-            CallBack callback = m_interactions[packet.getCommandType()];
-            if (callback) {    
-                (this->*callback)(packet.getMessageBody());
-            }
-        }
-        return;
+            processServerRequest(packet);
     }
+    else processReply(cmd);
+}
 
+bool Client::processServerRequest(const QSanGeneralPacket& packet)
+{
+    setStatus(Client::NotActive);
+    _m_lastServerSerial = packet.m_globalSerial;
+    CommandType command = packet.getCommandType();
+    Json::Value msg = packet.getMessageBody();    
+    Countdown countdown;
+    countdown.m_current = 0;
+    if (!msg.isArray() || msg.size() <= 1 
+        || !countdown.tryParse(msg[msg.size()-1]))
+    {
+        countdown.m_type = Countdown::S_COUNTDOWN_USE_DEFAULT;    
+        countdown.m_max = Config.getCommandTimeout(command, S_CLIENT_INSTANCE);
+    }
+    setCountdown(countdown);
+    CallBack callback = m_interactions[command];
+    if (!callback) return false;
+    (this->*callback)(msg);    
+    return true;
+}
+
+void Client::processReply(char *reply){    
     if(strlen(reply) <= 2)
         return;
 
@@ -376,7 +388,7 @@ void Client::addPlayer(const QString &player_info){
 
     players << player;
 
-    alive_count ++;
+    alive_count++;
 
     emit player_added(player);
 }
@@ -429,6 +441,7 @@ void Client::drawNCards(const QString &draw_str){
 }
 
 void Client::onPlayerChooseGeneral(const QString &item_name){
+    setStatus(Client::NotActive);
     if(!item_name.isEmpty()){
         replyToServer(S_COMMAND_CHOOSE_GENERAL, toJsonString(item_name));        
         Sanguosha->playAudio("choose-item");
@@ -682,11 +695,10 @@ void Client::hpChange(const QString &change_str){
     emit hp_changed(who, delta, nature, nature_str == "L");
 }
 
-void Client::setStatus(Status status){
-    if(this->status != status||status == NotActive){
-        this->status = status;
-        emit status_changed(status);
-    }
+void Client::setStatus(Status status){    
+    Status old_status = this->status;
+    this->status = status;
+    emit status_changed(old_status, status);
 }
 
 Client::Status Client::getStatus() const{
@@ -749,7 +761,7 @@ QString Client::getPlayerName(const QString &str){
         ClientPlayer *player = getPlayer(str);
         general_name = player->getGeneralName();
         general_name = Sanguosha->translate(general_name);
-        if(ServerInfo.GameMode == "08same" || player->getGeneralName() == "anjiang")
+        if(ServerInfo.EnableSame || player->getGeneralName() == "anjiang")
             general_name = QString("%1[%2]").arg(general_name).arg(player->getSeat());
         return general_name;
 
@@ -890,155 +902,12 @@ void Client::askForSurrender(const Json::Value &initiator){
     setStatus(AskForSkillInvoke);
 }
 
-void Client::askForChoice(const Json::Value &ask_str){
-    if (!isStringArray(ask_str, 0, 1)) return;
-        
-    QString skill_name = toQString(ask_str[0]);
-    QStringList options =toQString(ask_str[1]).split("+");
-
-    QDialog *dialog = new QDialog;
-    dialog->setWindowTitle(Sanguosha->translate(skill_name));
-
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(new QLabel(tr("Please choose:")));
-
-    foreach(QString option, options){
-        QCommandLinkButton *button = new QCommandLinkButton;
-        QString text = QString("%1:%2").arg(skill_name).arg(option);
-        QString translated = Sanguosha->translate(text);
-        if(text == translated)
-            translated = Sanguosha->translate(option);
-
-        button->setObjectName(option);
-        button->setText(translated);
-
-        connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-        connect(button, SIGNAL(clicked()), this, SLOT(onPlayerMakeChoice()));
-
-        layout->addWidget(button);
-    }
-
-    dialog->setObjectName(options.first());
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerMakeChoice()));
-
-    dialog->setLayout(layout);
-
-    ask_dialog = dialog;
-    Sanguosha->playAudio("pop-up");
-    setStatus(ExecDialog);
-}
-
 void Client::askForSkillLearn(const Json::Value &ask_str){
     if(!ask_str.isString()) return ;
     QString tab_index = toQString(ask_str) ;
-    QDialog *dialog = new QDialog;
-    dialog->setFixedSize(400,490);
-    dialog->setWindowTitle(tr("Learn skills:"));
-
-    int tindex = tab_index.toInt() ;
-    static QStringList tab_names ;
-    if(tab_names.isEmpty())
-        tab_names << tr("skill_main") << tr("skill_feature") << tr("skill_common") ;
-
-    QVBoxLayout *layout = new QVBoxLayout;
-    QTabWidget *tab_widget = new QTabWidget;
-
-    QLabel *exp_label = new QLabel ;
-    int exp = Self->getMark("@exp") ;
-    exp_label->setObjectName("exp_label");
-    exp_label->setText(tr("Your exp: %1").arg(exp));
-
-    layout->addWidget(exp_label);
-
-    for(int i = 0 ; i < tab_names.length() ; i++){
-        QScrollArea* scroll = new QScrollArea();
-        QWidget *tab = new QWidget;
-        QFormLayout *formLayout = new QFormLayout ;
-        tab->setLayout(formLayout);
-        scroll->setWidget(tab);
-        scroll->setWidgetResizable(true);
-
-        QString skill_name , skill_text , skill_desc ;
-        int  skill_value ;
-        if(i == 0){
-            foreach(const Skill *skill ,Self->getGeneral()->getVisibleSkills()){
-                SkillAttrStruct *skill_attr = PassMode::getSkillMap().value(skill->objectName(),new SkillAttrStruct) ;
-                for(int j = 1 ; j <= skill_attr->values.length() ; j++){
-                    QCommandLinkButton *button = new QCommandLinkButton;
-                    skill_name = QString("%1_e%2").arg(skill->objectName()).arg(j);
-                    button->setObjectName(skill_name);
-                    skill_text = Sanguosha->translate(skill->objectName()) + Sanguosha->translate("enhance") + QString::number(j) ;
-                    skill_value = skill_attr->getValue(j);
-                    skill_desc = Sanguosha->translate(":"+skill_name) ;
-                    if(Self->isSkillEnhance(skill_name)){
-                        button->setStyleSheet("color:green");
-                        button->setDisabled(true);
-                    }
-                    if(exp < skill_value)
-                        button->setDisabled(true);
-                    button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
-                    button->setToolTip(skill_desc);
-                    button->setFont(Config.TinyFont);
-                    connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-                    connect(button, SIGNAL(clicked()), this, SLOT(onPlayerMakeSkillChoice()));
-
-                    formLayout->addWidget(button);
-                }
-            }
-        }else{
-            QString general_name ;
-            if(i == 1){
-                general_name = Self->getGeneral()->objectName() ;
-            }else if(i == 2){
-                general_name = "common" ;
-            }
-            if(PassMode::getGeneralMap().keys().contains(general_name)){
-                foreach(QString skill_name , PassMode::getGeneralMap().value(general_name)){
-                    QCommandLinkButton *button = new QCommandLinkButton;
-                    button->setObjectName(skill_name);
-                    skill_text = Sanguosha->translate(skill_name) ;
-                    skill_value = PassMode::getSkillMap().value(skill_name,new SkillAttrStruct)->getValue() ;
-                    if(skill_name.endsWith("_o")){
-                        if(Self->hasAbility(skill_name.remove(QRegExp("_o$")))){
-                            button->setStyleSheet("color:green");
-                            button->setDisabled(true);
-                        }
-                    }else{
-                        skill_desc = Sanguosha->translate(":"+skill_name) ;
-                        button->setToolTip(skill_desc);
-                        if(Self->hasSkill(skill_name)){
-                            button->setStyleSheet("color:green");
-                            button->setDisabled(true);
-                        }
-                    }
-                    if(exp < skill_value)
-                        button->setDisabled(true);
-
-                    button->setText(QString("%1 : %2").arg(skill_text).arg(skill_value));
-                    button->setFont(Config.TinyFont);
-                    connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-                    connect(button, SIGNAL(clicked()), this, SLOT(onPlayerMakeSkillChoice()));
-                    formLayout->addWidget(button);
-                }
-            }
-        }
-        tab_widget->addTab(scroll,tab_names.at(i)) ;
-    }
-
-    layout->addWidget(tab_widget);
-
-    dialog->setObjectName(".");
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerMakeSkillChoice()));
-    dialog->setLayout(layout);
-    tab_widget->setCurrentIndex(tindex);
-
-    ask_dialog = dialog;
-    Sanguosha->playAudio("pop-up");
+    emit skills_got(tab_index);
     setStatus(ExecDialog);
 }
-
-
-
 
 void Client::playSkillEffect(const QString &play_str){
     QRegExp rx("(#?\\w+):([-\\w]+)");
@@ -1095,24 +964,6 @@ void Client::playAudio(const QString &name){
     Sanguosha->playAudio(name);
 }
 
-void Client::askForCardChosen(const Json::Value &ask_str){
-    if (!isStringArray(ask_str, 0, 2)) return;
-    QString player_name = toQString(ask_str[0]);
-    QString flags = toQString(ask_str[1]);
-    QString reason = toQString(ask_str[2]);
-    ClientPlayer *player = getPlayer(player_name);
-    if (player == NULL) return;
-
-    PlayerCardDialog *dialog = new PlayerCardDialog(player, flags);
-    dialog->setWindowTitle(Sanguosha->translate(reason));
-
-    connect(dialog, SIGNAL(card_id_chosen(int)), this, SLOT(onPlayerChooseCard(int)));
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerChooseCard()));
-
-    ask_dialog = dialog;
-    setStatus(ExecDialog);
-}
-
 void Client::playCardEffect(const QString &play_str){
     QRegExp rx1("(@?\\w+):([MF])");
     QRegExp rx2("(\\w+)@(\\w+):([MF])"); // old version
@@ -1133,11 +984,8 @@ void Client::playCardEffect(const QString &play_str){
 }
 
 void Client::onPlayerChooseCard(int card_id){
-    Q_ASSERT(ask_dialog->inherits("PlayerCardDialog"));
     Json::Value reply = Json::Value::null;
     if(card_id != -2){   
-        delete ask_dialog;
-        ask_dialog = NULL;
         reply = card_id;
     }
     replyToServer(S_COMMAND_CHOOSE_CARD, reply);
@@ -1351,11 +1199,14 @@ void Client::askForExchange(const Json::Value &exchange_str){
     setStatus(Discarding);
 }
 
-void Client::gameOver(const QString &result_str){
+void Client::gameOver(const Json::Value &arg){
+    m_isGameOver = true;
+    setStatus(Client::NotActive);
+    QString result_str = toQString(arg[0]);
+    QStringList roles;
+    tryParse(arg[1], roles);
     QStringList all_info = result_str.split("|");
-    QStringList texts = all_info.at(0).split(":") ;
-    QString winner = texts.at(0);
-    QStringList roles = texts.at(1).split("+");
+    QString winner = all_info.at(0);
 
     QStringList pass_info , exp_info , epl_info , score_info;
     if(ServerInfo.GameMode.contains("_pass_")){
@@ -1367,8 +1218,7 @@ void Client::gameOver(const QString &result_str){
 
     Q_ASSERT(roles.length() == players.length());
 
-    int i;
-    for(i=0; i<roles.length(); i++){
+    for(int i = 0; i < roles.length(); i++){
         QString name = players.at(i)->objectName();
         getPlayer(name)->setRole(roles.at(i));
     }
@@ -1455,74 +1305,70 @@ void Client::warn(const QString &reason){
     QMessageBox::warning(NULL, tr("Warning"), msg);
 }
 
+void Client::askForGeneral(const Json::Value &arg){
+    QStringList generals;
+    if (!tryParse(arg, generals)) return;
+    emit generals_got(generals);
+    setStatus(ExecDialog);
+}
+
+
 void Client::askForSuit(const Json::Value &){
-    delete ask_dialog;
-
-    QDialog *dialog = new QDialog;
-    ask_dialog = dialog;
-
-    QVBoxLayout *layout = new QVBoxLayout;
-
     QStringList suits;
     suits << "spade" << "club" << "heart" << "diamond";
-
-    foreach(QString suit, suits){
-        QCommandLinkButton *button = new QCommandLinkButton;
-        button->setIcon(QIcon(QString("image/system/suit/%1.png").arg(suit)));
-        button->setText(Sanguosha->translate(suit));
-        button->setObjectName(suit);
-
-        layout->addWidget(button);
-
-        connect(button, SIGNAL(clicked()), this, SLOT(onPlayerChooseSuit()));
-        connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-    }
-
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerChooseSuit()));
-
-    dialog->setObjectName(".");
-    dialog->setWindowTitle(tr("Please choose a suit"));
-    dialog->setLayout(layout);
-
+    emit suits_got(suits);
     setStatus(ExecDialog);
 }
 
 void Client::askForKingdom(const Json::Value&){
-    delete ask_dialog;
-
-    QDialog *dialog = new QDialog;
-    ask_dialog = dialog;
-
-    QVBoxLayout *layout = new QVBoxLayout;
-
     QStringList kingdoms = Sanguosha->getKingdoms();
     kingdoms.removeOne("god"); // god kingdom does not really exist
-
-    foreach(QString kingdom, kingdoms){
-        QCommandLinkButton *button = new QCommandLinkButton;
-        QPixmap kingdom_pixmap(QString("image/kingdom/icon/%1.png").arg(kingdom));
-        QIcon kingdom_icon(kingdom_pixmap);
-
-        button->setIcon(kingdom_icon);
-        button->setIconSize(kingdom_pixmap.size());
-        button->setText(Sanguosha->translate(kingdom));
-        button->setObjectName(kingdom);
-
-        layout->addWidget(button);
-
-        connect(button, SIGNAL(clicked()), this, SLOT(onPlayerChooseKingdom()));
-        connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-    }
-
-    dialog->setObjectName(".");
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerChooseKingdom()));
-
-    dialog->setObjectName(".");
-    dialog->setWindowTitle(tr("Please choose a kingdom"));
-    dialog->setLayout(layout);
-
+    emit kingdoms_got(kingdoms);
     setStatus(ExecDialog);
 }
+
+void Client::askForChoice(const Json::Value &ask_str){
+    if (!isStringArray(ask_str, 0, 1)) return;        
+    QString skill_name = toQString(ask_str[0]);
+    QStringList options =toQString(ask_str[1]).split("+");
+    emit options_got(skill_name, options);
+    setStatus(ExecDialog);
+}
+
+void Client::askForCardChosen(const Json::Value &ask_str){
+    if (!isStringArray(ask_str, 0, 2)) return;
+    QString player_name = toQString(ask_str[0]);
+    QString flags = toQString(ask_str[1]);
+    QString reason = toQString(ask_str[2]);
+    ClientPlayer *player = getPlayer(player_name);
+    if (player == NULL) return;
+    emit cards_got(player, flags, reason);
+    setStatus(ExecDialog);
+}
+
+
+void Client::askForOrder(const Json::Value &arg){
+    if (!arg.isInt()) return;    
+    Game3v3ChooseOrderCommand reason = (Game3v3ChooseOrderCommand)arg.asInt();
+    emit orders_got(reason);
+    setStatus(ExecDialog);
+}
+
+void Client::askForRole3v3(const Json::Value &arg){
+    if (!arg.isArray() || arg.size() != 2
+        || !arg[0].isString() || !arg[1].isArray()) return;
+    QStringList roles;
+    if (!tryParse(arg[1], roles)) return;    
+    QString scheme = toQString(arg[0]);
+    emit roles_got(scheme, roles);
+    setStatus(ExecDialog);
+}
+
+void Client::askForDirection(const Json::Value &){
+    emit directions_got();
+    setStatus(ExecDialog);
+}
+
 
 void Client::setMark(const QString &mark_str){
     QRegExp rx("(\\w+)\\.(@?[\\w-]+)=(\\d+)");
@@ -1598,10 +1444,6 @@ void Client::takeAG(const QString &take_str){
 
 void Client::clearAG(const QString &){
     emit ag_cleared();
-}
-
-void Client::disableAG(const QString &disable_str){
-    emit ag_disabled(disable_str == "true");
 }
 
 void Client::askForSinglePeach(const Json::Value &arg){
@@ -1721,8 +1563,8 @@ void Client::onPlayerAssignRole(const QList<QString> &names, const QList<QString
 {
     Q_ASSERT(names.size() == roles.size());
     Json::Value reply(Json::arrayValue);
-    reply[0] = toJsonStringArray(names);
-    reply[1] = toJsonStringArray(roles);    
+    reply[0] = toJsonArray(names);
+    reply[1] = toJsonArray(roles);    
     replyToServer(S_COMMAND_CHOOSE_ROLE, reply);
 }
 
@@ -1798,12 +1640,6 @@ void Client::askForPlayerChosen(const Json::Value &players){
     setStatus(AskForPlayerChoose);
 }
 
-void Client::askForGeneral(const Json::Value &arg){
-    QStringList generals;
-    if (!tryParse(arg, generals)) return;
-    emit generals_got(generals);
-}
-
 void Client::askForGeneralPass(const Json::Value &arg){
     QString flags = QString::fromStdString(arg.asString());
     emit pass_generals_got(flags);
@@ -1815,7 +1651,7 @@ void Client::onPlayerReplyYiji(const Card *card, const Player *to){
     else 
     {
         req = Json::Value(Json::arrayValue);
-        req[0] = toJsonIntArray(card->getSubcards());
+        req[0] = toJsonArray(card->getSubcards());
         req[1] = toJsonString(to->objectName());
     }        
     replyToServer(S_COMMAND_SKILL_YIJI, req);
@@ -1825,8 +1661,8 @@ void Client::onPlayerReplyYiji(const Card *card, const Player *to){
 
 void Client::onPlayerReplyGuanxing(const QList<int> &up_cards, const QList<int> &down_cards){
     Json::Value decks(Json::arrayValue);
-    decks[0] = toJsonIntArray(up_cards);
-    decks[1] = toJsonIntArray(down_cards);
+    decks[0] = toJsonArray(up_cards);
+    decks[1] = toJsonArray(down_cards);
 
     replyToServer(S_COMMAND_SKILL_GUANXING, decks);
     //request(QString("replyGuanxing %1:%2").arg(up_items.join("+")).arg(down_items.join("+")));
@@ -1871,8 +1707,28 @@ void Client::speak(const QString &speak_data){
 }
 
 void Client::moveFocus(const Json::Value &focus){
-    QString test = toQString(focus);
-    emit focus_moved(QString(focus.asCString()));
+    QString who;
+    Countdown countdown;
+    if (focus.isString())
+    {
+        who = toQString(focus);
+        countdown.m_type = Countdown::S_COUNTDOWN_NO_LIMIT;
+    }
+    else
+    {
+        Q_ASSERT(focus.isArray() && focus.size() == 2);
+        who = toQString(focus[0]);
+    
+        bool success = countdown.tryParse(focus[1]);
+        if (!success)
+        {
+            Q_ASSERT(focus[1].isInt());
+            CommandType command = (CommandType)focus[1].asInt();
+            countdown.m_max = Config.getCommandTimeout(command, S_CLIENT_INSTANCE);
+            countdown.m_type = Countdown::S_COUNTDOWN_USE_DEFAULT;
+        }
+    }
+    emit focus_moved(who, countdown);
 }
 
 void Client::setEmotion(const QString &set_str){
@@ -1985,142 +1841,9 @@ void Client::startArrange(const QString &){
     emit arrange_started();
 }
 
-void Client::askForOrder(const Json::Value &arg){
-    if (!arg.isInt()) return;
-    QDialog *dialog = new QDialog;
-    Game3v3ChooseOrderCommand reason = (Game3v3ChooseOrderCommand)arg.asInt();
-    if (reason == S_REASON_CHOOSE_ORDER_SELECT)
-        dialog->setWindowTitle(tr("The order who first choose general"));
-    else if (reason == S_REASON_CHOOSE_ORDER_TURN)
-        dialog->setWindowTitle(tr("The order who first in turn"));
-
-    QLabel *prompt = new QLabel(tr("Please select the order"));
-    OptionButton *warm_button = new OptionButton("image/system/3v3/warm.png", tr("Warm"));
-    warm_button->setObjectName("warm");
-    OptionButton *cool_button = new OptionButton("image/system/3v3/cool.png", tr("Cool"));
-    cool_button->setObjectName("cool");
-
-    QHBoxLayout *hlayout = new QHBoxLayout;
-    hlayout->addWidget(warm_button);
-    hlayout->addWidget(cool_button);
-
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(prompt);
-    layout->addLayout(hlayout);
-    dialog->setLayout(layout);
-
-    connect(warm_button, SIGNAL(clicked()), this, SLOT(onPlayerChooseOrder()));
-    connect(cool_button, SIGNAL(clicked()), this, SLOT(onPlayerChooseOrder()));
-    connect(warm_button, SIGNAL(clicked()), dialog, SLOT(accept()));
-    connect(cool_button, SIGNAL(clicked()), dialog, SLOT(accept()));
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerChooseOrder()));
-
-    ask_dialog = dialog;
-
-    setStatus(ExecDialog);
-}
-
-void Client::askForRole3v3(const Json::Value &arg){
-    if (!arg.isArray() || arg.size() != 2
-        || !arg[0].isString() || !arg[1].isArray()) return;
-    QStringList roleList;
-    if (!tryParse(arg[1], roleList)) return;
-    
-    QString scheme = toQString(arg[0]);    
-    QSet<QString> role_set = roleList.toSet();
-
-    QDialog *dialog = new QDialog;
-    dialog->setWindowTitle(tr("Select role in 3v3 mode"));
-
-    QLabel *prompt = new QLabel(tr("Please select a role"));
-    QVBoxLayout *layout = new QVBoxLayout;
-
-    layout->addWidget(prompt);   
-    
-    QStringList roles;
-    if(scheme == "AllRoles")
-        roles << "lord" << "loyalist" << "renegade" << "rebel";
-    else
-        roles << "leader1" << "guard1" << "leader2" << "guard2";
-
-    static QMap<QString, QString> jargon;
-    if(jargon.isEmpty()){
-        jargon["lord"] = tr("Warm leader");
-        jargon["loyalist"] = tr("Warm guard");
-        jargon["renegade"] = tr("Cool leader");
-        jargon["rebel"] = tr("Cool guard");
-
-        jargon["leader1"] = tr("Leader of Team 1");
-        jargon["guard1"] = tr("Guard of Team 1");
-        jargon["leader2"] = tr("Leader of Team 2");
-        jargon["guard2"] = tr("Guard of Team 2");
-    }
-
-    foreach(QString role, roles){
-        QCommandLinkButton *button = new QCommandLinkButton(jargon[role]);
-        if(scheme == "AllRoles")
-            button->setIcon(QIcon(QString("image/system/roles/%1.png").arg(role)));
-
-        layout->addWidget(button);
-
-        if(role_set.contains(role)){
-            button->setObjectName(role);
-            connect(button, SIGNAL(clicked()), this, SLOT(onPlayerChooseRole3v3()));
-            connect(button, SIGNAL(clicked()), dialog, SLOT(accept()));
-        }else
-            button->setDisabled(true);
-    }
-
-    QCommandLinkButton *abstain_button = new QCommandLinkButton(tr("Abstain"));
-    connect(abstain_button, SIGNAL(clicked()), dialog, SLOT(reject()));
-    layout->addWidget(abstain_button);
-
-    dialog->setObjectName("abstain");
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerChooseRole3v3()));
-
-    dialog->setLayout(layout);
-
-    ask_dialog = dialog;
-
-    setStatus(ExecDialog);
-}
-
 void Client::onPlayerChooseRole3v3(){
     replyToServer(S_COMMAND_CHOOSE_ROLE_3V3, toJsonString(sender()->objectName()));
     setStatus(NotActive);
-}
-
-void Client::askForDirection(const Json::Value &){
-    QDialog *dialog = new QDialog;
-    dialog->setWindowTitle(tr("Please select the direction"));
-
-    QLabel *prompt = new QLabel(dialog->windowTitle());
-
-    OptionButton *cw_button = new OptionButton("image/system/3v3/cw.png", tr("CW"));
-    cw_button->setObjectName("cw");
-
-    OptionButton *ccw_button = new OptionButton("image/system/3v3/ccw.png", tr("CCW"));
-    ccw_button->setObjectName("ccw");
-
-    QHBoxLayout *hlayout = new QHBoxLayout;
-    hlayout->addWidget(cw_button);
-    hlayout->addWidget(ccw_button);
-
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(prompt);
-    layout->addLayout(hlayout);
-    dialog->setLayout(layout);
-
-    dialog->setObjectName("ccw");
-    connect(ccw_button, SIGNAL(clicked()), this, SLOT(onPlayerMakeChoice()));
-    connect(ccw_button, SIGNAL(clicked()), dialog, SLOT(accept()));
-    connect(cw_button, SIGNAL(clicked()), this, SLOT(onPlayerMakeChoice()));
-    connect(cw_button, SIGNAL(clicked()), dialog, SLOT(accept()));
-    connect(dialog, SIGNAL(rejected()), this, SLOT(onPlayerMakeChoice()));
-
-    ask_dialog = dialog;
-
-    setStatus(ExecDialog);
 }
 
 void Client::recoverGeneral(const QString &recover_str){

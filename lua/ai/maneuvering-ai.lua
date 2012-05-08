@@ -264,7 +264,7 @@ function SmartAI:useCardIronChain(card, use)
 			table.insert(enemytargets, enemy)
 		end
 	end
-	if not self.player:hasSkill("wuyan") then
+	if not self.player:hasSkill("nos_wuyan") then
 		if #friendtargets > 1 then
 			if use.to then use.to:append(friendtargets[1]) end
 			if use.to then use.to:append(friendtargets[2]) end
@@ -331,7 +331,7 @@ function SmartAI:useCardFireAttack(fire_attack, use)
 		if (self:objectiveLevel(enemy) > 3) and not enemy:isKongcheng() and not self.room:isProhibited(self.player, enemy, fire_attack)  
 			and self:damageIsEffective(enemy, sgs.DamageStruct_Fire, self.player) and self:hasTrickEffective(fire_attack, enemy)
 			and not self:cantbeHurt(enemy)
-			and not (enemy:isChained() and not self:isGoodChainTarget(enemy)) then
+			and not (enemy:isChained() and not self:isGoodChainTarget(enemy) and not self.player:hasSkill("jueqing")) then
 
 			local cards = enemy:getHandcards()
 			local success = true
@@ -358,7 +358,8 @@ function SmartAI:useCardFireAttack(fire_attack, use)
 	if #targets_succ > 0 then
 		use.card = fire_attack
 		if use.to then use.to:append(targets_succ[1]) end
-	elseif self.player:isChained() and self:isGoodChainTarget(self.player) and self:isGoodChainPartner(self.player) and self.player:getHandcardNum() > 1 then
+	elseif self.player:isChained() and self:isGoodChainTarget(self.player) and (self:isGoodChainPartner(self.player) 
+	or (self:isEquip("SilverLion") and self:hasSkill("fankui"))) and self.player:getHandcardNum() > 1 then
 		use.card = fire_attack
 		if use.to then use.to:append(self.player) end
 	elseif #targets_fail > 0 and self:getOverflow(self.player) > 0 then

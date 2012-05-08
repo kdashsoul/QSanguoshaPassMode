@@ -1,7 +1,7 @@
 -- translation for SP Package
 
 return {
-	["sp"] = "SP",
+	["sp"] = "SP包",
 
 	["#yangxiu"] = "恃才放旷",
 	["yangxiu"] = "杨修",
@@ -95,10 +95,10 @@ return {
 	["Hulaopass"] = "虎牢关模式",
 
 	["#shenlvbu1"] = "最强神话",
-	["shenlvbu1"] = "神吕布(1)",
+	["shenlvbu1"] = "虎牢关吕布",
 	["illustrator:shenlvbu1"] = "LiuHeng",
 	["#shenlvbu2"] = "暴怒的战神",
-	["shenlvbu2"] = "神吕布(2)",
+	["shenlvbu2"] = "虎牢关吕布",
 	["illustrator:shenlvbu2"] = "LiuHeng",
 	["xiuluo"] = "修罗",
 	[":xiuluo"] = "回合开始阶段，你可以弃置一张手牌来将你判定区里的一张延时类锦囊置入弃牌堆(必须花色相同)。",
@@ -120,6 +120,6 @@ return {
 --sp_card
 	["sp_cards"] = "SP卡牌包",
 	["sp_moonspear"] = "SP银月枪",
-	[":sp_moonspear"] = "你的回合外，每当你使用或打出一张黑色手牌时，你可以令你攻击范围内的一名其他角色打出一张【闪】，否则受到你对其造成的1点伤害",
+	[":sp_moonspear"] = "装备牌·武器<br />攻击范围：３<br />武器特效：你的回合外，每当你使用或打出一张黑色手牌时，你可以令你攻击范围内的一名其他角色打出一张【闪】，否则受到你对其造成的1点伤害",
 	["@moon-spear-jink"] = "受到SP银月枪技能的影响，你必须打出一张【闪】",
 }

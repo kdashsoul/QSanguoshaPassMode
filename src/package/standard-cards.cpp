@@ -475,7 +475,7 @@ public:
         QString asked = data.toString();
         if(asked == "jink"){
             Room *room = player->getRoom();
-            if(room->askForSkillInvoke(player, objectName())){
+                if(room->askForSkillInvoke(player, objectName())){
                 JudgeStruct judge;
                 judge.pattern = QRegExp("(.*):(heart|diamond):(.*)");
                 judge.good = true;
@@ -521,8 +521,10 @@ void AmazingGrace::use(Room *room, ServerPlayer *source, const QList<ServerPlaye
     room->fillAG(card_ids);
 
     QVariantList ag_list;
-    foreach(int card_id, card_ids)
+    foreach(int card_id, card_ids){
+        room->setCardFlag(card_id, "visible");
         ag_list << card_id;
+    }
     room->setTag("AmazingGrace", ag_list);
 
     GlobalEffect::use(room, source, players);
@@ -855,10 +857,7 @@ void Snatch::onEffect(const CardEffectStruct &effect) const{
     Room *room = effect.to->getRoom();
     int card_id = room->askForCardChosen(effect.from, effect.to, "hej", objectName());
 
-    if(room->getCardPlace(card_id) == Player::Hand)
-        room->moveCardTo(Sanguosha->getCard(card_id), effect.from, Player::Hand, false);
-    else
-        room->obtainCard(effect.from, card_id);
+    room->obtainCard(effect.from, card_id, room->getCardPlace(card_id) != Player::Hand);
 }
 
 Dismantlement::Dismantlement(Suit suit, int number)

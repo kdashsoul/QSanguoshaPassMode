@@ -22,6 +22,8 @@
 
 #include "pixmapanimation.h"
 
+using namespace QSanProtocol;
+
 Photo::Photo()
     :Pixmap("image/system/photo-back.png"),
     player(NULL),
@@ -43,15 +45,11 @@ Photo::Photo()
     chain_icon->setPos(boundingRect().width() - 22, 5);
     chain_icon->hide();
 
-    progress_bar = new QProgressBar;
-    progress_bar->setMinimum(0);
-    progress_bar->setMaximum(100);
-    progress_bar->setValue(0);
+    progress_bar = new QSanCommandProgressBar;
+    progress_bar->setAutoHide(true);
     progress_bar->hide();
     progress_bar->setMaximumHeight(15);
     progress_bar->setMaximumWidth(pixmap.width());
-    progress_bar->setTextVisible(false);
-    timer_id = 0;
 
     frame_item = new QGraphicsPixmapItem(this);
     frame_item->setPos(-6, -6);
@@ -111,7 +109,7 @@ void Photo::setOrder(int order){
         order_item->setPixmap(pixmap);
     else{
         order_item = new QGraphicsPixmapItem(pixmap, this);
-        order_item->setVisible(ServerInfo.GameMode == "08same");
+        order_item->setVisible(ServerInfo.EnableSame);
         order_item->moveBy(15, 0);
     }
 }
@@ -139,22 +137,13 @@ void Photo::updateRoleComboboxPos()
     //if(pile_button)pile_button->setPos(46, 48);
 }
 
-void Photo::showProcessBar(){
-    progress_bar->setValue(0);
+void Photo::showProgressBar(Countdown countdown){
+    progress_bar->setCountdown(countdown);
     progress_bar->show();
-
-    if(ServerInfo.OperationTimeout != 0)
-        timer_id = startTimer(500);
 }
 
-void Photo::hideProcessBar(){
-    progress_bar->setValue(0);
+void Photo::hideProgressBar(){
     progress_bar->hide();
-
-    if(timer_id != 0){
-        killTimer(timer_id);
-        timer_id = 0;
-    }
 }
 
 void Photo::setEmotion(const QString &emotion, bool permanent){
@@ -221,18 +210,6 @@ void Photo::setActionState(){
 void Photo::hideEmotion(){
     if(!permanent)
         emotion_item->hide();
-}
-
-void Photo::timerEvent(QTimerEvent *event){
-    int step = 100 / double(ServerInfo.OperationTimeout * 5);
-    int new_value = progress_bar->value() + step;
-    new_value = qMin(progress_bar->maximum(), new_value);
-    progress_bar->setValue(new_value);
-
-    if(new_value == progress_bar->maximum()){
-        killTimer(event->timerId());
-        timer_id = 0;
-    }
 }
 
 void Photo::setPlayer(const ClientPlayer *player)
@@ -511,6 +488,7 @@ void Photo::setFrame(FrameType type){
 }
 
 void Photo::updatePhase(){
+    progress_bar->hide();
     if(player->getPhase() != Player::NotActive)
         setFrame(Playing);
     else
@@ -690,7 +668,7 @@ void Photo::drawEquip(QPainter *painter, CardItem *equip, int order){
 
 QVariant Photo::itemChange(GraphicsItemChange change, const QVariant &value){
     if(change == ItemFlagsHaveChanged){
-        if(ServerInfo.GameMode != "08same")
+        if(!ServerInfo.EnableSame)
             order_item->setVisible(flags() & ItemIsSelectable);
     }
 

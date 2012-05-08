@@ -26,7 +26,7 @@ public:
             return;
 
         int card_id = room->askForCardChosen(player, target, "h", objectName());
-        room->moveCardTo(Sanguosha->getCard(card_id), player, Player::Hand, false);
+        room->obtainCard(player, card_id, false);
     }
 
     virtual bool trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
@@ -118,10 +118,11 @@ public:
         return target->hasUsed("LihunCard");
     }
 
-    virtual bool trigger(TriggerEvent event, ServerPlayer *diaochan, QVariant &data) const{
+    virtual bool trigger(TriggerEvent, ServerPlayer *diaochan, QVariant &data) const{
         Room *room = diaochan->getRoom();
+        PhaseChangeStruct phase_change = data.value<PhaseChangeStruct>();
 
-        if(event == PhaseChange && diaochan->getPhase() == Player::Discard){
+        if(phase_change.from == Player::Play){
             ServerPlayer *target = NULL;
             foreach(ServerPlayer *other, room->getOtherPlayers(diaochan)){
                 if(other->hasFlag("LihunTarget")){
@@ -136,12 +137,8 @@ public:
 
             int hp = target->isAlive() ? target->getHp() : 0;
             if(diaochan->getCards("he").length() <= hp){
-                foreach(const Card *card, diaochan->getCards("he")){
-                    room->moveCardTo(card,
-                                     target,
-                                     Player::Hand,
-                                     room->getCardPlace(card->getEffectiveId()) == Player::Hand ? false : true);
-                }
+                foreach(const Card *card, diaochan->getCards("he"))
+                    room->obtainCard(target, card, room->getCardPlace(card->getEffectiveId()) != Player::Hand);
             }
             else{
                 int i;
@@ -150,11 +147,7 @@ public:
                         return false;
 
                     int card_id = room->askForCardChosen(diaochan, diaochan, "he", objectName());
-                    const Card *card = Sanguosha->getCard(card_id);
-                    room->moveCardTo(card,
-                                     target,
-                                     Player::Hand,
-                                     room->getCardPlace(card_id) == Player::Hand ? false : true);
+                    room->obtainCard(target, card_id, room->getCardPlace(card_id) != Player::Hand);
                 }
             }
             room->removeTag("LihunTarget");

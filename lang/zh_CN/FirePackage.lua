@@ -21,7 +21,7 @@ return {
 	[":qiangxi"] = "出牌阶段，你可以失去1点体力或弃置一张武器牌，并对你攻击范围内的一名角色造成1点伤害。每阶段限一次",
 
 	["#wolong"] = "卧龙",
-	["wolong"] = "诸葛亮",
+	["wolong"] = "小诸葛",
 	["bazhen"] = "八阵",
 	[":bazhen"] = "<b>锁定技</b>，若你的装备区没有防具牌，视为你装备着【八卦阵】\
 ★装备任何防具都会失去“八阵”的效果",
@@ -54,7 +54,8 @@ return {
 	["xueyi"] = "血裔",
 	[":xueyi"] = "<b>主公技</b>，<b>锁定技</b>，场上每有一名其他群雄角色存活，你的手牌上限便+2",
 
-	["#shuangxiong"] = "虎狼兄弟",
+	["#yanliangwenchou"] = "虎狼兄弟",
+	["yanliangwenchou"] = "颜良文丑",
 	["shuangxiong"] = "双雄",
 	[":shuangxiong"] = "摸牌阶段，你可以放弃摸牌，改为进行一次判定，你获得此判定牌，且此回合你的每张与该判定牌不同颜色的手牌均可当【决斗】使用",
 	["shuangxiong:yes"] = "选择放弃摸牌并进行一次判定：获得此判定牌并且此回合可以将任意一张与该判定牌不同颜色的手牌当【决斗】使用",
@@ -91,7 +92,7 @@ return {
 	["~yuanshao"] = "天不助袁哪！",
 	["~taishici"] = "今所志未遂，奈何死乎",
 	["~pangde"] = "宁做国家鬼，不为贼将也",
-	["~shuangxiong"] = "生不逢时啊……",
+	["~yanliangwenchou"] = "生不逢时啊……",
 
 	-- CV
 	["cv:xunyu"] = "听雨",
@@ -101,7 +102,7 @@ return {
 	["cv:taishici"] = "口渴口樂",
 	["cv:yuanshao"] = "耗子王",
 	["cv:pangde"] = "Glory",
-	["cv:shuangxiong"] = "墨染の飞猫，霸气爷们",
+	["cv:yanliangwenchou"] = "墨染の飞猫，霸气爷们",
 
 	-- illustrator
 	["illustrator:yuanshao"] = "Sonia Tang",

@@ -42,7 +42,7 @@ void QiaobianCard::use(Room *room, ServerPlayer *zhanghe, const QList<ServerPlay
         room->playSkillEffect("qiaobian", 2);
         foreach(ServerPlayer *target, targets){
             int card_id = room->askForCardChosen(zhanghe, target, "h", "qiaobian");
-            room->moveCardTo(Sanguosha->getCard(card_id), zhanghe, Player::Hand, false);
+            room->obtainCard(zhanghe, card_id, false);
         }
     }else if(zhanghe->getPhase() == Player::Play){
         room->playSkillEffect("qiaobian", 3);
@@ -716,27 +716,27 @@ public:
 class Guzheng: public TriggerSkill{
 public:
     Guzheng():TriggerSkill("guzheng"){
-        events << CardDiscarded;
+        events << CardLost;
     }
 
     virtual bool triggerable(const ServerPlayer *target) const{
-        return !target->hasSkill("guzheng");
+        return true;
     }
 
     virtual bool trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
         Room *room = player->getRoom();
         ServerPlayer *erzhang = room->findPlayerBySkillName(objectName());
+        ServerPlayer *current = room->getCurrent();
 
         if(erzhang == NULL)
             return false;
-
-        if(player->getPhase() == Player::Discard){
+        if(erzhang == current)
+            return false;
+        if(current->getPhase() == Player::Discard){
             QVariantList guzheng = erzhang->tag["Guzheng"].toList();
 
-            CardStar card = data.value<CardStar>();
-            foreach(int card_id, card->getSubcards()){
-                guzheng << card_id;
-            }
+            CardMoveStar move = data.value<CardMoveStar>();
+                guzheng << move->card_id;
 
             erzhang->tag["Guzheng"] = guzheng;
         }

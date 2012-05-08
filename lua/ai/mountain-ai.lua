@@ -321,7 +321,7 @@ sgs.ai_skill_use_func.TiaoxinCard = function(card,use,self)
 			end
 		end
 
-		if enemy:inMyAttackRange(self.player) and
+		if enemy:distanceTo(self.player) <= enemy:getAttackRange() and
 			(self:getCardsNum("Slash", enemy) == 0 or slash_useless or self:getCardsNum("Jink") > 0) and
 			not enemy:isNude() then
 			table.insert(targets, enemy)
@@ -338,6 +338,7 @@ sgs.ai_skill_use_func.TiaoxinCard = function(card,use,self)
 end
 
 sgs.ai_card_intention.TiaoxinCard = 80
+sgs.ai_use_priority.TiaoxinCard = 8
 
 sgs.ai_skill_choice.zhiji = function(self, choice)
 	if self.player:getHp() < self.player:getMaxHP()-1 then return "recover" end
@@ -390,7 +391,7 @@ sgs.ai_skill_use_func.ZhibaCard = function(card, use, self)
 		local lord_min_num = 14, lord_min_card
 		local lord_cards = lord:getHandcards()
 		for _, lcard in sgs.qlist(lord_cards) do
-			if lcard:getNumber() > lord_max_num then
+			if lcard:hasFlag("visible") and lcard:getNumber() > lord_max_num then
 				lord_max_card = lcard
 				lord_max_num = lcard:getNumber()
 			end
@@ -400,10 +401,10 @@ sgs.ai_skill_use_func.ZhibaCard = function(card, use, self)
 			end
 		end
 
-		if self:isEnemy(lord) and max_num > lord_max_num then
+		if self:isEnemy(lord) and max_num > 9 and max_num > lord_max_num then
 			zhiba_str = "@ZhibaCard=" .. max_card:getEffectiveId()
 		end
-		if self:isFriend(lord) and min_num < lord_min_num then
+		if self:isFriend(lord) and ((lord_max_num > 0 and min_num <= lord_max_num) or min_num < 8) then
 			zhiba_str = "@ZhibaCard=" .. min_card:getEffectiveId()
 		end
 

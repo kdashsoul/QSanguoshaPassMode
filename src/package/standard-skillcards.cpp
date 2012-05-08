@@ -307,17 +307,5 @@ void JijiangCard::use(Room *room, ServerPlayer *liubei, const QList<ServerPlayer
             return;
         }
     }
-
-    if(PassMode::canUseEnhancedSkill(liubei,"jijiang",1)){
-        room->addPlayerCountInfo(liubei,"jijiang");
-        Slash *slash = new Slash(Card::NoSuit,0) ;
-        slash->setSkillName("jijiang");
-        CardUseStruct card_use;
-        card_use.card = slash;
-        card_use.from = liubei;
-        card_use.to << targets.first();
-        room->useCard(card_use);
-        return;
-    }
 }
 

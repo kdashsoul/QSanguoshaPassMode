@@ -32,6 +32,12 @@ config = {
 	scene_names = {
         "Custom"
 	},
+
+        color_wei = "#547998",
+        color_shu = "#D0796C",
+        color_wu = "#4DB873",
+        color_qun = "#8A807A",
+        color_god = "#96943D",
 }
 for i=1, 7 do
 	local scene_name = ("PassMode_%02d"):format(i)

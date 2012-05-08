@@ -73,7 +73,6 @@ Engine::Engine()
     modes["08p"] = tr("8 players");
     modes["08pd"] = tr("8 players (2 renegades)");
     modes["08pz"] = tr("8 players (0 renegade)");
-    modes["08same"] = tr("8 players (same mode)");
     modes["09p"] = tr("9 players");
     modes["10pd"] = tr("10 players");
     modes["10p"] = tr("10 players (1 renegade)");
@@ -327,17 +326,30 @@ QStringList Engine::getExtensions() const{
 }
 
 QStringList Engine::getKingdoms() const{
-    return GetConfigFromLuaState(lua, "kingdoms").toStringList();
+    static QStringList kingdoms;
+    if(kingdoms.isEmpty())
+        kingdoms = GetConfigFromLuaState(lua, "kingdoms").toStringList();
+
+    return kingdoms;
 }
 
 QColor Engine::getKingdomColor(const QString &kingdom) const{
     static QMap<QString, QColor> color_map;
     if(color_map.isEmpty()){
-        color_map["wei"] = QColor(0x54, 0x79, 0x98);
-        color_map["shu"] = QColor(0xD0, 0x79, 0x6C);
-        color_map["wu"] = QColor(0x4D, 0xB8, 0x73);
-        color_map["qun"] = QColor(0x8A, 0x80, 0x7A);
-        color_map["god"] = QColor(0x96, 0x94, 0x3D);
+        foreach(QString k, getKingdoms()){
+            QString color_str = GetConfigFromLuaState(lua,  ("color_" + k).toAscii()).toString();
+            QRegExp rx("#?([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})");
+            if(rx.exactMatch(color_str)){
+                QStringList results = rx.capturedTexts();
+                int red = results.at(1).toInt(NULL, 16);
+                int green = results.at(2).toInt(NULL, 16);
+                int blue = results.at(3).toInt(NULL, 16);
+
+                color_map.insert(k, QColor(red, green, blue));
+            }
+        }
+
+        Q_ASSERT(!color_map.isEmpty());
     }
 
     return color_map.value(kingdom);
@@ -352,6 +364,8 @@ QString Engine::getSetupString() const{
         flags.append("S");
     if(Config.EnableScene)
         flags.append("C");
+    if(Config.EnableSame)
+        flags.append("T");
     if(Config.EnableBasara)
         flags.append("B");
     if(Config.EnableHegemony)
@@ -386,8 +400,6 @@ QString Engine::getModeName(const QString &mode) const{
         return modes.value(mode);
     else
         return tr("%1 [Scenario mode]").arg(translate(mode));
-
-    return QString();
 }
 
 int Engine::getPlayerCount(const QString &mode) const{

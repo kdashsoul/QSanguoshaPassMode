@@ -218,7 +218,7 @@ end
 sgs.ai_skill_playerchosen.zhuiyi = function(self, targets)	
 	targets = sgs.QList2Table(targets)
 	self:sort(targets,"defense")
-	for _, friend in ipairs(self.friends_noself) do
+	for _, friend in ipairs(targets) do
 		if self:isFriend(friend) then
 			return friend
 		end
@@ -278,6 +278,13 @@ sgs.ai_skill_use["@@chunlao"] = function(self, prompt)
 end
 
 sgs.ai_skill_invoke.chunlao = sgs.ai_skill_invoke.buyi
+
+sgs.chengpu_keep_value = 
+{
+	Peach = 6,
+	Jink = 5.1,
+	Slash = 5.5,
+}
 
 sgs.ai_skill_invoke.zhiyu = function(self)
 	local cards = self.player:getCards("h")	
@@ -389,7 +396,7 @@ end
 
 sgs.ai_skill_use_func.QiceCard=function(card,use,self)
 	local userstring=card:toString()
-	userstring=(userstring:split(":"))[2]
+	userstring=(userstring:split(":"))[3]
 	local qicecard=sgs.Sanguosha:cloneCard(userstring, card:getSuit(), card:getNumber())
 	self:useTrickCard(qicecard,use) 
 	if not use.card then return end

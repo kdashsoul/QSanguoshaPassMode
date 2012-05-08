@@ -24,6 +24,12 @@ namespace QSanProtocol
         S_CLIENT_NOTIFICATION
     };
 
+    enum ProcessInstanceType
+    {
+        S_SERVER_INSTANCE,
+        S_CLIENT_INSTANCE
+    };
+
     enum CheatCode
     {
         S_CHEAT_GET_ONE_CARD,
@@ -63,7 +69,6 @@ namespace QSanProtocol
         S_COMMAND_CHOOSE_ROLE,
         S_COMMAND_CHOOSE_ROLE_3V3,
         S_COMMAND_CHOOSE_DIRECTION,
-        S_COMMAND_CHOOSE_SKILL,
         S_COMMAND_CHOOSE_PLAYER,
         S_COMMAND_CHOOSE_ORDER,
         S_COMMAND_ASK_PEACH,
@@ -82,7 +87,8 @@ namespace QSanProtocol
         S_COMMAND_SET_HP,
         S_COMMAND_SET_MAXHP,
         S_COMMAND_CHEAT,
-        S_COMMAND_SURRENDER
+        S_COMMAND_SURRENDER,
+        S_COMMAND_GAME_OVER
     };
 
     enum Game3v3ChooseOrderCommand
@@ -95,6 +101,49 @@ namespace QSanProtocol
     {
         S_CAMP_WARM = 0,
         S_CAMP_COOL = 1
+    };
+
+    class Countdown
+    {
+    public:
+        enum CountdownType
+        {            
+            S_COUNTDOWN_NO_LIMIT,
+            S_COUNTDOWN_USE_SPECIFIED,
+            S_COUNTDOWN_USE_DEFAULT           
+        } m_type;
+        static const std::string S_COUNTDOWN_MAGIC;
+        time_t m_current;
+        time_t m_max;
+        inline Countdown(CountdownType type = S_COUNTDOWN_NO_LIMIT, time_t current = 0, time_t max = 0):
+            m_type(type), m_current(current), m_max(max) {}
+        bool tryParse(Json::Value val);        
+        inline Json::Value toJsonValue()
+        {
+            if (m_type == S_COUNTDOWN_NO_LIMIT
+                || m_type == S_COUNTDOWN_USE_DEFAULT)
+            {
+                Json::Value val(Json::arrayValue);
+                val[0] = S_COUNTDOWN_MAGIC;
+                val[1] = (int)m_type;                
+                return val;                
+            }
+            else
+            {
+                Json::Value val(Json::arrayValue);
+                val[0] = S_COUNTDOWN_MAGIC;
+                val[1] = (int)m_current;
+                val[2] = (int)m_max;
+                return val;
+            }
+        }
+        inline bool hasTimedOut()
+        {
+            if (m_type == S_COUNTDOWN_NO_LIMIT)
+                return false;
+            else
+                return m_current >= m_max;
+        }
     };
 
     class QSanPacket
@@ -111,7 +160,7 @@ namespace QSanProtocol
     public:
         //format: [global_serial,local_serial,packet_type,command_name,command_body]
         unsigned int m_globalSerial;
-        int m_localSerial;        
+        unsigned int m_localSerial;        
         inline QSanGeneralPacket(PacketType packetType = S_UNKNOWN_PACKET, CommandType command = S_COMMAND_UNKNOWN)
         {
             _m_globalSerial++;

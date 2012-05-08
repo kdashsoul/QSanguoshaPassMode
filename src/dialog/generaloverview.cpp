@@ -217,7 +217,7 @@ void GeneralOverview::on_tableWidget_itemSelectionChanged()
         addCopyAction(death_button);
     }
 
-    if(general_name == "caocao" || general_name == "shencc" || general_name == "shencaocao"){
+    if(general_name == "caocao" || general_name == "weiwudi" || general_name == "shencaocao"){
         QCommandLinkButton *win_button = new QCommandLinkButton(tr("Victory"), tr(
                 "Six dragons lead my chariot, "
                 "I will ride the wind with the greatest speed."
@@ -267,13 +267,8 @@ void GeneralOverview::playEffect()
 #include "client.h"
 void GeneralOverview::on_tableWidget_itemDoubleClicked(QTableWidgetItem* item)
 {
-    if(!ServerInfo.FreeChoose)
-        return;
-    if(Self){
-        int row = ui->tableWidget->currentRow();
-        if(row >= 0){
-            QString general_name = ui->tableWidget->item(row, 0)->data(Qt::UserRole).toString();
-            ClientInstance->requestCheatChangeGeneral(general_name);
-        }
+    if(ServerInfo.FreeChoose && Self){
+        QString general_name = item->data(Qt::UserRole).toString();
+        ClientInstance->requestCheatChangeGeneral(general_name);
     }
 }

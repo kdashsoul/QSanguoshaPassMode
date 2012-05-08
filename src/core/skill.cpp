@@ -129,12 +129,6 @@ ViewAsSkill::ViewAsSkill(const QString &name)
 }
 
 bool ViewAsSkill::isAvailable() const{
-//    if(Self->isSkillEnhance(objectName())){
-//        int limit_times = PassMode::getSkillMap().value(objectName(), new SkillAttrStruct)->getLimitTimes() ;
-//        if(limit_times != 0 && Self->getCountInfo(objectName()) >= limit_times){
-//            return false ;
-//        }
-//    }
     switch(ClientInstance->getStatus()){
     case Client::Playing: return isEnabledAtPlay(Self);
     case Client::Responsing: return isEnabledAtResponse(Self, ClientInstance->getPattern());
@@ -278,7 +272,7 @@ DrawCardsSkill::DrawCardsSkill(const QString &name)
     events << DrawNCards;
 }
 
-bool DrawCardsSkill::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data) const{
+bool DrawCardsSkill::trigger(TriggerEvent , ServerPlayer *player, QVariant &data) const{
     int n = data.toInt();
     data = getDrawNum(player, n);
     return false;

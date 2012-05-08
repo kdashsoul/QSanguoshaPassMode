@@ -6,12 +6,15 @@
 #include "player.h"
 #include "skill.h"
 #include "sprite.h"
+#include "protocol.h"
+#include "TimedProgressBar.h"
 
 #include <QPushButton>
 #include <QComboBox>
 #include <QGraphicsLinearLayout>
 #include <QLineEdit>
 #include <QProgressBar>
+#include <QMutex>
 
 class Dashboard : public Pixmap
 {
@@ -24,7 +27,10 @@ public:
     QGraphicsProxyWidget *addWidget(QWidget *widget, int x, bool from_left);
     QPushButton *createButton(const QString &name);
     QPushButton *addButton(const QString &name, int x, bool from_left);
-    QProgressBar *addProgressBar();
+    
+    //Progress bar functions
+    void hideProgressBar();
+    void showProgressBar(QSanProtocol::Countdown countdown);
 
     void setTrust(bool trust);
     void addCardItem(CardItem *card_item);
@@ -59,6 +65,7 @@ public:
     int getRightPosition();
     int getMidPosition();
     int getButtonWidgetWidth() const;
+    int getTextureWidth() const;
 
 public slots:
     void updateAvatar();
@@ -72,6 +79,12 @@ public slots:
 protected:
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
     virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
+
+    // ui controls
+    QSanCommandProgressBar m_progressBar;
+    
+    // sync objects
+    QMutex m_mutex;
 
 private:
     QPixmap left_pixmap, right_pixmap;
@@ -102,6 +115,9 @@ private:
     //for animated effects
     EffectAnimation *animations;
 
+    // UI control creation
+    void _addProgressBar();
+
     // for parts creation
     void createLeft();
     void createRight();
@@ -131,6 +147,7 @@ private slots:
 signals:
     void card_selected(const Card *card);
     void card_to_use();
+    void progressBarTimedOut();
 };
 
 #endif // DASHBOARD_H

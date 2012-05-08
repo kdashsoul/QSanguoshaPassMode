@@ -49,7 +49,6 @@ void GameRule::onPhaseChange(ServerPlayer *player) const{
                 if(!on_effect)
                     trick->onNullified(player);
             }
-
             break;
         }
     case Player::Draw: {
@@ -244,8 +243,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             room->sendLog(log);
 
             room->setPlayerProperty(player, "hp", player->getHp() - lose);
-            QString str = QString("%1:%2").arg(player->objectName()).arg(-lose);
-            str.append("L");
+            QString str = QString("%1:%2L").arg(player->objectName()).arg(-lose);
             room->broadcastInvoke("hpChange", str);
 
             if(player->getHp() <= 0)
@@ -352,7 +350,6 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
                 QList<ServerPlayer *> chained_players = room->getAlivePlayers();
                 foreach(ServerPlayer *chained_player, chained_players){
                     if(chained_player->isChained()){
-                        room->getThread()->delay();
                         room->setPlayerProperty(chained_player, "chained", false);
 
                         LogMessage log;
@@ -397,7 +394,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             SlashEffectStruct effect = data.value<SlashEffectStruct>();
 
             QString slasher = effect.from->objectName();
-            const Card *jink = room->askForCard(effect.to, "jink", "slash-jink:" + slasher, data);
+            const Card *jink = room->askForCard(effect.to, "jink", "slash-jink:" + slasher, data, JinkUsed);
             room->slashResult(effect, jink);
 
             break;
@@ -442,7 +439,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             break;
         }
 
-    case GameOverJudge:{
+    case GameOverJudge:{            
             if(room->getMode() == "02_1v1"){
                 QStringList list = player->tag["1v1Arrange"].toStringList();
 
@@ -452,6 +449,7 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
             QString winner = getWinner(player);
             if(!winner.isNull()){
+                player->bury();
                 room->gameOver(winner);
                 return true;
             }
@@ -507,11 +505,6 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
 
             room->sendJudgeResult(judge);
 
-            int delay = Config.AIDelay;
-            if(judge->time_consuming)
-                delay /= 4;
-            room->getThread()->delay(delay);
-
             break;
         }
 
@@ -526,9 +519,6 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             room->sendLog(log);
 
             room->sendJudgeResult(judge);
-
-            room->getThread()->delay();
-
             break;
         }
 
@@ -542,14 +532,12 @@ bool GameRule::trigger(TriggerEvent event, ServerPlayer *player, QVariant &data)
             log.from = pindian->from;
             log.card_str = pindian->from_card->getEffectIdString();
             room->sendLog(log);
-            room->getThread()->delay();
 
             room->throwCard(pindian->to_card);
             log.type = "$PindianResult";
             log.from = pindian->to;
             log.card_str = pindian->to_card->getEffectIdString();
             room->sendLog(log);
-            room->getThread()->delay();
 
             break;
         }
@@ -822,7 +810,7 @@ BasaraMode::BasaraMode(QObject *parent)
     skill_mark["niepan"] = "@nirvana";
     skill_mark["smallyeyan"] = "@flame";
     skill_mark["luanwu"] = "@chaos";
-    skill_mark["laoji"] = "@laoji";
+    skill_mark["fuli"] = "@laoji";
     skill_mark["zuixiang"] = "@sleep";
 }
 

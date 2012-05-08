@@ -209,10 +209,10 @@ public:
 	void jilei(const char *type);
 	bool isJilei(const Card *card) const;
 
-    void setCardLocked(const char *name);
-    bool isLocked(const Card *card) const;
-    bool hasCardLock(const char *card_str) const;
-	
+	void setCardLocked(const char *name);
+	bool isLocked(const Card *card) const;
+	bool hasCardLock(const char *card_str) const;
+
 	bool isCaoCao() const;
 	void copyFrom(Player* p);
 
@@ -249,7 +249,7 @@ public:
 	void playCardEffect(const char *card_name) const;
 	int getRandomHandCardId() const;
 	const Card *getRandomHandCard() const;
-	void obtainCard(const Card *card);
+	void obtainCard(const Card *card, bool unhide = true);
 	void throwAllEquips();
 	void throwAllHandCards();
 	void throwAllCards();
@@ -438,6 +438,12 @@ struct PindianStruct{
 	const Card *from_card;
 	const Card *to_card;
 	QString reason;
+};
+
+struct PhaseChangeStruct{
+    PhaseChangeStruct();
+    Player::Phase from;
+    Player::Phase to;
 };
 
 typedef PindianStruct *PindianStar;
@@ -799,6 +805,8 @@ public:
 	void setPlayerFlag(ServerPlayer *player, const char *flag);
 	void setPlayerProperty(ServerPlayer *player, const char *property_name, const QVariant &value);
 	void setPlayerMark(ServerPlayer *player, const char *mark, int value);
+    void setPlayerCardLock(ServerPlayer *player, const char *name);
+    void clearPlayerCardLock(ServerPlayer *player);
     void setPlayerStatistics(ServerPlayer *player, const char *property_name, const QVariant &value);
     void setCardFlag(const Card *card, const char *flag, ServerPlayer *who = NULL);
     void setCardFlag(int card_id, const char *flag, ServerPlayer *who = NULL);
@@ -871,8 +879,8 @@ public:
 	void setCardMapping(int card_id, ServerPlayer *owner, Player::Place place);
 
 	void drawCards(ServerPlayer *player, int n, const char *reason = NULL);
-	void obtainCard(ServerPlayer *target, const Card *card);
-	void obtainCard(ServerPlayer *target, int card_id);
+	void obtainCard(ServerPlayer *target, const Card *card, bool unhide = true);
+	void obtainCard(ServerPlayer *target, int card_id, bool unhide = true);
 
 	void throwCard(const Card *card, ServerPlayer *who = NULL);
 	void throwCard(int card_id, ServerPlayer *who = NULL);

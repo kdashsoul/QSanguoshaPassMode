@@ -149,8 +149,8 @@ sgs.ai_skill_use["@@yinghun"] = function(self, prompt)
 		self:sort(self.enemies, "handcard")
 		for index = #self.enemies, 1, -1 do
 			local enemy = self.enemies[index]
-			if not self:hasSkills(sgs.lose_equip_skill, enemy) and not enemy:isNude() and
-			   not (enemy:getCards("he"):length() < x or sgs.getDefense(enemy) < 3) then
+			if not enemy:isNude() and not (self:hasSkills(sgs.lose_equip_skill, enemy) and
+			   not (enemy:getCards("he"):length() < x or sgs.getDefense(enemy) < 3)) then
 				self.yinghun = enemy
 				self.yinghunchoice = "d1tx"
 				break
@@ -306,7 +306,7 @@ luanwu_skill.getTurnUseCard=function(self)
 		local can_slash = false
 		if not can_slash then
 			for _, p in sgs.qlist(self.room:getOtherPlayers(player)) do
-				if player:inMyAttackRange(p) then can_slash = true break end
+				if player:distanceTo(p) <= player:getAttackRange() then can_slash = true break end
 			end
 		end
 		if not has_slash or not can_slash then
